@@ -120,7 +120,6 @@ var newRequirement = {
   }
 
   function postRequirement(req) {
-    console.log(req);
     $.ajax({
       async: true,
       method: "POST",
@@ -134,10 +133,17 @@ var newRequirement = {
       + userInfo.username
       + "&api-key="
       + userInfo.apikey,
-      data: JSON.stringify(req)
-    }).done(function (data) {
-      console.log("sent", data);
+      data: JSON.stringify(req),
+      success:function(data, textStatus, response){
+        $("<p>" + req.Name + " sent successfully<p>").appendTo('#error-box');
+      },
+      error: function(){
+        $("<p>" + req.Name + " failed to send<p>").appendTo('#error-box');
+      }
+    }).done(function (data, textStatus, response) {
+
     })
+    return "done";
   }
 
   function cleanObject(Obj) {

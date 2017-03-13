@@ -49,7 +49,7 @@ span {
 
 
 .hidden {
-    visibility: hidden;
+    display: none;
 }
 
 .login-screen {
