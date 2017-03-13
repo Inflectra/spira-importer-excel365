@@ -1,0 +1,57 @@
+/* 
+ * Copyright (c) Microsoft Corporation. All rights reserved. Licensed under the MIT license.
+ * See LICENSE in the project root for license information.
+ */
+a {
+  text-decoration: none;
+}
+
+html,
+body {
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    padding: 0;
+}
+
+ul,
+p,
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+    margin: 0;
+    padding: 0;
+}
+
+input, select, textarea{
+    width:195px;    
+    -ms-box-sizing:content-box;
+    -moz-box-sizing:content-box;
+    box-sizing:content-box;
+    -webkit-box-sizing:content-box; 
+}
+
+span {
+    padding-bottom: 5px;
+}
+
+.error{
+    border: .5px red solid;
+}
+
+.help-box {
+    margin: 25px;
+    cursor: pointer;
+}
+
+
+.hidden {
+    visibility: hidden;
+}
+
+.login-screen {
+    overflow: hidden;
+}
