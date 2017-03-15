@@ -20,6 +20,8 @@ var newRequirement = {
   "ComponentName": null
 };
 
+var projects = undefined;
+
 (function () {
 
 
@@ -29,7 +31,20 @@ var newRequirement = {
       $('#logIn').click(logIn);
       $('#testing').click(testing);
       $('#help-toggle').click(showHelp);
-      $('#export').click(getRowAmount);
+      $('#export').click(function(){
+        $('#projects').removeClass('error');
+        $(this).attr('disabled', 'disabled');
+        $(this).addClass('is-disabled');
+        var selectedProject = $('#projects').val();
+        if (selectedProject != -1){
+          getRowAmount();
+        }
+        else {
+          $('#projects').addClass('error');
+          $(this).removeClass('is-disabled');
+          $(this).prop('disabled', false);
+        }
+      });
     })
   };
 
@@ -44,25 +59,23 @@ var newRequirement = {
     if (userInfo.spiraUrl.charAt(4) !== "s") {
       $('#url').addClass("error");
       $('#error-message').text(" Invalid URL (must be https)").addClass("ms-Icon ms-Icon--Error");
-    }
-    else {
+    } else {
       getProjects();
     }
     console.log(userInfo);
     //$("#logInScreen").addClass("hidden");
 
-  }// end of logIn
+  } // end of logIn
 
   function getProjects() {
-    var projects = undefined;
     $.ajax({
       method: "GET",
       crossDomain: true,
-      url: userInfo.spiraUrl
-      + "services/v5_0/RestService.svc/projects?username="
-      + userInfo.username
-      + "&api-key="
-      + userInfo.apikey,
+      url: userInfo.spiraUrl +
+        "services/v5_0/RestService.svc/projects?username=" +
+        userInfo.username +
+        "&api-key=" +
+        userInfo.apikey,
       success: function (data, textStatus, response) {
         console.log(response.status);
         console.log(data);
@@ -90,12 +103,12 @@ var newRequirement = {
       sheetRange.load();
       return context.sync()
         .then(function () {
-          getReqValues(sheetRange.values.length);
+          sendReqValues(sheetRange.values.length);
         })
     });
   }
 
-  function getReqValues(rows) {
+  function sendReqValues(rows) {
     return Excel.run(function (context) {
       const sheet = context.workbook.worksheets.getActiveWorksheet();
       const inputRange = "A3:K" + rows;
@@ -103,47 +116,55 @@ var newRequirement = {
       inputValues.load();
       return context.sync()
         .then(function () {
-          buildRequirementObject(inputValues.values);
+          var reqsToSend = buildRequirementObject(inputValues.values);
+          postRequirement(reqsToSend, 0);
         })
     });
   }
 
   function buildRequirementObject(pulledValues) {
+    var requirementArr = [];
     for (let i = 0; i < pulledValues.length; i++) {
       let j = 0;
       for (let prop in newRequirement) {
         newRequirement[prop] = pulledValues[i][j];
         j++
       }
-      postRequirement(cleanObject(newRequirement));
+      requirementArr.push(cleanObject(newRequirement));
     }
+    return requirementArr;
   }
 
-  function postRequirement(req) {
-    $.ajax({
-      async: true,
-      method: "POST",
-      crossDomain: true,
-      contentType: "application/json",
-      dataType: "json",
-      url: userInfo.spiraUrl
-      + "services/v5_0/RestService.svc/projects/"
-      + $('#projects').val()
-      + "/requirements?username="
-      + userInfo.username
-      + "&api-key="
-      + userInfo.apikey,
-      data: JSON.stringify(req),
-      success:function(data, textStatus, response){
-        $("<p>" + req.Name + " sent successfully<p>").appendTo('#error-box');
-      },
-      error: function(){
-        $("<p>" + req.Name + " failed to send<p>").appendTo('#error-box');
-      }
-    }).done(function (data, textStatus, response) {
-
-    })
-    return "done";
+  function postRequirement(toSend, reqNum) {
+    if (reqNum < toSend.length) {
+      $.ajax({
+        async: true,
+        method: "POST",
+        crossDomain: true,
+        contentType: "application/json",
+        dataType: "json",
+        url: userInfo.spiraUrl +
+          "services/v5_0/RestService.svc/projects/" +
+          $('#projects').val() +
+          "/requirements?username=" +
+          userInfo.username +
+          "&api-key=" +
+          userInfo.apikey,
+        data: JSON.stringify(toSend[reqNum]),
+        success: function (data, textStatus, response) {
+          $("<p>" + toSend[reqNum].Name + " sent successfully<p>").appendTo('#error-box');
+        },
+        error: function () {
+          $("<p>" + toSend[reqNum].Name + " failed to send<p>").appendTo('#error-box');
+        }
+      }).done(function (data, textStatus, response) {
+        postRequirement(toSend, (reqNum + 1));
+      })
+    }
+    else{
+      $('#export').removeClass('is-disabled');
+      $('#export').prop('disabled', false);
+    }
   }
 
   function cleanObject(Obj) {
@@ -156,13 +177,12 @@ var newRequirement = {
     return cleaned;
   }
 
-  function showHelp(){
+  function showHelp() {
     $('#chevron-icon').toggleClass("ms-Icon--ChevronRight");
     $('#chevron-icon').toggleClass("ms-Icon--ChevronDown");
     $('#help-text').toggleClass("hidden");
   }
 
   //for testing calls and functions with a temporary "test" button on index.html
-  function testing() {
-  }//end of testing
+  function testing() {} //end of testing
 })();

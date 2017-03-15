@@ -55,3 +55,7 @@ span {
 .login-screen {
     overflow: hidden;
 }
+
+.is-disabled {
+    color: darkgray;
+}
