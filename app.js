@@ -4,6 +4,7 @@ var userInfo = {
   "spiraUrl": "https://demo.spiraservice.net/rodrigo-pereira/",
   "username": "administrator",
   "apikey": "{AA50F584-BBC9-42A0-81BA-9F8A5CD8144A}",
+  "auth": "?username=administrator&api-key={AA50F584-BBC9-42A0-81BA-9F8A5CD8144A}",
 };
 
 var newRequirement = {
@@ -22,36 +23,76 @@ var newRequirement = {
 
 var projects = undefined;
 
+var reqColumnRange = "A3:K";
 (function () {
 
+  function getImportCount(artifact, id) {
+    $.ajax({
+      method: "GET",
+      crossDomain: true,
+      dataType: "json",
+      url: `${userInfo.spiraUrl}services/v5_0/RestService.svc/projects/${id}/${artifact}/count${userInfo.auth}`,
+      success: function (data) {
+        console.log("Success!", data);
+        ajaxImport(data, artifact, id, 1);
+      },
+      error: function () {
+        console.log("error when calling getImportCount function");
+      }
+    });
+  }
 
-  // The initialize function must be run each time a new page is loaded
-  Office.initialize = function (reason) {
-    $(document).ready(function () {
-      $('#logIn').click(logIn);
-      $('#testing').click(testing);
-      $('#help-toggle').click(showHelp);
-      $('#export').click(function(){
-        $('#projects').removeClass('error');
-        $(this).attr('disabled', 'disabled');
-        $(this).addClass('is-disabled');
-        var selectedProject = $('#projects').val();
-        if (selectedProject != -1){
-          getRowAmount();
-        }
-        else {
-          $('#projects').addClass('error');
-          $(this).removeClass('is-disabled');
-          $(this).prop('disabled', false);
+  function importValPrep(imported, newObj){
+    let valArray = [];
+    for (let prop in newObj){
+      newObj[prop] = imported[prop];
+      valArray.push(newObj[prop]);
+    }
+    return valArray;
+  }
+
+    function importRow(row, valArray, artifact) {
+    return Excel.run(function (context) {
+      let newValues = [valArray];
+      const sheet = context.workbook.worksheets.getItem(capitalize(artifact));
+      let rowRange = sheet.getRange(row);
+      rowRange.values = newValues;
+      return context.sync()
+      .then(function(){
+        console.log("Success");
+      });
+    });
+  }
+
+  function ajaxImport(count, artifact, id, index) {
+    if (count === null) {
+      getImportCount(artifact, id);
+    } else if (index <= count){
+      let response = undefined;
+      $.ajax({
+        method: "GET",
+        crossDomain: true,
+        dataType: "json",
+        url: `${userInfo.spiraUrl}services/v5_0/RestService.svc/projects/${id}/${artifact}/${index}${userInfo.auth}`,
+        success: function (data) {
+          let importValues = importValPrep(data, newRequirement);
+          let currentRow = `A${(index + 2)}:K${index + 2}`;
+          importRow(currentRow, importValues, artifact);
+          ajaxImport(count, artifact, id, (index + 1));
+        },
+        error: function () {
+          console.log("failed to import requirement id", index);
+          ajaxImport(count, artifact, id, (index + 1));
         }
       });
-    })
-  };
+    }
+  }
 
   function logIn() {
     //userInfo.spiraUrl = $("#url").val();
     //userInfo.username = $("#username").val();
     //userInfo.apikey = $("#apikey").val();
+    //userInfo.auth = "?username=" + $("#username").val() + "&api-key=" + $("#apikey").val();;
 
     if (userInfo.spiraUrl.charAt(userInfo.spiraUrl.length - 1) != "/") {
       userInfo.spiraUrl += "/";
@@ -60,6 +101,7 @@ var projects = undefined;
       $('#url').addClass("error");
       $('#error-message').text(" Invalid URL (must be https)").addClass("ms-Icon ms-Icon--Error");
     } else {
+
       getProjects();
     }
     console.log(userInfo);
@@ -111,7 +153,7 @@ var projects = undefined;
   function sendReqValues(rows) {
     return Excel.run(function (context) {
       const sheet = context.workbook.worksheets.getActiveWorksheet();
-      const inputRange = "A3:K" + rows;
+      const inputRange = reqColumnRange + rows;
       const inputValues = sheet.getRange(inputRange);
       inputValues.load();
       return context.sync()
@@ -160,13 +202,15 @@ var projects = undefined;
       }).done(function (data, textStatus, response) {
         postRequirement(toSend, (reqNum + 1));
       })
-    }
-    else{
+    } else {
       $('#export').removeClass('is-disabled');
       $('#export').prop('disabled', false);
     }
   }
 
+  function capitalize(word){
+    return word.charAt(0).toUpperCase() + word.substr(1);
+  }
   function cleanObject(Obj) {
     var cleaned = {};
     for (let prop in Obj) {
@@ -185,4 +229,29 @@ var projects = undefined;
 
   //for testing calls and functions with a temporary "test" button on index.html
   function testing() {} //end of testing
+
+  // The initialize function must be run each time a new page is loaded
+  Office.initialize = function (reason) {
+    $(document).ready(function () {
+      $('#logIn').click(logIn);
+      $('#testing').click(testing);
+      $('#help-toggle').click(showHelp);
+
+      $('#export').click(function () {
+        $('#projects').removeClass('error');
+        $(this).attr('disabled', 'disabled');
+        $(this).addClass('is-disabled');
+        var selectedProject = $('#projects').val();
+        if (selectedProject != -1) {
+          getRowAmount();
+        } else {
+          $('#projects').addClass('error');
+          $(this).removeClass('is-disabled');
+          $(this).prop('disabled', false);
+        }
+      });
+
+      $('#import').click(() => ajaxImport(null, $('#artifact').val(), $('#projects').val(), 1));
+    })
+  };
 })();
