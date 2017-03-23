@@ -44,11 +44,15 @@ function cleanObject(Obj) {
 function disableButtons() {
     $('button').attr('disabled', 'disabled');
     $('button').addClass('is-disabled');
+    $('select').attr('disabled', 'disabled');
+    $('select').addClass('is-disabled');
   }
 
   function enableButtons() {
     $('button').removeClass('is-disabled');
     $('button').prop('disabled', false);
+    $('select').removeClass('is-disabled');
+    $('select').prop('disabled', false);
   }
 
   function toIdString(artifact){
@@ -128,8 +132,8 @@ function disableButtons() {
       $('#help-toggle').click(showHelp);
 
       $('#export').click(() => {
-        $('#projects').removeClass('error');
         disableButtons();
+        $('#projects').removeClass('error');
         var selectedProject = $('#projects').val();
         if (selectedProject != -1) {
           //getRowAmount();

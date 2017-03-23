@@ -14,7 +14,6 @@ function grabExcelValues(rows, artifact, objTemplate) {
                 })
         });
     }
-    enableButtons();
 }
 
 function getRows(artifact, objTemplate) {

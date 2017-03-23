@@ -43,7 +43,6 @@ span {
 }
 
 .help-box {
-    margin: 25px;
     cursor: pointer;
 }
 
@@ -56,6 +55,17 @@ span {
     overflow: hidden;
 }
 
+.ms-u-textAlignLeft{
+    margin-left: 75px;
+    margin-right: 75px;
+}
+
 .is-disabled {
     color: darkgray;
+}
+
+.spira-logo{
+    height: 150px;
+    width: 150px;
+    margin: 20px;
 }
