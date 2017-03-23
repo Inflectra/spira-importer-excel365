@@ -18,17 +18,22 @@ var requirementObj = {
   "Description": null,
   "ReleaseVersionNumber": null,
   "RequirementTypeName": null,
-  "ImportanceName": null,
+  "ImportanceId": null,
   "StatusName": null,
   "EstimatePoints": null,
   "AuthorName": null,
   "OwnerName": null,
-  "ComponentName": null
+  "ComponentName": null,
 };
 
 //column ranges for different sheets, currently only requirements.
 var columnRanges = {
   requirements : "A3:K"
+};
+
+//custom field ranges for different sheets, currently only requirements.
+var customFieldRanges = {
+  requirements : ["N", "AQ"],
 };
 
 function cleanObject(Obj) {
@@ -122,7 +127,9 @@ function disableButtons() {
   }
 
   //for testing calls and functions with a temporary "test" button on index.html
-  function testing() { } //end of testing
+  function testing() {
+    addCustomFields(requirementObj, "requirements", 0, customFieldRanges.requirements);
+   } //end of testing
 
   // The initialize function must be run each time a new page is loaded
   Office.initialize = function (reason) {

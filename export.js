@@ -41,7 +41,13 @@ function buildobjects(valueArray, artifact, objTemplate) {
     for (let i = 0; i < valueArray.length; i++) {
         let j = 0;
         for (let prop in objTemplate) {
-            objTemplate[prop] = valueArray[i][j];
+            //grabs the digit from Importance Name field for the requirement id
+            if (prop == "ImportanceId") {
+                objTemplate[prop] = valueArray[i][j].charAt(0);
+            }
+            else {
+                objTemplate[prop] = valueArray[i][j];
+            }
             j++
         }
         objArray.push(cleanObject(objTemplate));
@@ -51,7 +57,7 @@ function buildobjects(valueArray, artifact, objTemplate) {
 
 function postNew(toSend, artifact, reqNum) {
     let id = $('#projects').val();
-    if (toSend[reqNum].hasOwnProperty(toIdString(artifact))) {
+    if (toSend[reqNum] && toSend[reqNum].hasOwnProperty(toIdString(artifact))) {
         $("<p>RequirementId " + toSend[reqNum].RequirementId + " was not updated<p>").appendTo('#error-box');
         postNew(toSend, artifact, (reqNum + 1));
     }
@@ -71,7 +77,7 @@ function postNew(toSend, artifact, reqNum) {
                 $("<p>" + toSend[reqNum].Name + " failed to send<p>").appendTo('#error-box');
             }
         }).done(function (data, textStatus, response) {
-            if (toSend[reqNum + 1].hasOwnProperty(toIdString(artifact))) {
+            if (toSend[reqNum + 1] && toSend[reqNum + 1].hasOwnProperty(toIdString(artifact))) {
                 $("<p>RequirementId " + toSend[reqNum + 1].RequirementId + " was not updated<p>").appendTo('#error-box');
                 postNew(toSend, artifact, (reqNum + 2));
             }
@@ -82,4 +88,22 @@ function postNew(toSend, artifact, reqNum) {
     } else {
         enableButtons();
     }
+}
+
+function addCustomFields(toSend, artifact, reqNum, customFieldRange){
+    let customPropObj ={};
+    let range = (customFieldRange[0] + (reqNum + 3)) + ":" + (customFieldRange[1] + (reqNum + 3));
+    return Excel.run(function (context) {
+        let sheet = context.workbook.worksheets.getItem(toSheetName(artifact));
+        let customVals = sheet.getRange(range);
+        customVals.load();
+        console.log(range);
+        return context.sync()
+            .then(function () {
+                console.log(customVals.values);
+            })
+            .catch(function (error) {
+                console.log(error);
+            })
+    });
 }
