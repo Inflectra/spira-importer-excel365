@@ -1,29 +1,33 @@
-function grabExcelValues(rows, artifact, objTemplate) {
+function grabExcelValues(rows, artifact, objTemplate, customFieldRange) {
     if (rows === null) {
-        getRows(artifact, objTemplate);
+        getRows(artifact, objTemplate, customFieldRange);
     }
     else {
         return Excel.run(function (context) {
             let sheet = context.workbook.worksheets.getItem(toSheetName(artifact));
             let inputRange = columnRanges[artifact] + rows;
+            let customRange = (customFieldRange[0] + 3) + ":" + (customFieldRange[1] + rows);
             let inputValues = sheet.getRange(inputRange);
+            let customFields = sheet.getRange(customRange);
             inputValues.load();
+            customFields.load();
             return context.sync()
                 .then(function () {
-                    ajaxExport(inputValues.values, artifact, objTemplate);
+                    customFieldObjArr = customFields.values.map(customFieldObjCreate);
+                    ajaxExport(inputValues.values, artifact, objTemplate, customFieldObjArr);
                 })
         });
     }
 }
 
-function getRows(artifact, objTemplate) {
+function getRows(artifact, objTemplate, customFieldRange) {
     return Excel.run(function (context) {
         let sheet = context.workbook.worksheets.getItem(toSheetName(artifact));
         let sheetRange = sheet.getUsedRange();
         sheetRange.load();
         return context.sync()
             .then(function () {
-                grabExcelValues(sheetRange.values.length, artifact, objTemplate);
+                grabExcelValues(sheetRange.values.length, artifact, objTemplate, customFieldRange);
             })
             .catch(function (error) {
                 console.log(error);
@@ -31,9 +35,13 @@ function getRows(artifact, objTemplate) {
     });
 }
 
-function ajaxExport(valueArray, artifact, objTemplate) {
+function ajaxExport(valueArray, artifact, objTemplate, customFieldObjArr) {
     let objArray = buildobjects(valueArray, artifact, objTemplate);
-    postNew(objArray, artifact, 0);
+    for (let i in customFieldObjArr){
+        objArray[i].CustomProperties = customFieldObjArr[i];
+    }
+    //postNew(objArray, artifact, 0);
+    console.log(objArray);
 }
 
 function buildobjects(valueArray, artifact, objTemplate) {
@@ -90,32 +98,30 @@ function postNew(toSend, artifact, reqNum) {
     }
 }
 
-function addCustomFields(toSend, artifact, reqNum, customFieldRange){
-    let customPropObj ={};
-    let range = (customFieldRange[0] + (reqNum + 3)) + ":" + (customFieldRange[1] + (reqNum + 3));
-    return Excel.run(function (context) {
-        let sheet = context.workbook.worksheets.getItem(toSheetName(artifact));
-        let customVals = sheet.getRange(range);
-        customVals.load();
-        return context.sync()
-            .then(function () {
-                customFieldObjCreate(customVals.values);
-            })
-            .catch(function (error) {
-                console.log(error);
-            })
-    });
-}
-
 function customFieldObjCreate(valueArray){
-    let newArray = valueArray[0].filter((val) => val != "");
+    let newArray = valueArray.filter((val) => val != "");
     for (let i in newArray){
-        newArray[i] = {
-            "PropertyNumber": parseInt(i) + 1,
-            "StringValue": newArray[i],
+        let cusObj = {};
+        let valType = "";
+        switch (customFieldNames[i].Type){
+            case "Text": valType = "StringValue";
+            break;
+            case "Decimal": valType = "DecimalValue";
+            break;
+            case "Date": valType = "DateTimeValue";
+            break;
+            default: valType = "IntegerValue";
         }
+        if (valType == "DateTimeValue"){
+            console.log(newArray[i]);
+            newArray[i] = daysToMseconds(newArray[i]);
+            console.log(newArray[i]);
+        }
+        cusObj[valType] = newArray[i];
+        cusObj.PropertyNumber = parseInt(i) + 1;
+        newArray[i] = cusObj;
     }
-    console.log(newArray);
+    return newArray;
 }
 
 /*"CustomProperties": [

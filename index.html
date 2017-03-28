@@ -41,7 +41,7 @@
 
     <div class="main-screen hidden" id="mainScreen">
 
-        <select class="ms-Dropdown" id="projects" name="Projects">
+        <select class="ms-Dropdown" id="projects" name="Projects" onchange="loadCustomFields($('#artifact').val(), $(this).val())">
             <option value="-1">Select a Project...</option>
         </select><br>
 

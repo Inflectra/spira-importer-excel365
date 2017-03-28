@@ -36,6 +36,9 @@ var customFieldRanges = {
   requirements : ["N", "AQ"],
 };
 
+//array to hold custom field names
+var customFieldNames = [];
+
 function cleanObject(Obj) {
     var cleaned = {};
     for (let prop in Obj) {
@@ -45,6 +48,11 @@ function cleanObject(Obj) {
     }
     return cleaned;
   }
+
+//converts from Excel days since 1/1/1990 to Spira milliseconds since 1/1/1970
+function daysToMseconds(days){
+  return `/Date(${days})/` //still need equation for conversion
+}
 
 function disableButtons() {
     $('button').attr('disabled', 'disabled');
@@ -128,7 +136,6 @@ function disableButtons() {
 
   //for testing calls and functions with a temporary "test" button on index.html
   function testing() {
-    addCustomFields(requirementObj, "requirements", 0, customFieldRanges.requirements);
    } //end of testing
 
   // The initialize function must be run each time a new page is loaded
@@ -143,10 +150,9 @@ function disableButtons() {
         $('#projects').removeClass('error');
         var selectedProject = $('#projects').val();
         if (selectedProject != -1) {
-          //getRowAmount();
           switch ($('#artifact').val()) {
           case "requirements":
-            grabExcelValues(null, $('#artifact').val(), requirementObj);
+            grabExcelValues(null, $('#artifact').val(), requirementObj, customFieldRanges.requirements);
             break;
           default:
             console.log("Could not export");
