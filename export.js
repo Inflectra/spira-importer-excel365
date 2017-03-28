@@ -40,7 +40,7 @@ function ajaxExport(valueArray, artifact, objTemplate, customFieldObjArr) {
     for (let i in customFieldObjArr){
         objArray[i].CustomProperties = customFieldObjArr[i];
     }
-    //postNew(objArray, artifact, 0);
+    postNew(objArray, artifact, 0);
     console.log(objArray);
 }
 
@@ -113,9 +113,7 @@ function customFieldObjCreate(valueArray){
             default: valType = "IntegerValue";
         }
         if (valType == "DateTimeValue"){
-            console.log(newArray[i]);
             newArray[i] = daysToMseconds(newArray[i]);
-            console.log(newArray[i]);
         }
         cusObj[valType] = newArray[i];
         cusObj.PropertyNumber = parseInt(i) + 1;

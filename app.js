@@ -51,7 +51,11 @@ function cleanObject(Obj) {
 
 //converts from Excel days since 1/1/1990 to Spira milliseconds since 1/1/1970
 function daysToMseconds(days){
-  return `/Date(${days})/` //still need equation for conversion
+	days -= 2; //for some reason excel returns 2 extra days?
+  const between = 25566;
+  days -= between;
+  let milliseconds = days *= 8.64e+7;
+  return `/Date(${milliseconds})/`;
 }
 
 function disableButtons() {
