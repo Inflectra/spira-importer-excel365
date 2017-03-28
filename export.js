@@ -83,6 +83,7 @@ function postNew(toSend, artifact, reqNum) {
             },
             error: function () {
                 $("<p>" + toSend[reqNum].Name + " failed to send<p>").appendTo('#error-box');
+                enableButtons();
             }
         }).done(function (data, textStatus, response) {
             if (toSend[reqNum + 1] && toSend[reqNum + 1].hasOwnProperty(toIdString(artifact))) {
@@ -114,6 +115,17 @@ function customFieldObjCreate(valueArray){
         }
         if (valType == "DateTimeValue"){
             newArray[i] = daysToMseconds(newArray[i]);
+            if (!Number.isInteger(newArray[i])){
+                newArray[i] = `/Date(0)/`;//if the enter an invalid date or NaN, date will default to 1/1/1970
+            }
+        }
+        else if (valType == "IntegerValue"){
+            newArray[i] = Math.round(newArray[i]); //rounds to avoid error
+        }
+        else if (valType == "DecimalValue"){
+            if (!$.isNumeric(newarray[i])){
+                newarray[i] = 0; //avoids trying to send invalid data
+            }
         }
         cusObj[valType] = newArray[i];
         cusObj.PropertyNumber = parseInt(i) + 1;
