@@ -41,7 +41,7 @@ function buildobjects(valueArray, artifact, objTemplate) {
     for (let i = 0; i < valueArray.length; i++) {
         let j = 0;
         for (let prop in objTemplate) {
-            //grabs the digit from Importance Name field for the requirement id
+            //grabs the digit from Importance Name field for the id
             if (prop == "ImportanceId") {
                 objTemplate[prop] = valueArray[i][j].charAt(0);
             }
@@ -97,13 +97,61 @@ function addCustomFields(toSend, artifact, reqNum, customFieldRange){
         let sheet = context.workbook.worksheets.getItem(toSheetName(artifact));
         let customVals = sheet.getRange(range);
         customVals.load();
-        console.log(range);
         return context.sync()
             .then(function () {
-                console.log(customVals.values);
+                customFieldObjCreate(customVals.values);
             })
             .catch(function (error) {
                 console.log(error);
             })
     });
 }
+
+function customFieldObjCreate(valueArray){
+    let newArray = valueArray[0].filter((val) => val != "");
+    for (let i in newArray){
+        newArray[i] = {
+            "PropertyNumber": parseInt(i) + 1,
+            "StringValue": newArray[i],
+        }
+    }
+    console.log(newArray);
+}
+
+/*"CustomProperties": [
+    {
+      "BooleanValue": null,
+      "DateTimeValue": null,
+      "DecimalValue": null,
+      "Definition": {
+        "ArtifactTypeId": 1,
+        "CustomList": null,
+        "CustomPropertyFieldName": "Custom_01",
+        "CustomPropertyId": 1,
+        "CustomPropertyTypeId": 1,
+        "CustomPropertyTypeName": "Text",
+        "IsDeleted": false,
+        "Name": "URL",
+        "Options": null,
+        "ProjectId": 1,
+        "PropertyNumber": 1,
+        "SystemDataType": "System.String"
+      },
+      "IntegerListValue": null,
+      "IntegerValue": null,
+      "PropertyNumber": 1,
+      "StringValue": null
+    },
+
+let testObj = {
+    "AuthorName": "Fred Bloggs",
+    "Description": "haha",
+    "EstimatePoints": 18.5,
+    "ImportanceId": "3",
+    "Name": "poo",
+    "OwnerName": "Rodrigo Pereira",
+    "ReleaseVersionNumber": 1,
+    "RequirementTypeName": "Package",
+    "StatusName": "In Progress"
+}
+*/
