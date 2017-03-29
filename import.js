@@ -39,20 +39,26 @@ function toExcel(artifact, newValues) {
 }
 
 function loadCustomFields(artifact, project){
+    let artifactNum = undefined;
+    if (artifact == "requirements"){
+        artifactNum = 1;
+    }
     disableButtons();
     $.ajax({
         method: "GET",
         crossDomain: true,
         dataType: "json",
-        url: `${userInfo.spiraUrl}services/v5_0/RestService.svc/projects/${project}/${artifact}/1${userInfo.auth}`,
+        url: `${userInfo.spiraUrl}services/v5_0/RestService.svc/projects/${project}/custom-properties/${artifactNum}${userInfo.auth}`,
         success: function (data) {
-            for (let customProp of data.CustomProperties){
+            console.log(data);
+            for (let customProp of data){
                 customFieldInfo = {};
-                customFieldInfo.Name = customProp.Definition.Name;
-                customFieldInfo.Type = customProp.Definition.CustomPropertyTypeName;
+                customFieldInfo.Name = customProp.Name;
+                customFieldInfo.Type = customProp.CustomPropertyTypeName;
                 customFieldNames.push(customFieldInfo);
             }
             populateCustomFieldNames(customFieldNames, artifact);
+            enableButtons();
         },
         error: function () {
             enableButtons();
