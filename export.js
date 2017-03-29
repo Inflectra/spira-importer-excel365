@@ -79,6 +79,7 @@ function postNew(toSend, artifact, reqNum) {
             url: `${userInfo.spiraUrl}services/v5_0/RestService.svc/projects/${id}/${artifact}${userInfo.auth}`,
             data: JSON.stringify(toSend[reqNum]),
             success: function (data, textStatus, response) {
+                returnId(data.RequirementId, artifact, reqNum);
                 $("<p>" + toSend[reqNum].Name + " sent successfully<p>").appendTo('#error-box');
             },
             error: function () {
@@ -111,21 +112,30 @@ function customFieldObjCreate(valueArray){
             break;
             case "Date": valType = "DateTimeValue";
             break;
+            case "MultiList": valType = "IntegerListValue";
+            break;
             default: valType = "IntegerValue";
         }
         if (valType == "DateTimeValue"){
-            newArray[i] = daysToMseconds(newArray[i]);
             if (!Number.isInteger(newArray[i])){
-                newArray[i] = `/Date(0)/`;//if the enter an invalid date or NaN, date will default to 1/1/1970
+                newArray[i] = null;//if they enter an invalid date or NaN, date will default to null
+            }
+            else{
+                newArray[i] = daysToMseconds(newArray[i]);
             }
         }
         else if (valType == "IntegerValue"){
-            newArray[i] = Math.round(newArray[i]); //rounds to avoid error
+            if (!Number.isInteger(newArray[i])){
+                newArray[i] = null;
+            }
         }
         else if (valType == "DecimalValue"){
-            if (!$.isNumeric(newarray[i])){
-                newarray[i] = 0; //avoids trying to send invalid data
+            if (!$.isNumeric(newArray[i])){
+                newArray[i] = null; //avoids trying to send invalid data
             }
+        }
+        else if (valType == "IntegerListValue"){
+            newArray[i] = multilistConvert(newArray[i]);
         }
         cusObj[valType] = newArray[i];
         cusObj.PropertyNumber = parseInt(i) + 1;
@@ -133,41 +143,3 @@ function customFieldObjCreate(valueArray){
     }
     return newArray;
 }
-
-/*"CustomProperties": [
-    {
-      "BooleanValue": null,
-      "DateTimeValue": null,
-      "DecimalValue": null,
-      "Definition": {
-        "ArtifactTypeId": 1,
-        "CustomList": null,
-        "CustomPropertyFieldName": "Custom_01",
-        "CustomPropertyId": 1,
-        "CustomPropertyTypeId": 1,
-        "CustomPropertyTypeName": "Text",
-        "IsDeleted": false,
-        "Name": "URL",
-        "Options": null,
-        "ProjectId": 1,
-        "PropertyNumber": 1,
-        "SystemDataType": "System.String"
-      },
-      "IntegerListValue": null,
-      "IntegerValue": null,
-      "PropertyNumber": 1,
-      "StringValue": null
-    },
-
-let testObj = {
-    "AuthorName": "Fred Bloggs",
-    "Description": "haha",
-    "EstimatePoints": 18.5,
-    "ImportanceId": "3",
-    "Name": "poo",
-    "OwnerName": "Rodrigo Pereira",
-    "ReleaseVersionNumber": 1,
-    "RequirementTypeName": "Package",
-    "StatusName": "In Progress"
-}
-*/

@@ -28,30 +28,30 @@ var requirementObj = {
 
 //column ranges for different sheets, currently only requirements.
 var columnRanges = {
-  requirements : "A3:K"
+  requirements: "A3:K"
 };
 
 //custom field ranges for different sheets, currently only requirements.
 var customFieldRanges = {
-  requirements : ["N", "AQ"],
+  requirements: ["N", "AQ"],
 };
 
 //array to hold custom field names
 var customFieldNames = [];
 
 function cleanObject(Obj) {
-    var cleaned = {};
-    for (let prop in Obj) {
-      if (Obj[prop] != "") {
-        cleaned[prop] = Obj[prop];
-      }
+  var cleaned = {};
+  for (let prop in Obj) {
+    if (Obj[prop] != "") {
+      cleaned[prop] = Obj[prop];
     }
-    return cleaned;
   }
+  return cleaned;
+}
 
 //converts from Excel days since 1/1/1990 to Spira milliseconds since 1/1/1970
-function daysToMseconds(days){
-	days -= 2; //for some reason excel returns 2 extra days?
+function daysToMseconds(days) {
+  days -= 2; //for some reason excel returns 2 extra days?
   const between = 25566;
   days -= between;
   let milliseconds = days *= 8.64e+7;
@@ -59,37 +59,49 @@ function daysToMseconds(days){
 }
 
 function disableButtons() {
-    $('button').attr('disabled', 'disabled');
-    $('button').addClass('is-disabled');
-    $('select').attr('disabled', 'disabled');
-    $('select').addClass('is-disabled');
-  }
+  $('button').attr('disabled', 'disabled');
+  $('button').addClass('is-disabled');
+  $('select').attr('disabled', 'disabled');
+  $('select').addClass('is-disabled');
+}
 
-  function enableButtons() {
-    $('button').removeClass('is-disabled');
-    $('button').prop('disabled', false);
-    $('select').removeClass('is-disabled');
-    $('select').prop('disabled', false);
-  }
+function enableButtons() {
+  $('button').removeClass('is-disabled');
+  $('button').prop('disabled', false);
+  $('select').removeClass('is-disabled');
+  $('select').prop('disabled', false);
+}
 
-  function toIdString(artifact){
-    let newString = toSheetName(artifact);
-    newString = newString.split(" ");
-    newString = newString.join("");
-    newString = newString.split("");
-    newString[newString.length - 1] = "Id";
-    newString = newString.join("");
-    return newString;
-  }
-
-  function toSheetName(artifact) {
-    let newString = artifact.split("-");
-    for (let i in newString){
-      newString[i] = newString[i].charAt(0).toUpperCase() + newString[i].substr(1);
+function multilistConvert(str) {
+    console.log(str);
+    function correct(str) {
+      let newString = parseInt(str.trim());
+      return newString;
     }
-    newString = newString.join(" ");
-    return newString;
+    let arr = str.split(",");
+    arr = arr.map(correct);
+    arr = arr.filter(Number.isInteger);
+    return arr;
   }
+
+function toIdString(artifact) {
+  let newString = toSheetName(artifact);
+  newString = newString.split(" ");
+  newString = newString.join("");
+  newString = newString.split("");
+  newString[newString.length - 1] = "Id";
+  newString = newString.join("");
+  return newString;
+}
+
+function toSheetName(artifact) {
+  let newString = artifact.split("-");
+  for (let i in newString) {
+    newString[i] = newString[i].charAt(0).toUpperCase() + newString[i].substr(1);
+  }
+  newString = newString.join(" ");
+  return newString;
+}
 
 (function () {
 
@@ -140,7 +152,18 @@ function disableButtons() {
 
   //for testing calls and functions with a temporary "test" button on index.html
   function testing() {
-   } //end of testing
+    return Excel.run(function(context){
+        let sheetName = toSheetName("requirements");
+        let sheet = context.workbook.worksheets.getItem(sheetName);
+        let testCell = sheet.getCell(3, 0);
+        testCell.load();
+        return context.sync()
+        .then(function(){
+          let val = testCell.values[0][0];
+          val = multilistConvert(val);
+        });
+    });
+  } //end of testing
 
   // The initialize function must be run each time a new page is loaded
   Office.initialize = function (reason) {
@@ -155,12 +178,12 @@ function disableButtons() {
         var selectedProject = $('#projects').val();
         if (selectedProject != -1) {
           switch ($('#artifact').val()) {
-          case "requirements":
-            grabExcelValues(null, $('#artifact').val(), requirementObj, customFieldRanges.requirements);
-            break;
-          default:
-            console.log("Could not export");
-        }
+            case "requirements":
+              grabExcelValues(null, $('#artifact').val(), requirementObj, customFieldRanges.requirements);
+              break;
+            default:
+              console.log("Could not export");
+          }
         } else {
           $('#projects').addClass('error');
           enableButtons();

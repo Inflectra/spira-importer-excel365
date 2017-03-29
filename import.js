@@ -12,7 +12,7 @@ function ajaxImport(artifact, objTemplate) {
             toExcel(artifact, valueArray);
         },
         error: function () {
-            console.log("failed to import");
+
         }
     });
 }
@@ -46,7 +46,6 @@ function loadCustomFields(artifact, project){
         dataType: "json",
         url: `${userInfo.spiraUrl}services/v5_0/RestService.svc/projects/${project}/${artifact}/1${userInfo.auth}`,
         success: function (data) {
-            console.log(data.CustomProperties);
             for (let customProp of data.CustomProperties){
                 customFieldInfo = {};
                 customFieldInfo.Name = customProp.Definition.Name;
@@ -58,7 +57,6 @@ function loadCustomFields(artifact, project){
         error: function () {
             enableButtons();
             populateCustomFieldNames([{"Name": ""}], artifact);
-            console.log("failed to import");
         }
     });
 }
@@ -83,4 +81,15 @@ function populateCustomFieldNames(cusObj, artifact){
         return context.sync();
     });
     enableButtons();
+}
+
+function returnId (newId, artifact, row){
+    let currentRow = (row + 2);
+    return Excel.run(function(context){
+        let sheetName = toSheetName(artifact);
+        let sheet = context.workbook.worksheets.getItem(sheetName);
+        let IdCell = sheet.getCell(currentRow, 0);
+        IdCell.values = [[newId]];
+        return context.sync();
+    });
 }
