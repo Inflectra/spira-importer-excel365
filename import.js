@@ -6,7 +6,7 @@ function ajaxImport(artifact, objTemplate) {
         url: `${userInfo.spiraUrl}services/v5_0/RestService.svc/${artifact}${userInfo.auth}`,
         success: function (data) {
             let valueArray = [];
-            for (let obj in data){
+            for (let obj in data) {
                 valueArray.push(jsonToArray(data[obj], objTemplate));
             }
             toExcel(artifact, valueArray);
@@ -38,9 +38,9 @@ function toExcel(artifact, newValues) {
     });
 }
 
-function loadCustomFields(artifact, project){
+function loadCustomFields(artifact, project) {
     let artifactNum = undefined;
-    if (artifact == "requirements"){
+    if (artifact == "requirements") {
         artifactNum = 1;
     }
     disableButtons();
@@ -50,30 +50,34 @@ function loadCustomFields(artifact, project){
         dataType: "json",
         url: `${userInfo.spiraUrl}services/v5_0/RestService.svc/projects/${project}/custom-properties/${artifactNum}${userInfo.auth}`,
         success: function (data) {
-            console.log(data);
-            for (let customProp of data){
-                customFieldInfo = {};
-                customFieldInfo.Name = customProp.Name;
-                customFieldInfo.Type = customProp.CustomPropertyTypeName;
-                customFieldNames.push(customFieldInfo);
+            if (data.length < 1) {
+                populateCustomFieldNames([{ "Name": "" }], artifact);
             }
-            populateCustomFieldNames(customFieldNames, artifact);
-            enableButtons();
+            else {
+                for (let customProp of data) {
+                    customFieldInfo = {};
+                    customFieldInfo.Name = customProp.Name;
+                    customFieldInfo.Type = customProp.CustomPropertyTypeName;
+                    customFieldNames.push(customFieldInfo);
+                }
+                populateCustomFieldNames(customFieldNames, artifact);
+                enableButtons();
+            }
         },
         error: function () {
             enableButtons();
-            populateCustomFieldNames([{"Name": ""}], artifact);
+            populateCustomFieldNames([{ "Name": "" }], artifact);
         }
     });
 }
 
-function populateCustomFieldNames(cusObj, artifact){
+function populateCustomFieldNames(cusObj, artifact) {
     let newNames = [];
-    for (let info of cusObj){
+    for (let info of cusObj) {
         newNames.push(info.Name);
     }
-    if (newNames.length < 30){
-        for (let i = newNames.length; i < 30; i++){
+    if (newNames.length < 30) {
+        for (let i = newNames.length; i < 30; i++) {
             newNames.push("");
         }
     }
@@ -89,9 +93,9 @@ function populateCustomFieldNames(cusObj, artifact){
     enableButtons();
 }
 
-function returnId (newId, artifact, row){
+function returnId(newId, artifact, row) {
     let currentRow = (row + 2);
-    return Excel.run(function(context){
+    return Excel.run(function (context) {
         let sheetName = toSheetName(artifact);
         let sheet = context.workbook.worksheets.getItem(sheetName);
         let IdCell = sheet.getCell(currentRow, 0);

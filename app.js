@@ -106,6 +106,7 @@ function toSheetName(artifact) {
 (function () {
 
   function logIn() {
+    disableButtons();
     //userInfo.spiraUrl = $("#url").val();
     //userInfo.username = $("#username").val();
     //userInfo.apikey = $("#apikey").val();
@@ -135,11 +136,13 @@ function toSheetName(artifact) {
         }
         $('#logInScreen').addClass("hidden");
         $('#mainScreen').removeClass("hidden");
+        enableButtons();
       },
       error: function () {
         $('#username').addClass("error");
         $('#apikey').addClass("error");
         $('#error-message').text(" Invalid Username or API key").addClass("ms-Icon ms-Icon--Error");
+        enableButtons();
       }
     });
   }
