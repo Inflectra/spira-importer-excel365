@@ -8,23 +8,56 @@ var userInfo = {
   "auth": "?username=administrator&api-key={AA50F584-BBC9-42A0-81BA-9F8A5CD8144A}",
 };
 
+var currentComponents = {
+  
+};
 
+var currentUsers = {
+  //relevant users will be stored here after selecting a project
+};
+
+var currentReleases = {
+  //relevant releases will be stored here after selecting a project
+};
 //template objects for correct order in sheet, currently requirement
 //template only
+
+var requirementType = {
+  "Package": -1,
+  "Need": 1,
+  "Feature": 2,
+  "Use Case": 3,
+  "User Story": 4,
+  "Quality": 5,
+  "Design Element": 6,
+};
 
 var requirementObj = {
   "RequirementId": null,
   "Name": null,
   "Description": null,
-  "ReleaseVersionNumber": null,
-  "RequirementTypeName": null,
+  "ReleaseId": null,
+  "RequirementTypeId": null,
   "ImportanceId": null,
-  "StatusName": null,
+  "StatusId": null,
   "EstimatePoints": null,
-  "AuthorName": null,
-  "OwnerName": null,
-  "ComponentName": null,
+  "AuthorId": null,
+  "OwnerId": null,
+  "ComponentId": null,
 };
+
+var reqStatus = {
+  "Requested":	1,
+  "Evaluated":	7,
+  "Accepted":	5,
+  "Rejected":	6,
+  "Planned":	2,
+  "In Progress":	3,
+  "Developed":	4,
+  "Obsolete":	8,
+  "Tested":	9,
+  "Completed":	10,
+}
 
 //column ranges for different sheets, currently only requirements.
 var columnRanges = {

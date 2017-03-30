@@ -53,6 +53,22 @@ function buildobjects(valueArray, artifact, objTemplate) {
             if (prop == "ImportanceId") {
                 objTemplate[prop] = valueArray[i][j].charAt(0);
             }
+            else if (prop == "ReleaseId"){
+                objTemplate[prop] = currentReleases[valueArray[i][j]];
+            }
+            else if ((prop == "AuthorId") || (prop == "OwnerId")){
+                objTemplate[prop] = currentUsers[valueArray[i][j]];
+                console.log(valueArray[i][j]);
+            }
+            else if (prop == "RequirementTypeId"){
+                objTemplate[prop] = requirementType[valueArray[i][j]];
+            }
+            else if (prop == "StatusId"){
+                objTemplate[prop] = reqStatus[valueArray[i][j]];
+            }
+            else if (prop == "ComponentId"){
+                objTemplate[prop] = currentComponents[valueArray[i][j]];
+            }
             else {
                 objTemplate[prop] = valueArray[i][j];
             }

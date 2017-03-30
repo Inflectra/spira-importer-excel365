@@ -17,6 +17,62 @@ function ajaxImport(artifact, objTemplate) {
     });
 }
 
+function getComponents(project){
+    $.ajax({
+        method: "GET",
+        crossDomain: true,
+        dataType: "json",
+        url: `${userInfo.spiraUrl}services/v5_0/RestService.svc/projects/${project}/`
+        + `components?active_only=true&include_deleted=false&`
+        +`username=${userInfo.username}&api-key=${userInfo.apikey}`,
+        success: function (data) {
+            populateComponents(data);
+            enableButtons();
+        },
+        error: function () {
+            console.log("error retrieving components");
+            populateComponents([]);
+            enableButtons();
+        }
+    });
+}
+
+function getReleases(project){
+    $.ajax({
+        method: "GET",
+        crossDomain: true,
+        dataType: "json",
+        url: `${userInfo.spiraUrl}services/v5_0/RestService.svc/projects/${project}/releases${userInfo.auth}`,
+        success: function (data) {
+            populateReleases(data);
+            getComponents(project);
+        },
+        error: function () {
+            console.log("error retrieving releases");
+            populateReleases([]);
+            getComponents(project);
+        }
+    });
+}
+
+function getUsers(project){
+    $.ajax({
+        method: "GET",
+        crossDomain: true,
+        dataType: "json",
+        url: `${userInfo.spiraUrl}services/v5_0/RestService.svc/projects/${project}/users${userInfo.auth}`,
+        success: function (data) {
+            populateUsers(data);
+            getReleases(project);
+        },
+        error: function () {
+            console.log("error retrieving users");
+            populateUsers([]);
+            getReleases(project);
+        }
+    });
+}
+
 function jsonToArray(oldObj, objTemplate) {
     let valArray = [];
     for (let prop in objTemplate) {
@@ -39,6 +95,9 @@ function toExcel(artifact, newValues) {
 }
 
 function loadCustomFields(artifact, project) {
+    if (project == -1){
+        return null;
+    }
     let artifactNum = undefined;
     if (artifact == "requirements") {
         artifactNum = 1;
@@ -52,6 +111,7 @@ function loadCustomFields(artifact, project) {
         success: function (data) {
             if (data.length < 1) {
                 populateCustomFieldNames([{ "Name": "" }], artifact);
+                getUsers(project);
             }
             else {
                 for (let customProp of data) {
@@ -61,13 +121,34 @@ function loadCustomFields(artifact, project) {
                     customFieldNames.push(customFieldInfo);
                 }
                 populateCustomFieldNames(customFieldNames, artifact);
-                enableButtons();
+                getUsers(project);
             }
         },
         error: function () {
-            enableButtons();
             populateCustomFieldNames([{ "Name": "" }], artifact);
+            getUsers(project);
         }
+    });
+}
+
+function populateComponents(components){
+    let newComponents = [];
+    for (let component of components){
+        newComponents.push([component.Name, component.ComponentId]);
+        currentComponents[component.Name] = component.ComponentId;
+    }
+    return Excel.run(function (context) {
+        let componentRange = "I3:J" + (components.length + 2);
+        let sheet = context.workbook.worksheets.getItem("Lookups");
+        let clearRange = sheet.getRange("I3:J10000").clear();
+        let componentList = sheet.getRange(componentRange);
+        if (components.length < 1){
+            clearRange;
+        }
+        else{
+            componentList.values = newComponents;
+        }
+        return context.sync();
     });
 }
 
@@ -87,10 +168,52 @@ function populateCustomFieldNames(cusObj, artifact) {
         let sheet = context.workbook.worksheets.getItem(sheetName);
         let names = sheet.getRange(customFieldNameRange);
         names.values = [newNames];
-        enableButtons();
         return context.sync();
     });
-    enableButtons();
+}
+
+function populateReleases(releases){
+    let releaseArray = [];
+    for (let release of releases){
+        releaseArray.push([release.VersionNumber, release.ReleaseId]);
+        currentReleases[release.VersionNumber] = release.ReleaseId;
+    }
+    return Excel.run(function (context) {
+        let releaseRange = "E3:F" + (releases.length + 2);
+        let sheet = context.workbook.worksheets.getItem("Lookups");
+        let clearRange = sheet.getRange("E3:F10000").clear();
+        let releaseList = sheet.getRange(releaseRange);
+        if (releases.length < 1){
+            clearRange;
+        }
+        else{
+            releaseList.values = releaseArray;
+        }
+        return context.sync();
+    });
+
+}
+
+function populateUsers(userList){
+    let userArrays = [];
+    for (let user of userList){
+        userArrays.push([user.FullName, user.UserId]);
+        currentUsers[user.FullName] = user.UserId;
+    }
+    return Excel.run(function (context) {
+        let userRange = "G3:H" + (userList.length + 2);
+        let sheet = context.workbook.worksheets.getItem("Lookups");
+        let clearRange = sheet.getRange("G3:H10000").clear();
+        let userLookup = sheet.getRange(userRange);
+        if (userList.length < 1){
+            clearRange;
+        }
+        else{
+            userLookup.values = userArrays;
+        }
+        return context.sync();
+    });
+
 }
 
 function returnId(newId, artifact, row) {

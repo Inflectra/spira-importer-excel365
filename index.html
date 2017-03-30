@@ -29,11 +29,11 @@
 <body class="ms-u-textAlignCenter">
     <img class="spira-logo" id="spira-logo" src="assets/logo-filled.png"></img>
     <div class="login-screen" id="logInScreen">
-        <p class="ms-u-textAlignLeft ms-font-s">Url:</p>
+        <p class="login ms-u-textAlignLeft ms-font-s">Url:</p>
         <input id="url" placeholder="Spira Url"></input><br><br>
-        <p class="ms-u-textAlignLeft ms-font-s">Username:</p>
+        <p class="login ms-u-textAlignLeft ms-font-s">Username:</p>
         <input id="username" placeholder="Username"></input><br><br>
-        <p class="ms-u-textAlignLeft ms-font-s">API Key:</p>
+        <p class="login ms-u-textAlignLeft ms-font-s">API Key:</p>
         <input id="apikey" placeholder="API key"></input><br><br>
         <div style="color: red" id="error-message"></div><br>
         <button class="ms-Button" id="logIn">Log In</button>
@@ -48,11 +48,13 @@
         <select class="ms-Dropdown" id="artifact" name="Artifact">
             <option value="requirements">Requirements</option>
         </select><br>
-        <button class="ms-Button" id="export">Send</button>
-        <button class="ms-Button" id="import">Import</button>
+        <button class="ms-Button" id="export">Send to Spira</button>
+        <button class="ms-Button" id="import">Import from Spira</button>
         <br><br>
-        <a href="\assets\SpiraImportTemplate2017.xlsx"><button class="ms-Button">Download Template</button></a><br>
+        <a href="\assets\SpiraImportTemplate2017.xlsx"><button class="ms-Button">Download Template</button></a><br><br>
+
         <div class="ms-u-textAlignLeft error-box ms-font-s" id="error-box"></div><br>
+
         <div class="ms-u-textAlignLeft help-box">
             <div id="help-toggle">
                 <span class="ms-font-l">Help  </span>
