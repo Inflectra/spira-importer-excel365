@@ -20,6 +20,22 @@ function grabExcelValues(rows, artifact, objTemplate, customFieldRange) {
     }
 }
 
+function getIndentLevel(str){
+	let indentLevel = 0;
+	str = str.split(" ")
+  				 .join("")
+           .split("");
+  for (let i = 0; i < str.length; i++){
+  	if (str[i] === ">"){
+    	indentLevel++;
+    }
+    else{
+    	break;
+    }
+  }
+  return indentLevel;
+}
+
 function getRows(artifact, objTemplate, customFieldRange) {
     return Excel.run(function (context) {
         let sheet = context.workbook.worksheets.getItem(convertToSheetName(artifact));
@@ -122,6 +138,21 @@ function postNew(toSend, artifact, rowNum) {
     } else {
         enableButtons();
     }
+}
+
+function removeIndentArrows(str, indentLevel){
+	str = str.split("")
+  for (let i = 0; i < str.length; i++){
+  	if (str[i] === ">"){
+    	indentLevel--;
+      console.log(indentLevel);
+    }
+    if (indentLevel == 0){
+    	str = str.join("").substr(i + 1);
+    	return str;
+    }
+  }
+  return str;
 }
 
 function customFieldObjCreate(valueArray){
