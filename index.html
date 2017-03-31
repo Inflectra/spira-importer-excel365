@@ -27,27 +27,34 @@
 </head>
 
 <body class="ms-u-textAlignCenter">
+    <img class="spira-logo" id="spira-logo" src="assets/logo-filled.png"></img>
     <div class="login-screen" id="logInScreen">
+        <p class="login ms-u-textAlignLeft ms-font-s">Url:</p>
         <input id="url" placeholder="Spira Url"></input><br><br>
+        <p class="login ms-u-textAlignLeft ms-font-s">Username:</p>
         <input id="username" placeholder="Username"></input><br><br>
+        <p class="login ms-u-textAlignLeft ms-font-s">API Key:</p>
         <input id="apikey" placeholder="API key"></input><br><br>
-        <div style="color: red" id="error-message"></div><br><br>
+        <div style="color: red" id="error-message"></div><br>
         <button class="ms-Button" id="logIn">Log In</button>
     </div>
 
-    <div class="hidden main-screen" id="mainScreen">
+    <div class="main-screen hidden" id="mainScreen">
 
-        <select class="ms-Dropdown" id="projects" name="Projects">
-            <option value="null">Select a Project...</option>
+        <select class="ms-Dropdown" id="projects" name="Projects" onchange="loadCustomFields($('#artifact').val(), $(this).val())">
+            <option value="-1">Select a Project...</option>
         </select><br>
 
         <select class="ms-Dropdown" id="artifact" name="Artifact">
-            <option value="Requirements">Requirements</option>
+            <option value="requirements">Requirements</option>
         </select><br>
-        <button class="ms-Button disabled" id="export">Send</button>
-        <button class="ms-Button" id="import">Import</button>
+        <button class="ms-Button" id="export">Send to Spira</button>
+        <button class="ms-Button" id="import">Import from Spira</button>
         <br><br>
-        <a href="\assets\SpiraImportTemplate2016.xlsx"><button class="ms-Button">Download Template</button></a><br>
+        <a href="\assets\SpiraImportTemplate2017.xlsx"><button class="ms-Button">Download Template</button></a><br><br>
+
+        <div class="ms-u-textAlignLeft error-box ms-font-s" id="error-box"></div><br>
+
         <div class="ms-u-textAlignLeft help-box">
             <div id="help-toggle">
                 <span class="ms-font-l">Help  </span>
@@ -57,18 +64,19 @@
                 To get started, please make sure you have downloaded the template using the "Download Template" button. After you have opened
                 the template, fill out the information for the Requirements you would like to send. New requirements must
                 have their "Req #" field empty and the "Description" field filled out or they will not send.
+            </p>
         </div>
 
     </div>
     <!--temporary for testing js functions-->
-    <!--
+    <!---->
     <button class="ms-Button" id="testing">Test</button>
-    -->
 
     <script type="text/javascript" src="node_modules/core-js/client/core.js"></script>
     <script type="text/javascript" src="node_modules/jquery/dist/jquery.js"></script>
     <script type="text/javascript" src="node_modules/office-ui-fabric-js/dist/js/fabric.js"></script>
-
+    <script type="text/javascript" src="import.js"></script>
+    <script type="text/javascript" src="export.js"></script>
     <script type="text/javascript" src="app.js"></script>
 </body>
 
