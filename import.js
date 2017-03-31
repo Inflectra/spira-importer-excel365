@@ -3,11 +3,12 @@ function ajaxImport(artifact, objTemplate) {
         method: "GET",
         crossDomain: true,
         dataType: "json",
-        url: `${userInfo.spiraUrl}services/v5_0/RestService.svc/${artifact}${userInfo.auth}`,
+        url: userInfo.spiraUrl + 'services/v5_0/RestService.svc/'
+        + artifact + userInfo.auth,
         success: function (data) {
             let valueArray = [];
-            for (let obj in data) {
-                valueArray.push(jsonToArray(data[obj], objTemplate));
+            for (let i = 0; i < data.length; i++) {
+                valueArray.push(jsonToArray(data[i], objTemplate));
             }
             toExcel(artifact, valueArray);
         },
@@ -22,9 +23,9 @@ function getComponents(project){
         method: "GET",
         crossDomain: true,
         dataType: "json",
-        url: `${userInfo.spiraUrl}services/v5_0/RestService.svc/projects/${project}/`
-        + `components?active_only=true&include_deleted=false&`
-        +`username=${userInfo.username}&api-key=${userInfo.apikey}`,
+        url: userInfo.spiraUrl + 'services/v5_0/RestService.svc/projects/' + project + '/'
+        + 'components?active_only=true&include_deleted=false&'
+        + 'username=' + userInfo.username + '&api-key=' + userInfo.apikey,
         success: function (data) {
             populateComponents(data);
             enableButtons();
@@ -42,7 +43,8 @@ function getReleases(project){
         method: "GET",
         crossDomain: true,
         dataType: "json",
-        url: `${userInfo.spiraUrl}services/v5_0/RestService.svc/projects/${project}/releases${userInfo.auth}`,
+        url: userInfo.spiraUrl + 'services/v5_0/RestService.svc/projects/'
+        + project + '/releases' + userInfo.auth,
         success: function (data) {
             populateReleases(data);
             getComponents(project);
@@ -60,7 +62,7 @@ function getUsers(project){
         method: "GET",
         crossDomain: true,
         dataType: "json",
-        url: `${userInfo.spiraUrl}services/v5_0/RestService.svc/projects/${project}/users${userInfo.auth}`,
+        url: userInfo.spiraUrl + 'services/v5_0/RestService.svc/projects/' + project + '/users' + userInfo.auth,
         success: function (data) {
             populateUsers(data);
             getReleases(project);
@@ -75,16 +77,16 @@ function getUsers(project){
 
 function jsonToArray(oldObj, objTemplate) {
     let valArray = [];
-    for (let prop in objTemplate) {
-        objTemplate[prop] = oldObj[prop];
-        valArray.push(objTemplate[prop]);
+    for (let i = 0; i < Object.keys(objTemplate).length; i++) {
+        objTemplate[Object.keys(objTemplate)[i]] = oldObj[Object.keys(objTemplate)[i]];
+        valArray.push(objTemplate[Object.keys(objTemplate)[i]]);
     }
     return valArray;
 }
 
 function toExcel(artifact, newValues) {
     return Excel.run(function (context) {
-        let sheetName = toSheetName(artifact);
+        let sheetName = convertToSheetName(artifact);
         let valRange = columnRanges[artifact] + (newValues.length + 2);
         let sheet = context.workbook.worksheets.getItem(sheetName);
         let sheetValues = sheet.getRange(valRange);
@@ -99,25 +101,30 @@ function loadCustomFields(artifact, project) {
         return null;
     }
     let artifactNum = undefined;
+    //in the future the following if statement will be a switch for
+    //different artifact types and setting the num value
     if (artifact == "requirements") {
         artifactNum = 1;
     }
     disableButtons();
+
+    //Get list of custom properties associated with the current project and artifact
     $.ajax({
         method: "GET",
         crossDomain: true,
         dataType: "json",
-        url: `${userInfo.spiraUrl}services/v5_0/RestService.svc/projects/${project}/custom-properties/${artifactNum}${userInfo.auth}`,
+        url: userInfo.spiraUrl + 'services/v5_0/RestService.svc/projects/' + project
+        + '/custom-properties/' + artifactNum + userInfo.auth,
         success: function (data) {
             if (data.length < 1) {
                 populateCustomFieldNames([{ "Name": "" }], artifact);
                 getUsers(project);
             }
             else {
-                for (let customProp of data) {
-                    customFieldInfo = {};
-                    customFieldInfo.Name = customProp.Name;
-                    customFieldInfo.Type = customProp.CustomPropertyTypeName;
+                for (let i = 0; i < data.length; i++) {
+                    let customFieldInfo = {};
+                    customFieldInfo.Name = data[i].Name;
+                    customFieldInfo.Type = data[i].CustomPropertyTypeName;
                     customFieldNames.push(customFieldInfo);
                 }
                 populateCustomFieldNames(customFieldNames, artifact);
@@ -133,9 +140,9 @@ function loadCustomFields(artifact, project) {
 
 function populateComponents(components){
     let newComponents = [];
-    for (let component of components){
-        newComponents.push([component.Name, component.ComponentId]);
-        currentComponents[component.Name] = component.ComponentId;
+    for (let i = 0; i < components.length; i++){
+        newComponents.push([components[i].Name, components[i].ComponentId]);
+        currentComponents[components[i].Name] = components[i].ComponentId;
     }
     return Excel.run(function (context) {
         let componentRange = "I3:J" + (components.length + 2);
@@ -154,8 +161,8 @@ function populateComponents(components){
 
 function populateCustomFieldNames(cusObj, artifact) {
     let newNames = [];
-    for (let info of cusObj) {
-        newNames.push(info.Name);
+    for (let i = 0; i < Object.keys(cusObj).length; i++){
+        newNames.push(cusObj[i].Name);
     }
     if (newNames.length < 30) {
         for (let i = newNames.length; i < 30; i++) {
@@ -163,8 +170,8 @@ function populateCustomFieldNames(cusObj, artifact) {
         }
     }
     return Excel.run(function (context) {
-        let sheetName = toSheetName(artifact);
-        let customFieldNameRange = customFieldRanges[artifact][0] + "2:" + customFieldRanges[artifact][1] + "2";
+        let sheetName = convertToSheetName(artifact);
+        let customFieldNameRange = columnRanges.customFieldRanges[artifact][0] + "2:" + columnRanges.customFieldRanges[artifact][1] + "2";
         let sheet = context.workbook.worksheets.getItem(sheetName);
         let names = sheet.getRange(customFieldNameRange);
         names.values = [newNames];
@@ -174,9 +181,9 @@ function populateCustomFieldNames(cusObj, artifact) {
 
 function populateReleases(releases){
     let releaseArray = [];
-    for (let release of releases){
-        releaseArray.push([release.VersionNumber, release.ReleaseId]);
-        currentReleases[release.VersionNumber] = release.ReleaseId;
+    for (let i = 0; i < releases.length; i++){
+        releaseArray.push([releases[i].VersionNumber, releases[i].ReleaseId]);
+        currentReleases[releases[i].VersionNumber] = releases[i].ReleaseId;
     }
     return Excel.run(function (context) {
         let releaseRange = "E3:F" + (releases.length + 2);
@@ -196,9 +203,9 @@ function populateReleases(releases){
 
 function populateUsers(userList){
     let userArrays = [];
-    for (let user of userList){
-        userArrays.push([user.FullName, user.UserId]);
-        currentUsers[user.FullName] = user.UserId;
+    for (let i = 0; i < userList.length; i++){
+        userArrays.push([userList[i].FullName, userList[i].UserId]);
+        currentUsers[userList[i].FullName] = userList[i].UserId;
     }
     return Excel.run(function (context) {
         let userRange = "G3:H" + (userList.length + 2);
@@ -219,7 +226,7 @@ function populateUsers(userList){
 function returnId(newId, artifact, row) {
     let currentRow = (row + 2);
     return Excel.run(function (context) {
-        let sheetName = toSheetName(artifact);
+        let sheetName = convertToSheetName(artifact);
         let sheet = context.workbook.worksheets.getItem(sheetName);
         let IdCell = sheet.getCell(currentRow, 0);
         IdCell.values = [[newId]];

@@ -61,23 +61,21 @@ var reqStatus = {
 
 //column ranges for different sheets, currently only requirements.
 var columnRanges = {
-  requirements: "A3:K"
-};
-
-//custom field ranges for different sheets, currently only requirements.
-var customFieldRanges = {
+  requirements: "A3:K",
+  customFieldRanges: {
   requirements: ["N", "AQ"],
+}
 };
 
 //array to hold custom field names
 var customFieldNames = [];
 
 function cleanObject(Obj) {
-  var cleaned = {};
-  for (let prop in Obj) {
-    if (Obj[prop] != "") {
-      cleaned[prop] = Obj[prop];
-    }
+	var cleaned = {};
+  for (let i = 0; i < Object.keys(Obj).length; i++){
+  	if (Obj[Object.keys(Obj)[i]] != ""){
+  		cleaned[Object.keys(Obj)[i]] = Obj[Object.keys(Obj)[i]];
+      }
   }
   return cleaned;
 }
@@ -88,7 +86,7 @@ function daysToMseconds(days) {
   const between = 25566;
   days -= between;
   let milliseconds = days *= 8.64e+7;
-  return `/Date(${milliseconds})/`;
+  return '/Date(' + milliseconds + ')/';
 }
 
 function disableButtons() {
@@ -106,7 +104,6 @@ function enableButtons() {
 }
 
 function multilistConvert(str) {
-    console.log(str);
     function correct(str) {
       let newString = parseInt(str.trim());
       return newString;
@@ -117,8 +114,10 @@ function multilistConvert(str) {
     return arr;
   }
 
-function toIdString(artifact) {
-  let newString = toSheetName(artifact);
+//converts artifact name into a string ending with "Id" to be used
+//for accessing the correct keys in objects (ex. turns "requirements" into "RequirementId")
+function convertToIdKey(artifactName) {
+  let newString = convertToSheetName(artifactName);
   newString = newString.split(" ");
   newString = newString.join("");
   newString = newString.split("");
@@ -127,10 +126,12 @@ function toIdString(artifact) {
   return newString;
 }
 
-function toSheetName(artifact) {
-  let newString = artifact.split("-");
-  for (let i in newString) {
-    newString[i] = newString[i].charAt(0).toUpperCase() + newString[i].substr(1);
+//converts artifact name into the correct format for the Excel template sheet names
+function convertToSheetName(artifactName) {
+	let newString = artifactName.split("-");
+  for (let i = 0; i < newString.length; i++){
+  	newString[i] = newString[i].charAt(0).toUpperCase()
+    + newString[i].substr(1);
   }
   newString = newString.join(" ");
   return newString;
@@ -162,7 +163,7 @@ function toSheetName(artifact) {
     $.ajax({
       method: "GET",
       crossDomain: true,
-      url: `${userInfo.spiraUrl}services/v5_0/RestService.svc/projects${userInfo.auth}`,
+      url: userInfo.spiraUrl + 'services/v5_0/RestService.svc/projects' + userInfo.auth,
       success: function (data, textStatus, response) {
         for (let i = 0; i < data.length; i++) {
           $('<option value="' + data[i].ProjectId + '">' + data[i].Name + '</option>').appendTo('#projects');
@@ -189,7 +190,7 @@ function toSheetName(artifact) {
   //for testing calls and functions with a temporary "test" button on index.html
   function testing() {
     return Excel.run(function(context){
-        let sheetName = toSheetName("requirements");
+        let sheetName = convertToSheetName("requirements");
         let sheet = context.workbook.worksheets.getItem(sheetName);
         let testCell = sheet.getCell(3, 0);
         testCell.load();
@@ -208,14 +209,14 @@ function toSheetName(artifact) {
       $('#testing').click(testing);
       $('#help-toggle').click(showHelp);
 
-      $('#export').click(() => {
+      $('#export').click(function() {
         disableButtons();
         $('#projects').removeClass('error');
         var selectedProject = $('#projects').val();
         if (selectedProject != -1) {
           switch ($('#artifact').val()) {
             case "requirements":
-              grabExcelValues(null, $('#artifact').val(), requirementObj, customFieldRanges.requirements);
+              grabExcelValues(null, $('#artifact').val(), requirementObj, columnRanges.customFieldRanges.requirements);
               break;
             default:
               console.log("Could not export");
@@ -226,7 +227,7 @@ function toSheetName(artifact) {
         }
       });
 
-      $('#import').click(() => {
+      $('#import').click(function() {
         disableButtons();
         switch ($('#artifact').val()) {
           case "requirements":

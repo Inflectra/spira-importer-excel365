@@ -4,7 +4,7 @@ function grabExcelValues(rows, artifact, objTemplate, customFieldRange) {
     }
     else {
         return Excel.run(function (context) {
-            let sheet = context.workbook.worksheets.getItem(toSheetName(artifact));
+            let sheet = context.workbook.worksheets.getItem(convertToSheetName(artifact));
             let inputRange = columnRanges[artifact] + rows;
             let customRange = (customFieldRange[0] + 3) + ":" + (customFieldRange[1] + rows);
             let inputValues = sheet.getRange(inputRange);
@@ -22,7 +22,7 @@ function grabExcelValues(rows, artifact, objTemplate, customFieldRange) {
 
 function getRows(artifact, objTemplate, customFieldRange) {
     return Excel.run(function (context) {
-        let sheet = context.workbook.worksheets.getItem(toSheetName(artifact));
+        let sheet = context.workbook.worksheets.getItem(convertToSheetName(artifact));
         let sheetRange = sheet.getUsedRange();
         sheetRange.load();
         return context.sync()
@@ -37,7 +37,7 @@ function getRows(artifact, objTemplate, customFieldRange) {
 
 function ajaxExport(valueArray, artifact, objTemplate, customFieldObjArr) {
     let objArray = buildobjects(valueArray, artifact, objTemplate);
-    for (let i in customFieldObjArr){
+    for (let i = 0; i < customFieldObjArr.length; i++){
         objArray[i].CustomProperties = customFieldObjArr[i];
     }
     postNew(objArray, artifact, 0);
@@ -45,70 +45,78 @@ function ajaxExport(valueArray, artifact, objTemplate, customFieldObjArr) {
 }
 
 function buildobjects(valueArray, artifact, objTemplate) {
+    /*valueArray is the values pulled from the Excel row,
+    artifact is the artifact name and objTemplate
+    is a pre-made default object with the keys in the correct
+    order for iterating over along with valueArray*/
     let objArray = [];
     for (let i = 0; i < valueArray.length; i++) {
         let j = 0;
-        for (let prop in objTemplate) {
+        for (let k = 0; k < Object.keys(objTemplate).length; k++) {
+            newObject = objTemplate;
             //grabs the digit from Importance Name field for the id
-            if (prop == "ImportanceId") {
-                objTemplate[prop] = valueArray[i][j].charAt(0);
-            }
-            else if (prop == "ReleaseId"){
-                objTemplate[prop] = currentReleases[valueArray[i][j]];
-            }
-            else if ((prop == "AuthorId") || (prop == "OwnerId")){
-                objTemplate[prop] = currentUsers[valueArray[i][j]];
+            if (Object.keys(newObject)[k] == "ImportanceId") {
                 console.log(valueArray[i][j]);
+                newObject[Object.keys(newObject)[k]] = valueArray[i][j].toString().charAt(0);
             }
-            else if (prop == "RequirementTypeId"){
-                objTemplate[prop] = requirementType[valueArray[i][j]];
+            else if (Object.keys(newObject)[k] == "ReleaseId"){
+                newObject[Object.keys(newObject)[k]] = currentReleases[valueArray[i][j]];
             }
-            else if (prop == "StatusId"){
-                objTemplate[prop] = reqStatus[valueArray[i][j]];
+            else if ((Object.keys(newObject)[k] == "AuthorId") || (Object.keys(newObject)[k] == "OwnerId")){
+                newObject[Object.keys(newObject)[k]] = currentUsers[valueArray[i][j]];
             }
-            else if (prop == "ComponentId"){
-                objTemplate[prop] = currentComponents[valueArray[i][j]];
+            else if (Object.keys(newObject)[k] == "RequirementTypeId"){
+                newObject[Object.keys(newObject)[k]] = requirementType[valueArray[i][j]];
+            }
+            else if (Object.keys(newObject)[k] == "StatusId"){
+                newObject[Object.keys(newObject)[k]] = reqStatus[valueArray[i][j]];
+            }
+            else if (Object.keys(newObject)[k] == "ComponentId"){
+                newObject[Object.keys(newObject)[k]] = currentComponents[valueArray[i][j]];
             }
             else {
-                objTemplate[prop] = valueArray[i][j];
+                newObject[Object.keys(newObject)[k]] = valueArray[i][j];
             }
             j++
         }
-        objArray.push(cleanObject(objTemplate));
+        objArray.push(cleanObject(newObject));
     }
     return objArray;
 }
 
-function postNew(toSend, artifact, reqNum) {
+function postNew(toSend, artifact, rowNum) {
     let id = $('#projects').val();
-    if (toSend[reqNum] && toSend[reqNum].hasOwnProperty(toIdString(artifact))) {
-        $("<p>RequirementId " + toSend[reqNum].RequirementId + " was not updated<p>").appendTo('#error-box');
-        postNew(toSend, artifact, (reqNum + 1));
+    //Check to make sure object doesn't already have RequirementId and move on to 
+    //the next row if it does
+    if (toSend[rowNum] && toSend[rowNum].hasOwnProperty(convertToIdKey(artifact))) {
+        $("<p>RequirementId " + toSend[rowNum].RequirementId + " was not updated<p>").appendTo('#error-box');
+        postNew(toSend, artifact, (rowNum + 1));
     }
-    else if (reqNum < toSend.length) {
+    else if (rowNum < toSend.length) {
         $.ajax({
             async: true,
             method: "POST",
             crossDomain: true,
             contentType: "application/json",
             dataType: "json",
-            url: `${userInfo.spiraUrl}services/v5_0/RestService.svc/projects/${id}/${artifact}${userInfo.auth}`,
-            data: JSON.stringify(toSend[reqNum]),
+            url: userInfo.spiraUrl + 'services/v5_0/RestService.svc/projects/' + id + '/' + artifact + userInfo.auth,
+            data: JSON.stringify(toSend[rowNum]),
             success: function (data, textStatus, response) {
-                returnId(data.RequirementId, artifact, reqNum);
-                $("<p>" + toSend[reqNum].Name + " sent successfully<p>").appendTo('#error-box');
+                returnId(data.RequirementId, artifact, rowNum);
+                $("<p>" + toSend[rowNum].Name + " sent successfully<p>").appendTo('#error-box');
             },
             error: function () {
-                $("<p>" + toSend[reqNum].Name + " failed to send<p>").appendTo('#error-box');
+                $("<p>" + toSend[rowNum].Name + " failed to send<p>").appendTo('#error-box');
                 enableButtons();
             }
         }).done(function (data, textStatus, response) {
-            if (toSend[reqNum + 1] && toSend[reqNum + 1].hasOwnProperty(toIdString(artifact))) {
-                $("<p>RequirementId " + toSend[reqNum + 1].RequirementId + " was not updated<p>").appendTo('#error-box');
-                postNew(toSend, artifact, (reqNum + 2));
+            if (toSend[rowNum + 1] && toSend[rowNum + 1].hasOwnProperty(convertToIdKey(artifact))) {
+                $("<p>RequirementId " + toSend[rowNum + 1].RequirementId + " was not updated<p>").appendTo('#error-box');
+                postNew(toSend, artifact, (rowNum + 2));
             }
             else {
-                postNew(toSend, artifact, (reqNum + 1));
+                console.log(toSend[rowNum + 1]);
+                postNew(toSend, artifact, (rowNum + 1));
             }
         })
     } else {
@@ -117,8 +125,8 @@ function postNew(toSend, artifact, reqNum) {
 }
 
 function customFieldObjCreate(valueArray){
-    let newArray = valueArray.filter((val) => val != "");
-    for (let i in newArray){
+    let newArray = valueArray.filter(function(val) {return val != ""});
+    for (let i = 0; i < newArray.length; i++){
         let cusObj = {};
         let valType = "";
         switch (customFieldNames[i].Type){
