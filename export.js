@@ -56,8 +56,7 @@ function ajaxExport(valueArray, artifact, objTemplate, customFieldObjArr) {
     for (let i = 0; i < customFieldObjArr.length; i++){
         objArray[i].CustomProperties = customFieldObjArr[i];
     }
-    postNew(objArray, artifact, 0);
-    console.log(objArray);
+    postNew(objArray, artifact, 0, null);
 }
 
 function buildobjects(valueArray, artifact, objTemplate) {
@@ -72,7 +71,6 @@ function buildobjects(valueArray, artifact, objTemplate) {
             newObject = objTemplate;
             //grabs the digit from Importance Name field for the id
             if (Object.keys(newObject)[k] == "ImportanceId") {
-                console.log(valueArray[i][j]);
                 newObject[Object.keys(newObject)[k]] = valueArray[i][j].toString().charAt(0);
             }
             else if (Object.keys(newObject)[k] == "ReleaseId"){
@@ -100,54 +98,78 @@ function buildobjects(valueArray, artifact, objTemplate) {
     return objArray;
 }
 
-function postNew(toSend, artifact, rowNum) {
+function postNew(toSend, artifact, rowNum, previousIndent) {
     let id = $('#projects').val();
     //Check to make sure object doesn't already have RequirementId and move on to 
     //the next row if it does
     if (toSend[rowNum] && toSend[rowNum].hasOwnProperty(convertToIdKey(artifact))) {
-        $("<p>RequirementId " + toSend[rowNum].RequirementId + " was not updated<p>").appendTo('#error-box');
-        postNew(toSend, artifact, (rowNum + 1));
+        $("<p>RequirementId " + toSend[rowNum].RequirementId + " was not updated<p>").appendTo('#log-box');
+        postNew(toSend, artifact, (rowNum + 1), previousIndent);
     }
     else if (rowNum < toSend.length) {
+        let indentLevel = getIndentLevel(toSend[rowNum].Name);
+        let indentForApi = undefined;
+        if (previousIndent === null){
+            console.log("first item");
+            indentForApi = -20;
+        }
+        else if (previousIndent > indentLevel){
+            indentForApi = 0 - (previousIndent - indentLevel);
+        }
+        else if (previousIndent < indentLevel){
+            indentForApi = 1;
+        }
+        else {
+            indentForApi = 0;
+        }
+
+        toSend[rowNum].Name = removeIndentArrows(toSend[rowNum].Name, indentLevel);
+
         $.ajax({
             async: true,
             method: "POST",
             crossDomain: true,
             contentType: "application/json",
             dataType: "json",
-            url: userInfo.spiraUrl + 'services/v5_0/RestService.svc/projects/' + id + '/' + artifact + userInfo.auth,
+            url: userInfo.spiraUrl + 'services/v5_0/RestService.svc/projects/'
+            + id + '/' + artifact + '/indent/' + indentForApi + userInfo.auth,
             data: JSON.stringify(toSend[rowNum]),
             success: function (data, textStatus, response) {
                 returnId(data.RequirementId, artifact, rowNum);
-                $("<p>" + toSend[rowNum].Name + " sent successfully<p>").appendTo('#error-box');
+                $("<p>" + toSend[rowNum].Name + " sent successfully<p>").appendTo('#log-box');
+                $('#clear-log').removeClass("hidden");
             },
             error: function () {
-                $("<p>" + toSend[rowNum].Name + " failed to send<p>").appendTo('#error-box');
+                $("<p>" + toSend[rowNum].Name + " failed to send<p>").appendTo('#log-box');
+                $('#clear-log').removeClass("hidden");
                 enableButtons();
             }
         }).done(function (data, textStatus, response) {
             if (toSend[rowNum + 1] && toSend[rowNum + 1].hasOwnProperty(convertToIdKey(artifact))) {
-                $("<p>RequirementId " + toSend[rowNum + 1].RequirementId + " was not updated<p>").appendTo('#error-box');
-                postNew(toSend, artifact, (rowNum + 2));
+                $("<p>RequirementId " + toSend[rowNum + 1].RequirementId + " was not updated<p>").appendTo('#log-box');
+                $('#clear-log').removeClass("hidden");
+                postNew(toSend, artifact, (rowNum + 2), indentLevel);
             }
             else {
-                console.log(toSend[rowNum + 1]);
-                postNew(toSend, artifact, (rowNum + 1));
+                postNew(toSend, artifact, (rowNum + 1), indentLevel);
             }
         })
     } else {
+        $("<p>Done!<p>").appendTo('#log-box');
         enableButtons();
     }
 }
 
-function removeIndentArrows(str, indentLevel){
+function removeIndentArrows(str, indent){
 	str = str.split("")
+    if (str[0] != ">"){
+        return str.join("");
+    }
   for (let i = 0; i < str.length; i++){
   	if (str[i] === ">"){
-    	indentLevel--;
-      console.log(indentLevel);
+    	indent--;
     }
-    if (indentLevel == 0){
+    if (indent == 0){
     	str = str.join("").substr(i + 1);
     	return str;
     }

@@ -116,6 +116,7 @@ function loadCustomFields(artifact, project) {
         url: userInfo.spiraUrl + 'services/v5_0/RestService.svc/projects/' + project
         + '/custom-properties/' + artifactNum + userInfo.auth,
         success: function (data) {
+            customFieldNames = [];
             if (data.length < 1) {
                 populateCustomFieldNames([{ "Name": "" }], artifact);
                 getUsers(project);
@@ -206,6 +207,9 @@ function populateUsers(userList){
     for (let i = 0; i < userList.length; i++){
         userArrays.push([userList[i].FullName, userList[i].UserId]);
         currentUsers[userList[i].FullName] = userList[i].UserId;
+        if (userList[i].UserName == userInfo.username){
+            $('#current-user').html("Logged in as: " + userList[i].FullName);
+        }
     }
     return Excel.run(function (context) {
         let userRange = "G3:H" + (userList.length + 2);

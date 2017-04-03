@@ -42,8 +42,13 @@ span {
     border: .5px red solid;
 }
 
+.error-message{
+    color: red;
+}
+
 .help-box {
     cursor: pointer;
+    color: dimgray;
 }
 
 
@@ -55,11 +60,20 @@ span {
     padding-left: 50px;
 }
 
+.log-box{
+    color: dimgray;
+}
+
 .login-screen {
     overflow: hidden;
 }
 
 .ms-u-textAlignLeft{
+    margin-left: 25px;
+    margin-right: 25px;
+}
+
+.ms-u-textAlignRight{
     margin-left: 25px;
     margin-right: 25px;
 }

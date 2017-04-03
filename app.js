@@ -9,7 +9,7 @@ var userInfo = {
 };
 
 var currentComponents = {
-  
+
 };
 
 var currentUsers = {
@@ -47,35 +47,35 @@ var requirementObj = {
 };
 
 var reqStatus = {
-  "Requested":	1,
-  "Evaluated":	7,
-  "Accepted":	5,
-  "Rejected":	6,
-  "Planned":	2,
-  "In Progress":	3,
-  "Developed":	4,
-  "Obsolete":	8,
-  "Tested":	9,
-  "Completed":	10,
-}
+  "Requested": 1,
+  "Evaluated": 7,
+  "Accepted": 5,
+  "Rejected": 6,
+  "Planned": 2,
+  "In Progress": 3,
+  "Developed": 4,
+  "Obsolete": 8,
+  "Tested": 9,
+  "Completed": 10,
+};
 
 //column ranges for different sheets, currently only requirements.
 var columnRanges = {
   requirements: "A3:K",
   customFieldRanges: {
-  requirements: ["N", "AQ"],
-}
+    requirements: ["N", "AQ"],
+  }
 };
 
 //array to hold custom field names
 var customFieldNames = [];
 
 function cleanObject(Obj) {
-	var cleaned = {};
-  for (let i = 0; i < Object.keys(Obj).length; i++){
-  	if (Obj[Object.keys(Obj)[i]] != ""){
-  		cleaned[Object.keys(Obj)[i]] = Obj[Object.keys(Obj)[i]];
-      }
+  var cleaned = {};
+  for (let i = 0; i < Object.keys(Obj).length; i++) {
+    if (Obj[Object.keys(Obj)[i]] != "") {
+      cleaned[Object.keys(Obj)[i]] = Obj[Object.keys(Obj)[i]];
+    }
   }
   return cleaned;
 }
@@ -104,15 +104,15 @@ function enableButtons() {
 }
 
 function multilistConvert(str) {
-    function correct(str) {
-      let newString = parseInt(str.trim());
-      return newString;
-    }
-    let arr = str.split(",");
-    arr = arr.map(correct);
-    arr = arr.filter(Number.isInteger);
-    return arr;
+  function correct(str) {
+    let newString = parseInt(str.trim());
+    return newString;
   }
+  let arr = str.split(",");
+  arr = arr.map(correct);
+  arr = arr.filter(Number.isInteger);
+  return arr;
+}
 
 //converts artifact name into a string ending with "Id" to be used
 //for accessing the correct keys in objects (ex. turns "requirements" into "RequirementId")
@@ -128,10 +128,10 @@ function convertToIdKey(artifactName) {
 
 //converts artifact name into the correct format for the Excel template sheet names
 function convertToSheetName(artifactName) {
-	let newString = artifactName.split("-");
-  for (let i = 0; i < newString.length; i++){
-  	newString[i] = newString[i].charAt(0).toUpperCase()
-    + newString[i].substr(1);
+  let newString = artifactName.split("-");
+  for (let i = 0; i < newString.length; i++) {
+    newString[i] = newString[i].charAt(0).toUpperCase()
+      + newString[i].substr(1);
   }
   newString = newString.join(" ");
   return newString;
@@ -148,10 +148,12 @@ function convertToSheetName(artifactName) {
 
     if (userInfo.spiraUrl.charAt(userInfo.spiraUrl.length - 1) != "/") {
       userInfo.spiraUrl += "/";
+      enableButtons();
     }
     if (userInfo.spiraUrl.charAt(4) !== "s") {
       $('#url').addClass("error");
-      $('#error-message').text(" Invalid URL (must be https)").addClass("ms-Icon ms-Icon--Error");
+      $('#error-message').html('<p class="ms-baseFont">Invalid URL (must be https)</p>');
+      enableButtons();
     } else {
 
       getProjects();
@@ -168,6 +170,7 @@ function convertToSheetName(artifactName) {
         for (let i = 0; i < data.length; i++) {
           $('<option value="' + data[i].ProjectId + '">' + data[i].Name + '</option>').appendTo('#projects');
         }
+        $('#current-user').html("Logged in as: " + userInfo.username);
         $('#logInScreen').addClass("hidden");
         $('#mainScreen').removeClass("hidden");
         enableButtons();
@@ -175,7 +178,8 @@ function convertToSheetName(artifactName) {
       error: function () {
         $('#username').addClass("error");
         $('#apikey').addClass("error");
-        $('#error-message').text(" Invalid Username or API key").addClass("ms-Icon ms-Icon--Error");
+        $('url').addClass("error");
+        $('#error-message').html("Invalid Login Info");
         enableButtons();
       }
     });
@@ -189,13 +193,13 @@ function convertToSheetName(artifactName) {
 
   //for testing calls and functions with a temporary "test" button on index.html
   function testing() {
-    return Excel.run(function(context){
-        let sheetName = convertToSheetName("requirements");
-        let sheet = context.workbook.worksheets.getItem(sheetName);
-        let testCell = sheet.getCell(3, 0);
-        testCell.load();
-        return context.sync()
-        .then(function(){
+    return Excel.run(function (context) {
+      let sheetName = convertToSheetName("requirements");
+      let sheet = context.workbook.worksheets.getItem(sheetName);
+      let testCell = sheet.getCell(3, 0);
+      testCell.load();
+      return context.sync()
+        .then(function () {
           let val = testCell.values[0][0];
           val = multilistConvert(val);
         });
@@ -208,8 +212,13 @@ function convertToSheetName(artifactName) {
       $('#logIn').click(logIn);
       $('#testing').click(testing);
       $('#help-toggle').click(showHelp);
+      $('#clear-log').click(function () {
+        $(this).addClass("hidden");
+        $('#log-box').html('');
+      });
 
-      $('#export').click(function() {
+      $('#export').click(function () {
+        $('#clear-log').removeClass("hidden");
         disableButtons();
         $('#projects').removeClass('error');
         var selectedProject = $('#projects').val();
@@ -227,7 +236,7 @@ function convertToSheetName(artifactName) {
         }
       });
 
-      $('#import').click(function() {
+      $('#import').click(function () {
         disableButtons();
         switch ($('#artifact').val()) {
           case "requirements":
