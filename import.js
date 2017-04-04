@@ -97,7 +97,7 @@ function toExcel(artifact, newValues) {
 }
 
 function loadCustomFields(artifact, project) {
-    if (project == -1){
+    if (project == -1 || artifact == -1){
         return null;
     }
     let artifactNum = undefined;
@@ -176,7 +176,12 @@ function populateCustomFieldNames(cusObj, artifact) {
         let sheet = context.workbook.worksheets.getItem(sheetName);
         let names = sheet.getRange(customFieldNameRange);
         names.values = [newNames];
-        return context.sync();
+        return context.sync()
+        .catch(function (error){
+            $('<p class="error-message">Could not find required sheets. Please make sure ' +
+              'you are using the template.<p>').appendTo('#log-box');
+              $('#clear-log').removeClass("hidden");
+        });
     });
 }
 
@@ -207,9 +212,6 @@ function populateUsers(userList){
     for (let i = 0; i < userList.length; i++){
         userArrays.push([userList[i].FullName, userList[i].UserId]);
         currentUsers[userList[i].FullName] = userList[i].UserId;
-        if (userList[i].UserName == userInfo.username){
-            $('#current-user').html("Logged in as: " + userList[i].FullName);
-        }
     }
     return Excel.run(function (context) {
         let userRange = "G3:H" + (userList.length + 2);

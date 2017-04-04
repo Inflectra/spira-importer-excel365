@@ -173,6 +173,7 @@ function convertToSheetName(artifactName) {
         $('#current-user').html("Logged in as: " + userInfo.username);
         $('#logInScreen').addClass("hidden");
         $('#mainScreen').removeClass("hidden");
+        $('#log-out').removeClass("hidden");
         enableButtons();
       },
       error: function () {
@@ -185,39 +186,17 @@ function convertToSheetName(artifactName) {
     });
   }
 
-  function showHelp() {
-    $('#chevron-icon').toggleClass("ms-Icon--ChevronRight");
-    $('#chevron-icon').toggleClass("ms-Icon--ChevronDown");
-    $('#help-text').toggleClass("hidden");
-  }
-
-  //for testing calls and functions with a temporary "test" button on index.html
-  function testing() {
-    return Excel.run(function (context) {
-      let sheetName = convertToSheetName("requirements");
-      let sheet = context.workbook.worksheets.getItem(sheetName);
-      let testCell = sheet.getCell(3, 0);
-      testCell.load();
-      return context.sync()
-        .then(function () {
-          let val = testCell.values[0][0];
-          val = multilistConvert(val);
-        });
-    });
-  } //end of testing
-
   // The initialize function must be run each time a new page is loaded
   Office.initialize = function (reason) {
     $(document).ready(function () {
       $('#logIn').click(logIn);
-      $('#testing').click(testing);
-      $('#help-toggle').click(showHelp);
       $('#clear-log').click(function () {
         $(this).addClass("hidden");
         $('#log-box').html('');
       });
 
       $('#export').click(function () {
+        $('#spinner').removeClass("hidden");
         $('#clear-log').removeClass("hidden");
         disableButtons();
         $('#projects').removeClass('error');
@@ -228,11 +207,16 @@ function convertToSheetName(artifactName) {
               grabExcelValues(null, $('#artifact').val(), requirementObj, columnRanges.customFieldRanges.requirements);
               break;
             default:
-              console.log("Could not export");
+              $('<p class="error-message">Please select an artifact to send.<p>').appendTo('#log-box');
+              $('#spinner').addClass("hidden");
+              $('#clear-log').removeClass("hidden");
+              enableButtons();
           }
         } else {
           $('#projects').addClass('error');
+          $('<p class="error-message">No project selected.<p>').appendTo('#log-box');
           enableButtons();
+          $('#spinner').addClass("hidden");
         }
       });
 

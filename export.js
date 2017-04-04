@@ -21,6 +21,9 @@ function grabExcelValues(rows, artifact, objTemplate, customFieldRange) {
 }
 
 function getIndentLevel(str){
+    if (str==undefined){
+        return 0;
+    }
 	let indentLevel = 0;
 	str = str.split(" ")
   				 .join("")
@@ -46,7 +49,10 @@ function getRows(artifact, objTemplate, customFieldRange) {
                 grabExcelValues(sheetRange.values.length, artifact, objTemplate, customFieldRange);
             })
             .catch(function (error) {
-                console.log(error);
+                $('<p class="error-message">Could not find required sheets. Please make sure ' +
+              'you are using the template.<p>').appendTo('#log-box');
+              $('#clear-log').removeClass("hidden");
+              enableButtons();
             })
     });
 }
@@ -140,9 +146,9 @@ function postNew(toSend, artifact, rowNum, previousIndent) {
                 $('#clear-log').removeClass("hidden");
             },
             error: function () {
-                $("<p>" + toSend[rowNum].Name + " failed to send<p>").appendTo('#log-box');
+                $('<p class="error-message">' + toSend[rowNum].Name + ' failed to send</p>').appendTo('#log-box');
                 $('#clear-log').removeClass("hidden");
-                enableButtons();
+                postNew(toSend, artifact, (rowNum + 1), indentLevel);
             }
         }).done(function (data, textStatus, response) {
             if (toSend[rowNum + 1] && toSend[rowNum + 1].hasOwnProperty(convertToIdKey(artifact))) {
@@ -157,10 +163,14 @@ function postNew(toSend, artifact, rowNum, previousIndent) {
     } else {
         $("<p>Done!<p>").appendTo('#log-box');
         enableButtons();
+        $('#spinner').addClass("hidden");
     }
 }
 
 function removeIndentArrows(str, indent){
+    if (str == undefined){
+        return null;
+    }
 	str = str.split("")
     if (str[0] != ">"){
         return str.join("");
