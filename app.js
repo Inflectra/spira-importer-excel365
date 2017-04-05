@@ -2,10 +2,10 @@
 
 var userInfo = {
   //temporary hard coded values
-  "spiraUrl": "https://demo.spiraservice.net/rodrigo-pereira/",
-  "username": "administrator",
-  "apikey": "{AA50F584-BBC9-42A0-81BA-9F8A5CD8144A}",
-  "auth": "?username=administrator&api-key={AA50F584-BBC9-42A0-81BA-9F8A5CD8144A}",
+  "spiraUrl": null,// "https://demo.spiraservice.net/rodrigo-pereira/",
+  "username": null, // "administrator",
+  "apikey": null,// "{AA50F584-BBC9-42A0-81BA-9F8A5CD8144A}",
+  "auth": null// "?username=administrator&api-key={AA50F584-BBC9-42A0-81BA-9F8A5CD8144A}",
 };
 
 var currentComponents = {
@@ -141,15 +141,17 @@ function convertToSheetName(artifactName) {
 
   function logIn() {
     disableButtons();
-    //userInfo.spiraUrl = $("#url").val();
-    //userInfo.username = $("#username").val();
-    //userInfo.apikey = $("#apikey").val();
-    //userInfo.auth = "?username=" + $("#username").val() + "&api-key=" + $("#apikey").val();
+    userInfo.spiraUrl = $("#url").val();
+    userInfo.username = $("#username").val();
+    userInfo.apikey = btoa($("#apikey").val());
+    userInfo.auth = btoa("?username=" + $("#username").val() + "&api-key=" + $("#apikey").val());
 
+    //ensures that url has a "/" at the end for doing api calls and adds one if it doesn't
     if (userInfo.spiraUrl.charAt(userInfo.spiraUrl.length - 1) != "/") {
       userInfo.spiraUrl += "/";
       enableButtons();
     }
+    //ensures url is https, otherwise it gives an error and highlights the URL box
     if (userInfo.spiraUrl.charAt(4) !== "s") {
       $('#url').addClass("error");
       $('#error-message').html('<p class="ms-baseFont">Invalid URL (must be https)</p>');
@@ -165,8 +167,10 @@ function convertToSheetName(artifactName) {
     $.ajax({
       method: "GET",
       crossDomain: true,
-      url: userInfo.spiraUrl + 'services/v5_0/RestService.svc/projects' + userInfo.auth,
+      url: userInfo.spiraUrl + 'services/v5_0/RestService.svc/projects' + atob(userInfo.auth),
       success: function (data, textStatus, response) {
+        //if call is successful, fill the projects drop down with the user's projects and
+        //transition to the main screen
         for (let i = 0; i < data.length; i++) {
           $('<option value="' + data[i].ProjectId + '">' + data[i].Name + '</option>').appendTo('#projects');
         }
@@ -186,7 +190,7 @@ function convertToSheetName(artifactName) {
     });
   }
 
-  // The initialize function must be run each time a new page is loaded
+  // The initialize function must be run each time a new page is loaded. Currently there is only one page.
   Office.initialize = function (reason) {
     $(document).ready(function () {
       $('#logIn').click(logIn);

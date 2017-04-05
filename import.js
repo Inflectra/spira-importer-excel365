@@ -4,7 +4,7 @@ function ajaxImport(artifact, objTemplate) {
         crossDomain: true,
         dataType: "json",
         url: userInfo.spiraUrl + 'services/v5_0/RestService.svc/'
-        + artifact + userInfo.auth,
+        + artifact + atob(userInfo.auth),
         success: function (data) {
             let valueArray = [];
             for (let i = 0; i < data.length; i++) {
@@ -25,7 +25,7 @@ function getComponents(project){
         dataType: "json",
         url: userInfo.spiraUrl + 'services/v5_0/RestService.svc/projects/' + project + '/'
         + 'components?active_only=true&include_deleted=false&'
-        + 'username=' + userInfo.username + '&api-key=' + userInfo.apikey,
+        + 'username=' + userInfo.username + '&api-key=' + atob(userInfo.apikey),
         success: function (data) {
             populateComponents(data);
             enableButtons();
@@ -44,7 +44,7 @@ function getReleases(project){
         crossDomain: true,
         dataType: "json",
         url: userInfo.spiraUrl + 'services/v5_0/RestService.svc/projects/'
-        + project + '/releases' + userInfo.auth,
+        + project + '/releases' + atob(userInfo.auth),
         success: function (data) {
             populateReleases(data);
             getComponents(project);
@@ -62,7 +62,7 @@ function getUsers(project){
         method: "GET",
         crossDomain: true,
         dataType: "json",
-        url: userInfo.spiraUrl + 'services/v5_0/RestService.svc/projects/' + project + '/users' + userInfo.auth,
+        url: userInfo.spiraUrl + 'services/v5_0/RestService.svc/projects/' + project + '/users' + atob(userInfo.auth),
         success: function (data) {
             populateUsers(data);
             getReleases(project);
@@ -114,7 +114,7 @@ function loadCustomFields(artifact, project) {
         crossDomain: true,
         dataType: "json",
         url: userInfo.spiraUrl + 'services/v5_0/RestService.svc/projects/' + project
-        + '/custom-properties/' + artifactNum + userInfo.auth,
+        + '/custom-properties/' + artifactNum + atob(userInfo.auth),
         success: function (data) {
             customFieldNames = [];
             if (data.length < 1) {

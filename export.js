@@ -1,6 +1,7 @@
 function grabExcelValues(rows, artifact, objTemplate, customFieldRange) {
     if (rows === null) {
-        getRows(artifact, objTemplate, customFieldRange);
+        getRows(artifact, objTemplate, customFieldRange); 
+        //the getRows function will circle back and call grabExcelValues with a non-null rows variable.
     }
     else {
         return Excel.run(function (context) {
@@ -42,13 +43,13 @@ function getIndentLevel(str){
 function getRows(artifact, objTemplate, customFieldRange) {
     return Excel.run(function (context) {
         let sheet = context.workbook.worksheets.getItem(convertToSheetName(artifact));
-        let sheetRange = sheet.getUsedRange();
+        let sheetRange = sheet.getUsedRange();//getUsedRange figures out how far into the sheet the user has filled in values
         sheetRange.load();
         return context.sync()
             .then(function () {
                 grabExcelValues(sheetRange.values.length, artifact, objTemplate, customFieldRange);
             })
-            .catch(function (error) {
+            .catch(function (error) {//this will run if the requirement template sheet can't be found
                 $('<p class="error-message">Could not find required sheets. Please make sure ' +
               'you are using the template.<p>').appendTo('#log-box');
               $('#clear-log').removeClass("hidden");
@@ -57,6 +58,7 @@ function getRows(artifact, objTemplate, customFieldRange) {
     });
 }
 
+//builds objects out of the excel arrays and sends them to the post function
 function ajaxExport(valueArray, artifact, objTemplate, customFieldObjArr) {
     let objArray = buildobjects(valueArray, artifact, objTemplate);
     for (let i = 0; i < customFieldObjArr.length; i++){
@@ -113,6 +115,7 @@ function postNew(toSend, artifact, rowNum, previousIndent) {
         postNew(toSend, artifact, (rowNum + 1), previousIndent);
     }
     else if (rowNum < toSend.length) {
+        //check arrows for indent level and then end by removing arrows from the name:
         let indentLevel = getIndentLevel(toSend[rowNum].Name);
         let indentForApi = undefined;
         if (previousIndent === null){
@@ -131,6 +134,7 @@ function postNew(toSend, artifact, rowNum, previousIndent) {
 
         toSend[rowNum].Name = removeIndentArrows(toSend[rowNum].Name, indentLevel);
 
+        //then do ajax call with arrowless name:
         $.ajax({
             async: true,
             method: "POST",
@@ -138,11 +142,12 @@ function postNew(toSend, artifact, rowNum, previousIndent) {
             contentType: "application/json",
             dataType: "json",
             url: userInfo.spiraUrl + 'services/v5_0/RestService.svc/projects/'
-            + id + '/' + artifact + '/indent/' + indentForApi + userInfo.auth,
+            + id + '/' + artifact + '/indent/' + indentForApi + atob(userInfo.auth),
             data: JSON.stringify(toSend[rowNum]),
             success: function (data, textStatus, response) {
                 returnId(data.RequirementId, artifact, rowNum);
                 $("<p>" + toSend[rowNum].Name + " sent successfully<p>").appendTo('#log-box');
+                //#log-box is a section that logs progress and errors that the user can see
                 $('#clear-log').removeClass("hidden");
             },
             error: function () {
