@@ -1,11 +1,10 @@
 'use strict';
 
 var userInfo = {
-  //temporary hard coded values
-  "spiraUrl": null,// "https://demo.spiraservice.net/rodrigo-pereira/",
-  "username": null, // "administrator",
-  "apikey": null,// "{AA50F584-BBC9-42A0-81BA-9F8A5CD8144A}",
-  "auth": null// "?username=administrator&api-key={AA50F584-BBC9-42A0-81BA-9F8A5CD8144A}",
+  "spiraUrl": null,
+  "username": null,
+  "apikey": null,
+  "auth": null
 };
 
 var currentComponents = {
