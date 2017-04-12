@@ -26,7 +26,7 @@ The **manifest file** is what Excel uses to know what your add-in is called, how
         });
     ```
     If you only need to change cells in Excel without using the current value, this is enough. However, because this is a promise you will have to handle any data you pull from Excel in the **.then()** block.
- * **To access data pulled from cells in Excel, you must first load them into your code with .load()**
+ * **To access data pulled from cells in Excel, you must first load the data into your code with .load()**
  	
     For example, if you wanted to print the name of your active worksheet in the console you would load it in like this:
     ```javascript
@@ -48,7 +48,7 @@ The **manifest file** is what Excel uses to know what your add-in is called, how
         });
     ```
 
-## OfficeJS Documentation
+### OfficeJS Documentation
 
 For Microsoft's **documentation** on officejs (for excel add-ins specifically), [click here](https://github.com/OfficeDev/office-js-docs/tree/master/reference/excel).
 
