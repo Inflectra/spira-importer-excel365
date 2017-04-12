@@ -1,15 +1,14 @@
 'use strict';
 
 var userInfo = {
-  //temporary hard coded values
-  "spiraUrl": "https://demo.spiraservice.net/rodrigo-pereira/",
-  "username": "administrator",
-  "apikey": "{AA50F584-BBC9-42A0-81BA-9F8A5CD8144A}",
-  "auth": "?username=administrator&api-key={AA50F584-BBC9-42A0-81BA-9F8A5CD8144A}",
+  "spiraUrl": null,
+  "username": null,
+  "apikey": null,
+  "auth": null
 };
 
 var currentComponents = {
-  
+
 };
 
 var currentUsers = {
@@ -47,35 +46,35 @@ var requirementObj = {
 };
 
 var reqStatus = {
-  "Requested":	1,
-  "Evaluated":	7,
-  "Accepted":	5,
-  "Rejected":	6,
-  "Planned":	2,
-  "In Progress":	3,
-  "Developed":	4,
-  "Obsolete":	8,
-  "Tested":	9,
-  "Completed":	10,
-}
+  "Requested": 1,
+  "Evaluated": 7,
+  "Accepted": 5,
+  "Rejected": 6,
+  "Planned": 2,
+  "In Progress": 3,
+  "Developed": 4,
+  "Obsolete": 8,
+  "Tested": 9,
+  "Completed": 10,
+};
 
 //column ranges for different sheets, currently only requirements.
 var columnRanges = {
   requirements: "A3:K",
   customFieldRanges: {
-  requirements: ["N", "AQ"],
-}
+    requirements: ["N", "AQ"],
+  }
 };
 
 //array to hold custom field names
 var customFieldNames = [];
 
 function cleanObject(Obj) {
-	var cleaned = {};
-  for (let i = 0; i < Object.keys(Obj).length; i++){
-  	if (Obj[Object.keys(Obj)[i]] != ""){
-  		cleaned[Object.keys(Obj)[i]] = Obj[Object.keys(Obj)[i]];
-      }
+  var cleaned = {};
+  for (let i = 0; i < Object.keys(Obj).length; i++) {
+    if (Obj[Object.keys(Obj)[i]] != "") {
+      cleaned[Object.keys(Obj)[i]] = Obj[Object.keys(Obj)[i]];
+    }
   }
   return cleaned;
 }
@@ -104,15 +103,15 @@ function enableButtons() {
 }
 
 function multilistConvert(str) {
-    function correct(str) {
-      let newString = parseInt(str.trim());
-      return newString;
-    }
-    let arr = str.split(",");
-    arr = arr.map(correct);
-    arr = arr.filter(Number.isInteger);
-    return arr;
+  function correct(str) {
+    let newString = parseInt(str.trim());
+    return newString;
   }
+  let arr = str.split(",");
+  arr = arr.map(correct);
+  arr = arr.filter(Number.isInteger);
+  return arr;
+}
 
 //converts artifact name into a string ending with "Id" to be used
 //for accessing the correct keys in objects (ex. turns "requirements" into "RequirementId")
@@ -128,10 +127,10 @@ function convertToIdKey(artifactName) {
 
 //converts artifact name into the correct format for the Excel template sheet names
 function convertToSheetName(artifactName) {
-	let newString = artifactName.split("-");
-  for (let i = 0; i < newString.length; i++){
-  	newString[i] = newString[i].charAt(0).toUpperCase()
-    + newString[i].substr(1);
+  let newString = artifactName.split("-");
+  for (let i = 0; i < newString.length; i++) {
+    newString[i] = newString[i].charAt(0).toUpperCase()
+      + newString[i].substr(1);
   }
   newString = newString.join(" ");
   return newString;
@@ -141,17 +140,20 @@ function convertToSheetName(artifactName) {
 
   function logIn() {
     disableButtons();
-    //userInfo.spiraUrl = $("#url").val();
-    //userInfo.username = $("#username").val();
-    //userInfo.apikey = $("#apikey").val();
-    //userInfo.auth = "?username=" + $("#username").val() + "&api-key=" + $("#apikey").val();
+    userInfo.spiraUrl = $("#url").val();
+    userInfo.username = $("#username").val();
+    userInfo.apikey = btoa($("#apikey").val());
+    userInfo.auth = btoa("?username=" + $("#username").val() + "&api-key=" + $("#apikey").val());
 
+    //ensures that url has a "/" at the end for doing api calls and adds one if it doesn't
     if (userInfo.spiraUrl.charAt(userInfo.spiraUrl.length - 1) != "/") {
       userInfo.spiraUrl += "/";
     }
+    //ensures url is https, otherwise it gives an error and highlights the URL box
     if (userInfo.spiraUrl.charAt(4) !== "s") {
       $('#url').addClass("error");
-      $('#error-message').text(" Invalid URL (must be https)").addClass("ms-Icon ms-Icon--Error");
+      $('#error-message').html('<p class="ms-baseFont">Invalid URL (must be https)</p>');
+      enableButtons();
     } else {
 
       getProjects();
@@ -163,55 +165,49 @@ function convertToSheetName(artifactName) {
     $.ajax({
       method: "GET",
       crossDomain: true,
-      url: userInfo.spiraUrl + 'services/v5_0/RestService.svc/projects' + userInfo.auth,
+      url: userInfo.spiraUrl + 'services/v5_0/RestService.svc/projects' + atob(userInfo.auth),
       success: function (data, textStatus, response) {
+        //if call is successful, fill the projects drop down with the user's projects and
+        //transition to the main screen
         for (let i = 0; i < data.length; i++) {
           $('<option value="' + data[i].ProjectId + '">' + data[i].Name + '</option>').appendTo('#projects');
         }
+        //set current user display, hide log in screen and show main screen.
+        $('#current-user').html("Logged in as: " + userInfo.username);
         $('#logInScreen').addClass("hidden");
         $('#mainScreen').removeClass("hidden");
+        $('#log-out').removeClass("hidden");
         enableButtons();
       },
       error: function () {
         $('#username').addClass("error");
         $('#apikey').addClass("error");
-        $('#error-message').text(" Invalid Username or API key").addClass("ms-Icon ms-Icon--Error");
+        $('url').addClass("error");
+        $('#error-message').html("Invalid Login Info");
         enableButtons();
       }
     });
   }
 
-  function showHelp() {
-    $('#chevron-icon').toggleClass("ms-Icon--ChevronRight");
-    $('#chevron-icon').toggleClass("ms-Icon--ChevronDown");
-    $('#help-text').toggleClass("hidden");
-  }
-
-  //for testing calls and functions with a temporary "test" button on index.html
-  function testing() {
-    return Excel.run(function(context){
-        let sheetName = convertToSheetName("requirements");
-        let sheet = context.workbook.worksheets.getItem(sheetName);
-        let testCell = sheet.getCell(3, 0);
-        testCell.load();
-        return context.sync()
-        .then(function(){
-          let val = testCell.values[0][0];
-          val = multilistConvert(val);
-        });
-    });
-  } //end of testing
-
-  // The initialize function must be run each time a new page is loaded
+  // The initialize function must be run each time a new page is loaded. Currently there is only one page.
   Office.initialize = function (reason) {
     $(document).ready(function () {
       $('#logIn').click(logIn);
-      $('#testing').click(testing);
-      $('#help-toggle').click(showHelp);
+      $('#clear-log').click(function () {
+        $(this).addClass("hidden");
+        $('#log-box').html('');
+      });
 
-      $('#export').click(function() {
+      $('#export').click(function () {
+        //When the "send to spira" button is clicked, show the log and loading spinner
+        //and then disable the buttons and remove any error coloring that may have
+        //been there from a previous attempt to send
+        $('#spinner').removeClass("hidden");
+        $('#clear-log').removeClass("hidden");
         disableButtons();
         $('#projects').removeClass('error');
+
+        //Check which project they selected and proceed accordingly. -1 is no selected project
         var selectedProject = $('#projects').val();
         if (selectedProject != -1) {
           switch ($('#artifact').val()) {
@@ -219,15 +215,23 @@ function convertToSheetName(artifactName) {
               grabExcelValues(null, $('#artifact').val(), requirementObj, columnRanges.customFieldRanges.requirements);
               break;
             default:
-              console.log("Could not export");
+              $('<p class="error-message">Please select an artifact to send.<p>').appendTo('#log-box');
+              $('#spinner').addClass("hidden");
+              $('#clear-log').removeClass("hidden");
+              enableButtons();
           }
         } else {
           $('#projects').addClass('error');
+          $('<p class="error-message">No project selected.<p>').appendTo('#log-box');
           enableButtons();
+          $('#spinner').addClass("hidden");
         }
       });
 
-      $('#import').click(function() {
+      /* The button associated with this function is currently commented out
+         in the HTML
+
+      $('#import').click(function () {
         disableButtons();
         switch ($('#artifact').val()) {
           case "requirements":
@@ -236,7 +240,7 @@ function convertToSheetName(artifactName) {
           default:
             console.log("Could not import");
         }
-      });
+      });*/
     })
   };
 })();
