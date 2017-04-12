@@ -26,9 +26,7 @@ function getIndentLevel(str){
         return 0;
     }
 	let indentLevel = 0;
-	str = str.split(" ")
-  				 .join("")
-           .split("");
+	str = str.split(" ").join("").split("");
   for (let i = 0; i < str.length; i++){
   	if (str[i] === ">"){
     	indentLevel++;
@@ -119,7 +117,6 @@ function postNew(toSend, artifact, rowNum, previousIndent) {
         let indentLevel = getIndentLevel(toSend[rowNum].Name);
         let indentForApi = undefined;
         if (previousIndent === null){
-            console.log("first item");
             indentForApi = -20;
         }
         else if (previousIndent > indentLevel){

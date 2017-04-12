@@ -148,7 +148,6 @@ function convertToSheetName(artifactName) {
     //ensures that url has a "/" at the end for doing api calls and adds one if it doesn't
     if (userInfo.spiraUrl.charAt(userInfo.spiraUrl.length - 1) != "/") {
       userInfo.spiraUrl += "/";
-      enableButtons();
     }
     //ensures url is https, otherwise it gives an error and highlights the URL box
     if (userInfo.spiraUrl.charAt(4) !== "s") {
@@ -173,6 +172,7 @@ function convertToSheetName(artifactName) {
         for (let i = 0; i < data.length; i++) {
           $('<option value="' + data[i].ProjectId + '">' + data[i].Name + '</option>').appendTo('#projects');
         }
+        //set current user display, hide log in screen and show main screen.
         $('#current-user').html("Logged in as: " + userInfo.username);
         $('#logInScreen').addClass("hidden");
         $('#mainScreen').removeClass("hidden");
@@ -199,10 +199,15 @@ function convertToSheetName(artifactName) {
       });
 
       $('#export').click(function () {
+        //When the "send to spira" button is clicked, show the log and loading spinner
+        //and then disable the buttons and remove any error coloring that may have
+        //been there from a previous attempt to send
         $('#spinner').removeClass("hidden");
         $('#clear-log').removeClass("hidden");
         disableButtons();
         $('#projects').removeClass('error');
+
+        //Check which project they selected and proceed accordingly. -1 is no selected project
         var selectedProject = $('#projects').val();
         if (selectedProject != -1) {
           switch ($('#artifact').val()) {
@@ -223,6 +228,9 @@ function convertToSheetName(artifactName) {
         }
       });
 
+      /* The button associated with this function is currently commented out
+         in the HTML
+
       $('#import').click(function () {
         disableButtons();
         switch ($('#artifact').val()) {
@@ -232,7 +240,7 @@ function convertToSheetName(artifactName) {
           default:
             console.log("Could not import");
         }
-      });
+      });*/
     })
   };
 })();
