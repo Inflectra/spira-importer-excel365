@@ -1,6 +1,6 @@
-# SpiraTeam Office365
+# SpiraTeam Excel 365 Integration
 
-#### SpiraExcel is an add-in for Microsoft Excel that allows you to create requirements for a SpiraTeam project directly from Excel.
+#### The Spirateam Excel 365 Integration add-in is an add-in for Microsoft Excel that allows you to create requirements for a SpiraTeam project directly from Excel.
 
 ![Opened add-in](https://github.com/RodrigoJPT/spira_office365-excel/blob/master/assets/Screenshots/opened-add-in.png?raw=true)
 
