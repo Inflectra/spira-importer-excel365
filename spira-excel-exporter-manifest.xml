@@ -16,7 +16,7 @@
   <ProviderName>Inflectra</ProviderName>
   <DefaultLocale>en-US</DefaultLocale>
   <!-- The display name of your add-in. Used on the store and various places of the Office UI such as the add-ins dialog. -->
-  <DisplayName DefaultValue="SpiraTeam Exporter" />
+  <DisplayName DefaultValue="SpiraTeam Excel 365 Integration" />
   <Description DefaultValue="Create requirements in SpiraTeam projects with Excel."/>
 
   <!-- Icon for your add-in. Used on installation screens and the add-ins dialog. -->
@@ -130,9 +130,9 @@
       </bt:Urls>
       <!-- ShortStrings max characters==125. -->
       <bt:ShortStrings>
-        <bt:String id="Contoso.TaskpaneButton.Label" DefaultValue="Show Exporter" />
+        <bt:String id="Contoso.TaskpaneButton.Label" DefaultValue="Show Add-In" />
         <bt:String id="Contoso.Group1Label" DefaultValue="SpiraTeam" />
-        <bt:String id="Contoso.GetStarted.Title" DefaultValue="Get started with SpiraTeam Excel Exporter!" />
+        <bt:String id="Contoso.GetStarted.Title" DefaultValue="Get started with SpiraTeam Excel 365 Integration!" />
       </bt:ShortStrings>
       <!-- LongStrings max characters==250. -->
       <bt:LongStrings>
