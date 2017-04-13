@@ -2,6 +2,8 @@
 
 #### SpiraExcel is an add-in for Microsoft Excel that allows you to create requirements for a SpiraTeam project directly from Excel.
 
+![Opened add-in](https://github.com/RodrigoJPT/spira_office365-excel/blob/master/assets/Screenshots/opened-add-in.png?raw=true)
+
 ## Developers:
 If you would like to set up a development environment and add to this project, be sure to run **npm install** and **npm install -g browser-sync**
 after you have cloned the repository. This installs the necessary node modules and [browser sync](https://www.browsersync.io/) for easy live updates
@@ -11,6 +13,8 @@ To host your code and test it first run **npm start** on your console. Once it i
 the URLs in the [**manifest file**](https://github.com/Inflectra/spira_office365-excel/blob/master/spira-excel-exporter-manifest.xml). They are currently set to **ht<span></span>tps://localhost:3000**. You must replace **all** instances in **all** URLs (e.g. "http<span></span>s://localhost:3000/assets/icon-32.png" must become "https://{NEW-URL}/assets/icon-32.png").
 
 The **manifest file** is what Excel uses to know what your add-in is called, how it should appear, and where the code is hosted. To open your version of the add-in, open up Excel and go to the **INSERT** tab. Then, click on **Office Add-Ins**. At the top right corner of the window that opens, you should see a drop down labeled **Manage My Add-Ins**. Open it and select **Upload My Add-In**. Find your manifest file, upload it, and you should see the Add-In in Excel.
+
+![Upload Add-In Screen](https://github.com/RodrigoJPT/spira_office365-excel/blob/master/assets/Screenshots/upload-add-in.png?raw=true)
 
 ### Important things to remember:
 * **When interacting with Excel, your interaction in the code should look like this:**
