@@ -2,7 +2,7 @@
 
 #### The Spirateam Excel 365 Integration add-in is an add-in for Microsoft Excel that allows you to create requirements for a SpiraTeam project directly from Excel.
 
-![Opened add-in](https://github.com/RodrigoJPT/spira_office365-excel/blob/master/assets/Screenshots/opened-add-in.png?raw=true)
+![Opened add-in](https://github.com/Inflectra/spira_office365-excel/blob/master/assets/Screenshots/opened-add-in.png)
 
 ## Developers:
 If you would like to set up a development environment and add to this project, be sure to run **npm install** and **npm install -g browser-sync**
@@ -14,7 +14,7 @@ the URLs in the [**manifest file**](https://github.com/Inflectra/spira_office365
 
 The **manifest file** is what Excel uses to know what your add-in is called, how it should appear, and where the code is hosted. To open your version of the add-in, open up Excel and go to the **INSERT** tab. Then, click on **Office Add-Ins**. At the top right corner of the window that opens, you should see a drop down labeled **Manage My Add-Ins**. Open it and select **Upload My Add-In**. Find your manifest file, upload it, and you should see the Add-In in Excel.
 
-![Upload Add-In Screen](https://github.com/RodrigoJPT/spira_office365-excel/blob/master/assets/Screenshots/upload-add-in.png?raw=true)
+![Upload Add-In Screen](https://github.com/Inflectra/spira_office365-excel/blob/master/assets/Screenshots/upload-add-in.png)
 
 ### Important things to remember:
 * **When interacting with Excel, your interaction in the code should look like this:**
