@@ -29,7 +29,7 @@
   <!-- Domains that will be allowed when navigating. For example, if you use ShowTaskpane and then have an href link, navigation will only be allowed if the domain is on this list. -->
   <AppDomains>
     <AppDomain>http://www.inflectra.com/</AppDomain>
-    <AppDomain>http://www.files.inflectra.com</AppDomain>
+    <AppDomain>http://www.files.inflectra.com/</AppDomain>
     <AppDomain>AppDomain3</AppDomain>
   </AppDomains>
   <!--End Basic Settings. -->
@@ -38,6 +38,11 @@
   <Hosts>
     <Host Name="Workbook" />
   </Hosts>
+  <Requirements>
+  <Sets>
+    <Set Name="ExcelApi" MinVersion="1.1" />
+  </Sets>
+</Requirements>
   <DefaultSettings>
     <SourceLocation DefaultValue="https://localhost:3000/index.html" />
   </DefaultSettings>
@@ -125,7 +130,7 @@
       </bt:Images>
       <bt:Urls>
         <bt:Url id="Contoso.Taskpane.Url" DefaultValue="https://localhost:3000/index.html" />
-        <bt:Url id="Contoso.GetStarted.LearnMoreUrl" DefaultValue="PUT DOCUMENTATION PDF HERE" />
+        <bt:Url id="Contoso.GetStarted.LearnMoreUrl" DefaultValue="https://www.inflectra.com/Documents/SpiraTestPlanTeam%20Migration%20and%20Integration%20Guide.pdf" />
         <bt:Url id="Contoso.DesktopFunctionFile.Url" DefaultValue="https://localhost:3000/function-file/function-file.html" />
       </bt:Urls>
       <!-- ShortStrings max characters==125. -->
