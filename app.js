@@ -66,6 +66,16 @@ var columnRanges = {
   }
 };
 
+function browserCheck(){
+  var isIE = /*@cc_on!@*/false || !!document.documentMode;
+  if (isIE){
+    var links = $('.breaks-IE');
+    for (let i = 0; i < links.length; i++){
+      links[i].removeAttribute('target');
+    }
+  }
+}
+
 //array to hold custom field names
 var customFieldNames = [];
 
@@ -192,6 +202,7 @@ function convertToSheetName(artifactName) {
   // The initialize function must be run each time a new page is loaded. Currently there is only one page.
   Office.initialize = function (reason) {
     $(document).ready(function () {
+      browserCheck();
       $('#logIn').click(logIn);
       $('#clear-log').click(function () {
         $(this).addClass("hidden");
