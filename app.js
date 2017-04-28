@@ -73,6 +73,9 @@ function browserCheck(){
     for (let i = 0; i < links.length; i++){
       links[i].removeAttribute('target');
     }
+    $('#documentation-link').html('For more help, download the documentation by right clicking '
+  + '<a href="https://www.inflectra.com/Documents/SpiraTestPlanTeam%20Migration%20and%20Integration%20Guide.pdf" target="_blank">here</a>'
+  + ' and selecting "Save Target As...".');
   }
 }
 
