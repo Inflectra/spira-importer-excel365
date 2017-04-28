@@ -8,10 +8,10 @@
     <meta charset="UTF-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
     <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1">
-    <title>SpiraTeam Excel 365 Integration</title>
+    <title>SpiraTeam Integration</title>
 
     <!-- Office JavaScript API -->
-    <script type="text/javascript" src="https://appsforoffice.microsoft.com/lib/1.1/hosted/office.debug.js"></script>
+    <script type="text/javascript" src="https://appsforoffice.microsoft.com/lib/1.1/hosted/office.js"></script>
 
     <!-- LOCAL -->
     <link rel="stylesheet" href="node_modules/office-ui-fabric-js/dist/css/fabric.min.css" />
@@ -38,8 +38,9 @@
             if you are using Excel Online.)
             <br><br>
         </p>
-        <a href="https://files.inflectra.com/office365/excel/assets/SpiraExportTemplate2017.xlsx" target="_blank"><button class="ms-Button">Download Template</button></a><br><br>
+        <a href="https://files.inflectra.com/office365/excel/assets/SpiraExportTemplate2017.xlsx" target="_blank" class="breaks-IE"><button class="ms-Button">Download Template</button></a><br><br>
         <p class="ms-font-m ms-u-textAlignLeft">After you have opened the template, proceed to log in</p>
+        <p class="ms-font-m ms-u-textAlignLeft">Don't have a SpiraTeam account? <a href="https://www.inflectra.com/SpiraTeam/" target="_blank">Click here</a></p>
         <p class="login ms-u-textAlignLeft ms-font-s">Your Team's Spira Url:</p>
         <input id="url" placeholder="https://example.inflectra.com/"></input><br>
         <p class="login ms-u-textAlignLeft ms-font-s">Your Username:</p>
@@ -54,7 +55,7 @@
     <div class="main-screen hidden" id="mainScreen">
 
         <p class="ms-font-xl ms-u-textAlignLeft title">
-            Welcome to the SpiraTeam Excel 365 Integration Add-In
+            Welcome to the SpiraTeam Integration Add-In
         </p>
 
         <select class="ms-Dropdown" id="projects" name="Projects" onchange="loadCustomFields($('#artifact').val(), $(this).val())">
@@ -82,7 +83,7 @@
 
     <footer>
         <p class="ms-font-m current-user" id="current-user"></p>
-        <a href="index.html" class="ms-u-textAlignCenter ms-font-s hidden" id="log-out"><button class="ms-Button log-out">Log Out</p></button></a>
+        <a href="index.html" class="ms-u-textAlignCenter ms-font-s hidden" id="log-out"><button class="ms-Button log-out">Log Out</button></a>
         <div class="ms-PanelDefaultExample ms-PanelExample">
             <button class="ms-Button">Help</button>
             <div class="ms-Panel ">
@@ -95,7 +96,7 @@
                         <p class="ms-font-xl ms-u-textAlignLeft">Getting Started:</p>
                         <p class="ms-font-m ms-u-textAlignLeft">
                             Before doing anything, be sure you have opened the SpiraTeam Excel Template. If you don't have it, 
-                            <a href="https://files.inflectra.com/office365/excel/assets/SpiraExportTemplate2017.xlsx" target="_blank">click here</a> to download it. If you are using Excel
+                            <a href="https://files.inflectra.com/office365/excel/assets/SpiraExportTemplate2017.xlsx" target="_blank" class="breaks-IE">click here</a> to download it. If you are using Excel
                             Online, you need to upload the file to your OneDrive to open it. Once it is open, log in.
                             <br><br></p>
                         <p class="ms-font-xl ms-u-textAlignLeft">Main Screen:</p>
@@ -115,9 +116,11 @@
                             Before sending, make sure the ID# field is left empty. If sent successfully, this field will automatically be 
                             filled with the new requirement number created in SpiraTeam. If the field is not empty, your requirement will be 
                             ignored.
-                            <br><br>
-                            For more help, refer to the <a href="http://www.inflectra.com/Documents/SpiraTestPlanTeam%20Migration%20and%20Integration%20Guide.pdf" target="_blank">documentation.</a><br><br><br><br>
+                            <br><br></p>
+                            <p class="ms-font-m ms-u-textAlignLeft" id="documentation-link">
+                            For more help, refer to the <a href="https://www.inflectra.com/Documents/SpiraTestPlanTeam%20Migration%20and%20Integration%20Guide.pdf" target="_blank">documentation.</a>
                             </p>
+                            <br><br><br><br>
                     </div>
                 </div>
             </div>

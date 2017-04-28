@@ -9,27 +9,27 @@
   <!-- Begin Basic Settings: Add-in metadata, used for all versions of Office unless override provided. -->
 
   <!-- IMPORTANT! Id must be unique for your add-in, if you reuse this manifest ensure that you change this id to a new GUID. -->
-  <Id>56dea90c-f449-48be-8f70-1823c22ac3b5</Id>
+  <Id>749a585d-318e-457c-ac69-bf86f7ee5973</Id>
 
   <!--Version. Updates from the store only get triggered if there is a version change. -->
   <Version>1.0.0.0</Version>
   <ProviderName>Inflectra</ProviderName>
   <DefaultLocale>en-US</DefaultLocale>
   <!-- The display name of your add-in. Used on the store and various places of the Office UI such as the add-ins dialog. -->
-  <DisplayName DefaultValue="SpiraTeam Excel 365 Integration" />
+  <DisplayName DefaultValue="SpiraTeam Integration" />
   <Description DefaultValue="Create requirements in SpiraTeam projects with Excel."/>
 
   <!-- Icon for your add-in. Used on installation screens and the add-ins dialog. -->
   <IconUrl DefaultValue="https://localhost:3000/assets/icon-32.png" />
-  <HighResolutionIconUrl DefaultValue="https://localhost:3000/assets/hi-res-icon.png"/>
+  <HighResolutionIconUrl DefaultValue="https://localhost:3000/assets/icon-80.png"/>
 
   <!--If you plan to submit this add-in to the Office Store, uncomment the SupportUrl element below-->
-  <!--<SupportUrl DefaultValue="[Insert the URL of a page that provides support information for the app]">-->
+  <SupportUrl DefaultValue="https://www.inflectra.com/Documents/SpiraTestPlanTeam%20Migration%20and%20Integration%20Guide.pdf"/>-->
 
   <!-- Domains that will be allowed when navigating. For example, if you use ShowTaskpane and then have an href link, navigation will only be allowed if the domain is on this list. -->
   <AppDomains>
     <AppDomain>http://www.inflectra.com/</AppDomain>
-    <AppDomain>AppDomain2</AppDomain>
+    <AppDomain>http://www.files.inflectra.com/</AppDomain>
     <AppDomain>AppDomain3</AppDomain>
   </AppDomains>
   <!--End Basic Settings. -->
@@ -38,6 +38,11 @@
   <Hosts>
     <Host Name="Workbook" />
   </Hosts>
+  <Requirements>
+  <Sets>
+    <Set Name="ExcelApi" MinVersion="1.1" />
+  </Sets>
+  </Requirements>
   <DefaultSettings>
     <SourceLocation DefaultValue="https://localhost:3000/index.html" />
   </DefaultSettings>
@@ -69,7 +74,7 @@
           </GetStarted>
           <!-- Function file is a HTML page that includes the JavaScript where functions for ExecuteAction will be called.
             Think of the FunctionFile as the code behind ExecuteFunction. -->
-          <FunctionFile resid="Contoso.DesktopFunctionFile.Url" />
+          <!--<FunctionFile resid="Contoso.DesktopFunctionFile.Url" />-->
 
           <!-- PrimaryCommandSurface is the main Office Ribbon. -->
           <ExtensionPoint xsi:type="PrimaryCommandSurface">
@@ -125,18 +130,18 @@
       </bt:Images>
       <bt:Urls>
         <bt:Url id="Contoso.Taskpane.Url" DefaultValue="https://localhost:3000/index.html" />
-        <bt:Url id="Contoso.GetStarted.LearnMoreUrl" DefaultValue="PUT DOCUMENTATION PDF HERE" />
-        <bt:Url id="Contoso.DesktopFunctionFile.Url" DefaultValue="https://localhost:3000/function-file/function-file.html" />
+        <bt:Url id="Contoso.GetStarted.LearnMoreUrl" DefaultValue="https://www.inflectra.com/Documents/SpiraTestPlanTeam%20Migration%20and%20Integration%20Guide.pdf" />
+        <!--<bt:Url id="Contoso.DesktopFunctionFile.Url" DefaultValue="" />-->
       </bt:Urls>
       <!-- ShortStrings max characters==125. -->
       <bt:ShortStrings>
-        <bt:String id="Contoso.TaskpaneButton.Label" DefaultValue="Show Add-In" />
+        <bt:String id="Contoso.TaskpaneButton.Label" DefaultValue="Open Add-In" />
         <bt:String id="Contoso.Group1Label" DefaultValue="SpiraTeam" />
-        <bt:String id="Contoso.GetStarted.Title" DefaultValue="Get started with SpiraTeam Excel 365 Integration!" />
+        <bt:String id="Contoso.GetStarted.Title" DefaultValue="Get started with SpiraTeam Integration!" />
       </bt:ShortStrings>
       <!-- LongStrings max characters==250. -->
       <bt:LongStrings>
-        <bt:String id="Contoso.TaskpaneButton.Tooltip" DefaultValue="Click to Show a Taskpane" />
+        <bt:String id="Contoso.TaskpaneButton.Tooltip" DefaultValue="Click to Show Taskpane" />
         <bt:String id="Contoso.GetStarted.Description" DefaultValue="Uploaded successfully" />
       </bt:LongStrings>
     </Resources>
