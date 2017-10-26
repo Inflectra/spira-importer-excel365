@@ -69,13 +69,12 @@ var columnRanges = {
 function browserCheck(){
   var isIE = /*@cc_on!@*/false || !!document.documentMode;
   if (isIE){
-    var links = $('.breaks-IE');
-    for (let i = 0; i < links.length; i++){
-      links[i].removeAttribute('target');
-    }
+    $('#template-message').html('<a href="https://files.inflectra.com/office365/excel/assets/SpiraExportTemplate2017.xlsx">'
+    +'right click here</a> and select "Save Target As...", ');
     $('#documentation-link').html('For more help, download the documentation by right clicking '
-  + '<a href="https://www.inflectra.com/Documents/SpiraTestPlanTeam%20Migration%20and%20Integration%20Guide.pdf" target="_blank">here</a>'
-  + ' and selecting "Save Target As...".');
+  + '<a href="https://www.inflectra.com/Documents/SpiraTestPlanTeam%20Migration%20and%20Integration%20Guide.pdf">here</a>'
+  + ' and selecting "Save Target As...", ');
+    $('#dl-button').toggleClass('hidden');
   }
 }
 
