@@ -1,0 +1,480 @@
+<!-- Copyright (c) Microsoft. All rights reserved. Licensed under the MIT license. See full license in root of repo. -->
+<!-- This file shows how to design a first-run page that provides a welcome screen to the user about the features of the add-in. -->
+
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Contoso Task Pane Add-in</title>
+
+    <!-- Office JavaScript API -->
+    <script type="text/javascript" src="https://appsforoffice.microsoft.com/lib/1.1/hosted/office.js"></script>
+
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+
+    <!-- For more information on Office UI Fabric, visit https://developer.microsoft.com/fabric. -->
+    <link rel="stylesheet" href="https://static2.sharepointonline.com/files/fabric/office-ui-fabric-core/10.0.0/css/fabric.min.css" />
+    <link rel="stylesheet" href="https://static2.sharepointonline.com/files/fabric/office-ui-fabric-js/1.2.0/css/fabric.components.min.css" />
+
+    <!-- Template styles -->
+    <link href="taskpane.css" rel="stylesheet" type="text/css" />
+</head>
+
+<body class="ms-font-m ms-welcome ms-Fabric">
+    <header class="header">
+        <img src="https://files.inflectra.com/google/sheets/spiraplan-icon.svg" class="header-logo">
+        <h3 class="header-heading">SpiraPlan Import Tool</h3>
+    </header>
+
+
+    <!--auth page-->
+    <div class="panel" id="panel-auth">
+        <p>Please enter the information used to access your server.</p>
+        
+        <ul class="form">
+            <li class="form-pair">
+            <label 
+                class="form-label ms-Label" 
+                for="input-url"
+                >
+                Spira URL:
+            </label>
+            <input 
+                class="form-input" 
+                id="input-url" 
+                name="URL" 
+                placeholder="https://<your-site-name>.com" 
+                type="text" 
+                />
+            </li>
+            <li class="form-pair">
+            <label 
+                class="form-label ms-Label"
+                for="input-userName"
+                >
+                User Name:
+            </label>
+            <input 
+                class="form-input" 
+                id="input-userName" 
+                name="user-name" 
+                placeholder="User Name" 
+                type="text" 
+                />
+            </li>
+            <li class="form-pair mt-sm">
+            <label
+                class="form-label ms-Label"
+                for="input-password"
+                >
+                RSS Token:
+            </label>
+            <input 
+                class="form-input" 
+                id="input-password" 
+                name="password" 
+                placeholder="{Your-RSS-Token}" 
+                type="password" 
+                />
+            </li>
+        </ul>
+        
+        <p class="secondary">
+            The RSS token can be generated from your 'My Profile' screen inside SpiraTeam. For further assistance contact your system administrator
+        </p>
+        
+        <div class="mt-md">
+            <button 
+                class="action ms-Button ms-Button--primary" 
+                onclick="loginAttempt()"
+                title="Login using details filled out above"
+                type="button"
+                >
+                Log In
+            </button>
+            <button 
+                class="ms-Button ms-Button--default"
+                onclick="clearAuthForm()"
+                title="Clear the login form"
+                type="button"
+                >
+                Clear
+            </button>
+            <button 
+                class="ms-Button ms-Button--default"
+                onclick="panelToggle('help')"
+                title="View help screens"
+                type="button"
+                >
+                Help
+            </button>
+            
+            <!-- Dev mock login data button. For developement only -->	
+            <button
+                class="hidden"
+                id="btn-dev"
+                onclick="setAuthDetails()"
+                title="Click to load login screen with dev details"
+                type="button"
+                >
+                Dev
+            </button>
+        </div>
+    </div> 
+
+
+
+    <!--main screen-->
+    <div class="panel offscreen" id="panel-main">
+        <p 
+            class="secondary" 
+            id="js--loggedInAs"
+            >
+        </p>
+        
+        <div class="btn-group pb-lg">
+            <button 
+                id="btn-help-main"
+                onclick="panelToggle('help')"
+                title="View help screen"
+                type="button"
+                >
+                Help
+            </button>
+            <button 
+                onclick="logoutAttempt()"
+                title="Logout of addon (no data on sheet is affected)"
+                type="button"
+                >
+                Logout
+            </button>
+        </div>
+        
+        
+        
+        <ul class="form">
+            <li class="form-pair">
+                <label 
+                    class="form-label" 
+                    for="select-project"
+                    >
+                    Projects:
+                </label>
+                <select 
+                    class="form-input"
+                    id="select-project"
+                    >
+                    <!--aysnc populated -->
+                </select>
+            </li>
+            <li class="form-pair">
+                <label 
+                    class="form-label" 
+                    for="select-artifact"
+                    >
+                    Artifact:
+                </label>
+                <select 
+                    class="form-input"
+                    disabled="true"
+                    id="select-artifact" 
+                    >
+                    <!--aysnc populated -->
+                </select>
+            </li>
+        </ul>
+        
+        
+        <p class="ma-0 form-label pale" style="visibility: hidden" id="message-fetching-data">
+            Fetching the data needed to load the template... 
+        </p>
+        
+        
+        
+        <div>
+            <button
+                disabled="true"
+                id="btn-toSpira" 
+                onclick="sendToSpiraAttempt()"
+                type="button"
+                title="Prepare the active sheet so you can enter data into it"
+                >
+                Prepare Template
+            </button>
+            <button  
+                disabled="true"
+                id="btn-fromSpira"
+                onclick="getFromSpiraAttempt()"
+                type="button"
+                title="Get data for the specified artifact from SpiraPlan"
+                >
+                Get from SpiraPlan
+            </button>
+            <div style="display: none" id="template-data-box">
+                <p>
+                    The template is currently configured to: 
+                    <span id="template-project"></span>, <span id="template-artifact"></span>.
+                </p>
+            </div>
+        </div>
+        
+        
+        
+        <div 
+            class="pt-md" 
+            id="pnl-template"
+            style="display: none" 
+            >
+            <p>
+                You've chosen different options to the ones currently loaded into the template
+            </p>
+            <button 
+                class="action"
+                disabled="true"
+                id="btn-template" 
+                onclick="updateTemplateAttempt()"
+                title="Update the active sheet for the chosen template options"
+                type="button"
+                >
+                Update Template
+            </button>
+        </div>
+    </div>
+        
+
+    
+    <!--help page-->
+    <div class="panel offscreen" id="panel-help">
+        <!-- help button and module for help page -->
+        <button 
+            onclick="panelToggle('help')"
+            type="button"
+            >
+            Back
+        </button>
+        
+        <h3>Quick Help Guide</h3>
+        
+        <div class="flex" id='help-header'>
+            <button 
+                class="btn-help"
+                id="btn-help-login"
+                onclick="showChosenHelpSection('login')"
+                title="Help with the login screen"
+                type="button"
+                >
+                LOGIN
+            </button>
+            <button 
+                class="btn-help"
+                id="btn-help-actions"
+                onclick="showChosenHelpSection('actions')"
+                title="Help with creating and loading a template onto the spreadsheet"
+                type="button"
+                >
+                MAIN SCREEN
+            </button>
+            <button 
+                class="btn-help"
+                id="btn-help-fields"
+                onclick="showChosenHelpSection('fields')"
+                title="View help for specific fields and artifacts"
+                type="button"
+                >
+                FIELDS
+            </button>
+        </div>
+
+        <div id="help-section-login" class="help-section hidden">
+            <h4>Logging into SpiraTeam</h4>
+            <ol class="list">
+                <li>
+                    <p>
+                        <b>Enter your SpiraTeam URL</b>
+                        <small>Please enter the web address that you use to access SpiraTeam® in your browser. This is usually of the form 'http://(hostname)/SpiraTeam'. Make sure that you remove any suffixes from the address (e.g. Default.aspx)</small>
+                    </p>
+                </li>
+                <li>
+                    <p><b>Enter your user name</b></p>
+                    <small>
+                        Please enter the user name you use to log in to SpiraTeam. (Not Case Sensitive)
+                    </small>
+                </li>
+                <li>
+                    <p><b>Enter your RSS token</b></p>
+                    <small> Please enter your RSS token including the curly braces i.e {ExampleRSS}</small>
+                </li>
+            </ol>
+        </div>
+        
+        
+        
+        
+        <div id="help-section-actions" class="help-section hidden">
+            <h4>Actions</h4>
+            <ul class="list">
+                <li>
+                    <p>
+                        <b>Help</b>
+                        <small>This button will open an in app help menu with basic functionality information.</small>
+                    </p>
+                </li>
+                <li>
+                    <p>
+                        <b>Logout</b>
+                        <small>This button will close your connection with SpiraTeam and clear your data. WARNING: your spreadsheet data will be erased as a security measure on disconnect.</small>
+                    </p>
+                </li>
+                <li>
+                    <p>
+                        <b>Projects</b>
+                        <small>Select a project from the menu.</small>
+                    </p>
+                </li>
+                <li>
+                    <p>
+                        <b>Artifacts</b>
+                        <small>Select an artifact from the menu.</small>
+                    </p>
+                </li>
+                <li>
+                    <p>
+                        <b>Prepare Template</b>
+                        <small>Click this button to generate the template for the project and artifact you’ve selected.</small>
+                    </p>
+                </li>
+                <li>
+                    <p>
+                        <b>Get From SpiraPlan</b>
+                        <small>Click this button to generate the required template and then fetch the data for the project and artifact selected.</small>
+                    </p>
+                </li>
+            </ul>
+        </div>
+        
+        
+        
+        
+        <div id="help-section-fields" class="help-section hidden">
+            <h4>Required Fields</h4>
+            <ul class="list">
+                <li>
+                    <p>
+                        <small>Required fields are marked by their name in the title row shown as bold black text (standard fields are regular light text)</small>
+                    </p>
+                </li>
+                <li>
+                    <p>
+                        <small>For test steps, required fields are shown in black, but not bold text.</small>
+                    </p>
+                </li>
+            </ul>
+            
+            <br/>
+            
+            <h4>Help For Specific Fields</h4>
+            <ul class="list">
+                <li>
+                    <p>
+                        <b>ID Fields</b>
+                        <small>Stores the id of the item. This field MUST be left blank to add new items to SpiraTeam</small>
+                    </p>
+                </li>
+                <li>
+                    <p>
+                        <b>Test Step Fields</b>
+                        <small>have their header row shown in a lighter background color. If the system cannot tell whether an entry is a test case or step it is skipped over when sending to Spira.</small>
+                    </p>
+                </li>
+                <li>
+                    <p>
+                        <b>Name</b>
+                        <small>For REQUIREMENTS and RELEASES this field supports indentation, add a “ > “ symbol to indicate how the items in the artifact hierarchy are organized.</small>
+                    </p>
+                    <pre>
+Example:
+Item 1
+>Item 2 child of item 1
+>Item 3 child of item 1
+>>Item 4 child of item 3
+                    </pre>
+                </li>
+                
+                <li>
+                    <p>
+                        <b>Comments</b>
+                        <small><em>Not Currently Supported</em></small>
+                    </p>
+                </li>
+            </ul>
+            
+            <br/>
+            
+            <h4>Custom Field Entries</h4>
+            <ul class="list">
+                <li>
+                    <p>
+                        <b>Text</b>
+                        <small>Enter any text. Include HTML tags for rich text.</small>
+                    </p>
+                </li>
+                <li>
+                    <p>
+                        <b>Decimal</b>
+                        <small>Enter any positive number.</small>
+                    </p>
+                </li>
+                <li>
+                    <p>
+                        <b>Integer</b>
+                        <small>Enter a non-decimal number.</small>
+                    </p>
+                </li>
+                <li>
+                    <p>
+                        <b>Date</b>
+                        <small>Enter the date in any standard format.</small>
+                    </p>
+                </li>
+                <li>
+                    <p>
+                        <b>List</b>
+                        <small>Select a value from the dropdown list.</small>
+                    </p>
+                </li>
+                <li>
+                    <p>
+                        <b>MultiList</b>
+                        <small>Select an item from the provided list. <em>This is not currently supported</em></small>
+                    </p>
+                </li>
+                <li>
+                    <p>
+                        <b>User</b>
+                        <small>Select a name from the list of users</small>
+                    </p>
+                </li>
+            </ul>
+            
+        </div>
+    </div>
+
+        
+    <!-- footer -->  
+    <footer class="footer">
+        <a href="https://www.inflectra.com" target="_blank">
+            <img src="https://files.inflectra.com/google/sheets/by_inflectra.png"  class="footer-logo">
+        </a>
+    </footer>
+    
+    
+    <!--spinner-->
+    <div id='loader' class='loader-box hidden'>
+        <div class="loader"></div>
+    </div>
+</body>
+
+</html>

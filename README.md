@@ -1,58 +1,32 @@
-# SpiraTeam Excel 365 Integration
+# Office-Addin-TaskPane-JS
 
-#### The Spirateam Excel 365 Integration add-in is an add-in for Microsoft Excel that allows you to create requirements for a SpiraTeam project directly from Excel.
+This repository contains the source code used by the [Yo Office generator](https://github.com/OfficeDev/generator-office) when you create a new Office Add-in that appears in the task pane. You can also use this repository as a sample to base your own project from if you choose not to use the generator. 
 
-![Opened add-in](https://github.com/Inflectra/spira_office365-excel/blob/master/assets/Screenshots/opened-add-in.png)
+## JavaScript
 
-## Developers:
-If you would like to set up a development environment and add to this project, be sure to run **npm install** and **npm install -g browser-sync**
-after you have cloned the repository. This installs the necessary node modules and [browser sync](https://www.browsersync.io/) for easy live updates
-in the browser as you save changes to your code. You can remove this dependancy if you want to, as it is not essential to any add-in functionality.
+This template is written using JavaScript. For the [TypeScript](http://www.typescriptlang.org/) version of this template, go to [Office-Addin-TaskPane](https://github.com/OfficeDev/Office-Addin-TaskPane).
 
-To host your code and test it first run **npm start** on your console. Once it is running copy the local or external URL and replace
-the URLs in the [**manifest file**](https://github.com/Inflectra/spira_office365-excel/blob/master/spira-excel-exporter-manifest.xml). They are currently set to **ht<span></span>tps://localhost:3000**. You must replace **all** instances in **all** URLs (e.g. "http<span></span>s://localhost:3000/assets/icon-32.png" must become "https://{NEW-URL}/assets/icon-32.png").
+## Debugging
 
-The **manifest file** is what Excel uses to know what your add-in is called, how it should appear, and where the code is hosted. To open your version of the add-in, open up Excel and go to the **INSERT** tab. Then, click on **Office Add-Ins**. At the top right corner of the window that opens, you should see a drop down labeled **Manage My Add-Ins**. Open it and select **Upload My Add-In**. Find your manifest file, upload it, and you should see the Add-In in Excel.
+This template supports debugging using any of the following techniques:
 
-![Upload Add-In Screen](https://github.com/Inflectra/spira_office365-excel/blob/master/assets/Screenshots/upload-add-in.png)
+- [Use a browser's developer tools](https://docs.microsoft.com/office/dev/add-ins/testing/debug-add-ins-in-office-online)
+- [Attach a debugger from the task pane](https://docs.microsoft.com/office/dev/add-ins/testing/attach-debugger-from-task-pane)
+- [Use F12 developer tools on Windows 10](https://docs.microsoft.com/office/dev/add-ins/testing/debug-add-ins-using-f12-developer-tools-on-windows-10)
 
-### Important things to remember:
-* **When interacting with Excel, your interaction in the code should look like this:**
-	```javascript
-    return Excel.run(function (context) {
-        	//Do stuff here
-        return context.sync()
-        .then(function(){
-        	//Handle returned data here
-        })
-        .catch(function(error){
-        	//Handle errors here
-        });
-    ```
-    If you only need to change cells in Excel without using the current value, this is enough. However, because this is a promise you will have to handle any data you pull from Excel in the **.then()** block.
- * **To access data pulled from cells in Excel, you must first load the data into your code with .load()**
- 	
-    For example, if you wanted to print the name of your active worksheet in the console you would load it in like this:
-    ```javascript
-    return Excel.run(function (context) {
-        let sheet = context.workbook.worksheets.getActiveWorksheet();
-        sheet.load();
-        return context.sync()
-        .then(function(){
-        	console.log(sheet.name);
-        });
-    ```
-	If you omit **sheet.load()** you will be told you don't have access in the console. If you try to console.log the sheet object's name before the **.then** block, you will get the same error.
-* **If you were to load a new HTML page, you would need to reinitialize the Office code**
-	
-    The call for this is
-    ```javascript
-     Office.initialize = function (reason) {
-     	$(document).ready(//main function);
-        });
-    ```
+## Questions and comments
 
-### OfficeJS Documentation
+We'd love to get your feedback about this sample. You can send your feedback to us in the *Issues* section of this repository.
 
-For Microsoft's **documentation** on officejs (for excel add-ins specifically), [click here](https://github.com/OfficeDev/office-js-docs/tree/master/reference/excel).
+Questions about Microsoft Office 365 development in general should be posted to [Stack Overflow](http://stackoverflow.com/questions/tagged/office-js+API).  If your question is about the Office JavaScript APIs, make sure it's tagged with  [office-js].
 
+## Additional resources
+
+* [Office add-in documentation](https://docs.microsoft.com/office/dev/add-ins/overview/office-add-ins)
+* More Office Add-in samples at [OfficeDev on Github](https://github.com/officedev)
+
+This project has adopted the [Microsoft Open Source Code of Conduct](https://opensource.microsoft.com/codeofconduct/). For more information, see the [Code of Conduct FAQ](https://opensource.microsoft.com/codeofconduct/faq/) or contact [opencode@microsoft.com](mailto:opencode@microsoft.com) with any additional questions or comments.
+
+## Copyright
+
+Copyright (c) 2019 Microsoft Corporation. All rights reserved.

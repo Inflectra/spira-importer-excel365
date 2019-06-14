@@ -1,0 +1,354 @@
+/*
+ *
+ * ==============================
+ * MICROSOFT EXCEL SPECIFIC SETUP
+ * ==============================
+ *
+ */
+export { params, model, uiSelection };
+
+/*
+ *
+ * ==========
+ * DATA MODEL
+ * ==========
+ *
+ * This holds all the information about the user and all template configuration information. 
+ * Future versions of this program can add their artifact to the `templateData` object.
+ *
+ */
+
+// main store for hard coded enums and metadata that define fields and artifacts
+var params = {
+    // enums for different artifacts
+    artifactEnums: {
+        requirements: 1,
+        testCases: 2,
+        incidents: 3,
+        releases: 4,
+        testRuns: 5,
+        tasks: 6,
+        testSteps: 7,
+        testSets: 8
+    },
+
+    // enums for different types of field - match custom field prop types where relevant
+    fieldType: {
+        text: 1,
+        int: 2,
+        num: 3,                                                           
+        bool: 4,
+        date: 5,
+        drop: 6,
+        multi: 7,
+        user: 8,
+        // following types don't exist as custom property types as set by Spira - but useful for defining standard field types here
+        id: 9,
+        subId: 10,
+        component: 11, // project level field
+        release: 12, // project level field
+        arr: 13, // used for comma separated lists in a single cell (eg linked Ids)
+        folder: 14 // don't think in reality this will be need
+    },
+
+    // enums and various metadata for all artifacts potentially used by the system
+    artifacts: [
+        {field: 'requirements', name: 'Requirements', id: 1, hierarchical: true},
+        {field: 'testCases',    name: 'Test Cases',   id: 2, hasFolders: true, hasSubType: true, subTypeId: 7, subTypeName: "TestSteps"},
+        {field: 'incidents',    name: 'Incidents',    id: 3},
+        {field: 'releases',     name: 'Releases',     id: 4, hierarchical: true},
+        {field: 'testRuns',     name: 'Test Runs',    id: 5, disabled: true, hidden: true},
+        {field: 'tasks',        name: 'Tasks',        id: 6, hasFolders: true},
+        {field: 'testSteps',    name: 'Test Steps',   id: 7, disabled: true, hidden: true},
+        {field: 'testSets',     name: 'Test Sets',    id: 8, hasFolders: true, disabled: true, hidden: true}
+    ]
+};
+
+// each artifact has all its standard fields listed, along with important metadata - display name, field type, hard coded values set by system
+var templateFields = {
+    requirements: [
+        {field: "RequirementId", name: "ID", type: params.fieldType.id},
+        {field: "Name", name: "Name", type: params.fieldType.text, required: true, setsHierarchy: true},
+        {field: "Description", name: "Description", type: params.fieldType.text},
+        {field: "ReleaseVersionNumber", name: "Release Version", type: params.fieldType.release},
+        {field: "RequirementTypeId", name: "Type", type: params.fieldType.drop, required: true, 
+            values: [
+                {id: -1, name: "Package"},
+                {id: 1, name: "Need"},
+                {id: 2, name: "Feature"},
+                {id: 3, name: "Use Case"},
+                {id: 4, name: "User Story"},
+                {id: 5, name: "Quality"},
+                {id: 6, name: "Design Element"}
+            ]
+        },
+        {field: "ImportanceId", name: "Importance", type: params.fieldType.drop, 
+            values: [
+                {id: 1, name: "1 -Critical"},
+                {id: 2, name: "2 -High"},
+                {id: 3, name: "3 -Medium"},
+                {id: 4, name: "4 -Low"}
+            ]
+        },
+        {field: "StatusId", name: "Status", type: params.fieldType.drop, 
+            values: [
+                {id: 1, name: "Requested"},
+                {id: 2, name: "Planned"},
+                {id: 3, name: "In Progress"},
+                {id: 4, name: "Developed"},
+                {id: 5, name: "Accepted"},
+                {id: 6, name: "Rejected"},
+                {id: 7, name: "Under Review"},
+                {id: 8, name: "Obsolete"},
+                {id: 9, name: "Tested"},
+                {id: 10, name: "Completed"}
+            ]
+        },
+        {field: "EstimatePoints", name: "Estimate", type: params.fieldType.num},
+        {field: "AuthorId", name: "Author", type: params.fieldType.user},
+        {field: "OwnerId", name: "Owner", type: params.fieldType.user},
+        {field: "ComponentId", name: "Component", type: params.fieldType.component},
+        // unsupported {field: "LinkedRequirementIds", name: "Linked Requirements", type: params.fieldType.arr, unsupported: true},
+        // unsupported {field: "Comment", name: "Comment", type: params.fieldType.text, unsupported: true}        
+    ],
+
+    releases: [
+        {field: "ReleaseId", name: "ID", type: params.fieldType.id},
+        {field: "Name", name: "Name", type: params.fieldType.text, required: true, setsHierarchy: true},
+        {field: "Description", name: "Description", type: params.fieldType.text},
+        {field: "VersionNumber", name: "Version Number", type: params.fieldType.text},
+        {field: "ReleaseStatusId", name: "Status", type: params.fieldType.drop, required: true, 
+            values: [
+                {id: 1, name: "Planned"},
+                {id: 2, name: "In Progress"} ,
+                {id: 3, name: "Completed"},
+                {id: 4, name: "Closed"},
+                {id: 5, name: "Deferred"},
+                {id: 6, name: "Cancelled"}
+            ]
+        },
+        {field: "ReleaseTypeId", name: "Type", type: params.fieldType.drop, required: true,
+            values: [
+                {id: 1, name: 'Major Release'},
+                {id: 2, name: 'Minor Release'},
+                {id: 3, name: 'Iteration'},
+                {id: 4, name: 'Phase'}
+            ]
+        },
+        {field: "CreatorId", name: "Creator", type: params.fieldType.user},
+        {field: "StartDate", name: "Start Date", type: params.fieldType.date, required: true},
+        {field: "EndDate", name: "End Date", type: params.fieldType.date, required: true},
+        {field: "ResourceCount", name: "Resources", type: params.fieldType.num},
+        {field: "DaysNonWorking", name: "Non Working Days", type: params.fieldType.int},
+        // unsupported {field: "Comment", name: "Comment", type: params.fieldType.text, unsuppored: true}
+    ],
+
+    tasks: [
+        {field: "TaskId", name: "ID", type: params.fieldType.id},
+        {field: "Name", name: "Name", type: params.fieldType.text, required: true},
+        {field: "Description", name: "Task Description", type: params.fieldType.text},
+        {field: "ReleaseId", name: "Release/Iteration", type: params.fieldType.release},
+        {field: "TaskTypeId", name: "Type", type: params.fieldType.drop, required: true, 
+            values: [
+                {id: 1, name: "Development"},
+                {id: 2, name: "Testing"},
+                {id: 3, name: "Management"},
+                {id: 4, name: "Infrastructure"},
+                {id: 5, name: "Other"}
+            ]
+        },
+        {field: "TaskPriorityId", name: "Priority", type: params.fieldType.drop,
+            values: [
+                {id: 1, name: "1 - Critical"},
+                {id: 2, name: "2 - High"},
+                {id: 3, name: "3 - Medium"},
+                {id: 4, name: "4 - Low"}
+            ]
+        },
+        {field: "TaskStatusId", name: "Status", type: params.fieldType.drop, required: true,
+            values: [
+                {id: 1, name: "Not Started"},
+                {id: 2, name: "In Progress"},
+                {id: 3, name: "Completed"},
+                {id: 4, name: "Blocked"},
+                {id: 5, name: "Deferred"},
+                {id: 6, name: "Rejected"},
+                {id: 7, name: "Duplicate"},
+                {id: 8, name: "Under Review"}
+            ]
+        },
+        {field: "AuthorId", name: "Author", type: params.fieldType.user},
+        {field: "OwnerId", name: "Owner", type: params.fieldType.user},
+        {field: "ComponentId", name: "Component", type: params.fieldType.component},
+        {field: "EstimatedEffort", name: "Effort (in mins)", type: params.fieldType.int}, 
+        {field: "Folder", name: "Folder", type: params.fieldType.drop, values: [],
+            bespoke: {
+                url: "/task-folders", 
+                idField: "TaskFolderId", 
+                nameField: "Name", 
+                indent: "IndentLevel"
+            }
+        },              
+    ],
+
+    incidents: [
+        {field: "IncidentId", name: "Incident ID", type: params.fieldType.id},
+        {field: "Name", name: "Name", type: params.fieldType.text, required: true},
+        {field: "Description", name: "Description", type: params.fieldType.text, required: true},
+        {field: "IncidentTypeId", name: "Type", type: params.fieldType.drop, values: [], required: true, 
+            bespoke: {
+                url: "/incidents/types", 
+                idField: "IncidentTypeId", 
+                nameField: "Name", 
+            }
+        },
+        {field: "IncidentStatusId", name: "Status", type: params.fieldType.drop, values: [], required: true, 
+            bespoke: {
+                url: "/incidents/statuses", 
+                idField: "IncidentStatusId", 
+                nameField: "Name", 
+            }
+        },
+        {field: "SeverityId", name: "Severity", type: params.fieldType.drop, values: [], 
+            bespoke: {
+                url: "/incidents/severities", 
+                idField: "SeverityId", 
+                nameField: "Name", 
+            }
+        },
+        {field: "PriorityId", name: "Priority", type: params.fieldType.drop, values: [], 
+            bespoke: {
+                url: "/incidents/priorities", 
+                idField: "PriorityId", 
+                nameField: "Name", 
+            }
+        },
+        {field: "OpenerId", name: "Opener", type: params.fieldType.user},
+        {field: "OwnerId", name: "Owner", type: params.fieldType.user},
+        {field: "CreationDate", name: "Date Detected", type: params.fieldType.date},
+        {field: "DetectedReleaseId", name: "Detected Release", type: params.fieldType.release},
+        {field: "ResolvedReleaseId", name: "Resolved Release", type: params.fieldType.release},
+        {field: "EstimatedEffort", name: "Estimated Effort (mins)", type: params.fieldType.num},
+        {field: "ActualEffort", name: "Actual Effort (mins)", type: params.fieldType.num},
+        {field: "RemainingEffort", name: "Remaining Effort (mins)", type: params.fieldType.num},
+        
+    ],
+    
+    testCases: [
+        {field: "TestCaseId", name: "Case ID", type: params.fieldType.id},
+        {field: "TestStepId", name: "Step ID", type: params.fieldType.subId, isSubTypeField: true},
+        {field: "Name", name: "Test Case Name", type: params.fieldType.text, required: true, blocksSubType: true},
+        {field: "Description", name: "Test Case Description", type: params.fieldType.text, blocksSubType: true},
+        {field: "Description", name: "Test Step Description", type: params.fieldType.text, isSubTypeField: true, requiredForSubType: true},
+        {field: "ExpectedResult", name: "Test Step Expected Result", type: params.fieldType.text, isSubTypeField: true, requiredForSubType: true},
+        {field: "SampleData", name: "Test Step Sample Data", type: params.fieldType.text, isSubTypeField: true},
+        {field: "TestCasePriorityId", name: "Test Case Priority", type: params.fieldType.drop, 
+            values: [
+                {id: 1, name: "1 - Critical"},
+                {id: 2, name: "2 - High"},
+                {id: 3, name: "3 - Medium"},
+                {id: 4, name: "4 - Low"}
+            ]
+        },
+        {field: "TestCaseTypeId", name: "Test Case Type", type: params.fieldType.drop, required: true, 
+            values: [
+                {id: 1, name: "Acceptance"},
+                {id: 2, name: "Compatibility"},
+                {id: 3, name: "Functional"},
+                {id: 4, name: "Integration"},
+                {id: 5, name: "Load/Performance"},
+                {id: 6, name: "Network"},
+                {id: 7, name: "Regression"},
+                {id: 8, name: "Scenario"},
+                {id: 9, name: "Security"},
+                {id: 10, name: "Unit"},
+                {id: 11, name: "Usability"},
+                {id: 12, name: "Exploratory"}
+            ]
+        },
+        {field: "TestCaseStatusId", name: "Test Case Status", type: params.fieldType.drop, required: true,
+            values: [
+                {id: 1, name: "Draft"},
+                {id: 2, name: "Ready for Review"},
+                {id: 3, name: "Rejected"},
+                {id: 4, name: "Approved"},
+                {id: 5, name: "Ready for Test"},
+                {id: 6, name: "Obsolete"},
+                {id: 7, name: "Tested"},
+                {id: 8, name: "Verified"}
+            ]
+        },
+        {field: "OwnerId", name: "Test Case Owner", type: params.fieldType.user},
+        {field: "TestCaseFolderId", name: "Test Case Folder", type: params.fieldType.drop, values: [], 
+            bespoke: {
+              url: "/test-folders", 
+              idField: "TestCaseFolderId", 
+              nameField: "Name", 
+              indent: "IndentLevel"
+            }
+        },
+        {field: "ComponentIds", name: "Test Case Component", type: params.fieldType.arr}
+     ]
+};
+
+function Data() {
+
+    this.user = {
+        url: '',
+        userName: '',
+        api_key: '',
+        roleId: 1, 
+        //TODO this is wrong and should eventually be fixed to limit what user can create or edit client side
+        //when add permissions - show in some way to the user what is going on
+        // maybe it's as simple as a footnote explaining why projects or artifacts are disabled
+    };
+
+    this.projects = [];
+
+    this.currentProject = '';
+    this.projectComponents = [];
+    this.projectReleases = [];
+    this.projectUsers = [];
+    this.indentCharacter = ">";
+    
+    this.currentArtifact = '';
+
+    this.projectGetRequestsToMake = 3; // users, components, releases
+    this.projectGetRequestsMade = 0;
+
+    // counts of artifact specific calls to make
+    this.baselineArtifactGetRequests = 1;
+    this.artifactGetRequestsToMake = this.baselineArtifactGetRequests; 
+    this.artifactGetRequestsMade = 0;
+    
+
+    this.artifactData = '';
+
+    this.colors = {
+        bgHeader: '#f1a42b',
+        bgHeaderSubType: '#fdcb26',
+        bgReadOnly: '#eeeeee',
+        header: '#ffffff',
+        headerRequired: '#000000',
+        warning: '#ffcccc'
+    };
+
+    this.isTemplateLoaded = false;
+    this.isGettingDataAttempt = false;
+    this.fields = [];
+}
+
+// model becomes a new instance of the data store preserving the immutability of the primary data object.
+var model = new Data();
+
+function tempDataStore() {
+    this.currentProject = '';
+    this.projectComponents = [];
+    this.projectReleases = [];
+    this.projectUsers = [];
+    
+    this.currentArtifact = '';
+    this.artifactCustomFields = [];
+}
+
+var uiSelection = new tempDataStore();
