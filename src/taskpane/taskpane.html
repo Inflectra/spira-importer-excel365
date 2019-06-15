@@ -8,18 +8,19 @@
     <meta charset="UTF-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Contoso Task Pane Add-in</title>
+    <title>SpiraPlan Import Tool</title>
 
     <!-- Office JavaScript API -->
     <script type="text/javascript" src="https://appsforoffice.microsoft.com/lib/1.1/hosted/office.js"></script>
 
     <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
 
+    
     <!-- For more information on Office UI Fabric, visit https://developer.microsoft.com/fabric. -->
     <link rel="stylesheet" href="https://static2.sharepointonline.com/files/fabric/office-ui-fabric-core/10.0.0/css/fabric.min.css" />
     <link rel="stylesheet" href="https://static2.sharepointonline.com/files/fabric/office-ui-fabric-js/1.2.0/css/fabric.components.min.css" />
-
-    <!-- Template styles -->
+    
+    <!-- Plugin specific files -->
     <link href="taskpane.css" rel="stylesheet" type="text/css" />
 </head>
 
@@ -89,7 +90,7 @@
         <div class="mt-md">
             <button 
                 class="action ms-Button ms-Button--primary" 
-                onclick="loginAttempt()"
+                id="btn-login"
                 title="Login using details filled out above"
                 type="button"
                 >
@@ -97,7 +98,7 @@
             </button>
             <button 
                 class="ms-Button ms-Button--default"
-                onclick="clearAuthForm()"
+                id="btn-clearAuth"
                 title="Clear the login form"
                 type="button"
                 >
@@ -105,7 +106,7 @@
             </button>
             <button 
                 class="ms-Button ms-Button--default"
-                onclick="panelToggle('help')"
+                id="btn-help-login"
                 title="View help screens"
                 type="button"
                 >
@@ -114,9 +115,8 @@
             
             <!-- Dev mock login data button. For developement only -->	
             <button
-                class="hidden"
+                class="hidden ms-Button ms-Button--default"
                 id="btn-dev"
-                onclick="setAuthDetails()"
                 title="Click to load login screen with dev details"
                 type="button"
                 >
@@ -137,15 +137,16 @@
         
         <div class="btn-group pb-lg">
             <button 
+                class="ms-Button ms-Button--default"
                 id="btn-help-main"
-                onclick="panelToggle('help')"
                 title="View help screen"
                 type="button"
                 >
                 Help
             </button>
             <button 
-                onclick="logoutAttempt()"
+                class="ms-Button ms-Button--default"
+                id="btn-logout"
                 title="Logout of addon (no data on sheet is affected)"
                 type="button"
                 >
@@ -196,18 +197,18 @@
         
         <div>
             <button
+                class="ms-Button ms-Button--default"
                 disabled="true"
                 id="btn-toSpira" 
-                onclick="sendToSpiraAttempt()"
                 type="button"
                 title="Prepare the active sheet so you can enter data into it"
                 >
                 Prepare Template
             </button>
             <button  
+                class="ms-Button ms-Button--default"
                 disabled="true"
                 id="btn-fromSpira"
-                onclick="getFromSpiraAttempt()"
                 type="button"
                 title="Get data for the specified artifact from SpiraPlan"
                 >
@@ -232,10 +233,9 @@
                 You've chosen different options to the ones currently loaded into the template
             </p>
             <button 
-                class="action"
+                class="action ms-Button ms-Button--default"
                 disabled="true"
-                id="btn-template" 
-                onclick="updateTemplateAttempt()"
+                id="btn-template"
                 title="Update the active sheet for the chosen template options"
                 type="button"
                 >
@@ -250,7 +250,8 @@
     <div class="panel offscreen" id="panel-help">
         <!-- help button and module for help page -->
         <button 
-            onclick="panelToggle('help')"
+            class="ms-Button ms-Button--default"
+            id="btn-help-help"
             type="button"
             >
             Back
@@ -260,31 +261,28 @@
         
         <div class="flex" id='help-header'>
             <button 
-                class="btn-help"
-                id="btn-help-login"
-                onclick="showChosenHelpSection('login')"
+                class="btn-help ms-Button ms-Button--default"
+                id="btn-help-section-login"
                 title="Help with the login screen"
                 type="button"
                 >
-                LOGIN
+                Login
             </button>
             <button 
-                class="btn-help"
-                id="btn-help-actions"
-                onclick="showChosenHelpSection('actions')"
+                class="btn-help ms-Button ms-Button--default"
+                id="btn-help-section-actions"
                 title="Help with creating and loading a template onto the spreadsheet"
                 type="button"
                 >
-                MAIN SCREEN
+                Main screen
             </button>
             <button 
-                class="btn-help"
-                id="btn-help-fields"
-                onclick="showChosenHelpSection('fields')"
+                class="btn-help ms-Button ms-Button--default"
+                id="btn-help-section-fields"
                 title="View help for specific fields and artifacts"
                 type="button"
                 >
-                FIELDS
+                Field
             </button>
         </div>
 
@@ -462,7 +460,27 @@ Item 1
         </div>
     </div>
 
-        
+
+    <!-- warning page - ms excel only -->
+    <div class="panel offscreen" id="panel-confirm">
+        <p id="message-confirm"></p>
+        <button 
+            class="ms-Button ms-Button--default"
+            id="btn-confirm-ok"
+            type="button"
+            >
+            OK
+        </button>
+        <button 
+            class="ms-Button ms-Button--default"
+            id="btn-confirm-cancel"
+            type="button"
+            >
+            Cancel
+        </button>
+
+    </div>    
+
     <!-- footer -->  
     <footer class="footer">
         <a href="https://www.inflectra.com" target="_blank">

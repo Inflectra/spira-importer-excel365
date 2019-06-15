@@ -98,6 +98,13 @@ pre {
     padding-left: 20px;
 }
 .pale { opacity: .5;}
+
+/* excel specific */
+.ms-office .ms-Button.create {
+    box-shadow: 0 3px 0 #0078d7;
+    border-color: transparent;
+}
+
 /*
  * ======
  * LOADER
