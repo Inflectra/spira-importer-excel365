@@ -6,7 +6,7 @@
  *
  */
 export { 
-    clearAll, 
+    clearAllExcel, 
     getProjects, 
     getFromSpira, 
     warn, 
@@ -29,6 +29,9 @@ export {
  - make sure when you change project / art the get / send buttons are disabled
  - check what happens when add more rows from get than are on sheet. Does the validation get copied down?
  - do we need PUT? Existing customers want it but it causes so much hassle and misuse
+ - TODO: disable "send to spira" after have done a get
+ - better handling of trying to do a put
+ - try using it for several times in a row and fix any bugs
  */
 
 
@@ -164,9 +167,10 @@ function save() {
 
 
 
-//clears first sheet in spreadsheet
+//clears active sheet in spreadsheet
+//TODO: make this like excel and just delete the sheet and start fresh - likely easier
 function clearAll() {
-	// get first active spreadsheet
+	// get active spreadsheet
 	var spreadSheet = SpreadsheetApp.getActiveSpreadsheet();
 	var sheet = spreadSheet.getActiveSheet();
 
@@ -192,6 +196,15 @@ function clearAll() {
 	sheet.setName(new Date().getTime());
 }
 
+function clearAllExcel() {
+	// in Excel it is easier to delete the sheet and make a new blank one
+	return Excel.run({ delayForCellEdit: true }, function (context) {
+		// add a sheet first so that after delete there is at least one sheet
+		context.workbook.worksheets.add();
+		context.workbook.worksheets.getActiveWorksheet().delete();
+		return context.sync();
+	})
+}
 
 
 

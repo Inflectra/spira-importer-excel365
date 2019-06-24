@@ -104,6 +104,9 @@ pre {
     box-shadow: 0 3px 0 #0078d7;
     border-color: transparent;
 }
+.ms-office button:disabled {
+    opacity: .5;
+}
 
 /*
  * ======

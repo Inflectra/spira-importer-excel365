@@ -5,9 +5,8 @@
  * ==============================
  *
  */
-import { params, model, uiSelection } from './model.js';
+import { params, templateFields, Data, tempDataStore } from './model.js';
 import * as msOffice from './server.js';
-import { debug } from 'util';
 
 /*
  *
@@ -17,10 +16,14 @@ import { debug } from 'util';
  *
  */
   
+// model becomes a new instance of the data store preserving the immutability of the primary data object.
+var model = new Data();
+var uiSelection = new tempDataStore();
 
 // if devmode enabled, set the required fields and show the dev button
 var devMode = true;
 var isGoogle = false;
+
 
 // MS Excel specific code to run at first launch
 Office.onReady(info => {
@@ -116,9 +119,14 @@ function clearSheet (shouldClear) {
     if (isGoogle) {
       google.script.run.clearAll();
     } else {
-      msOffice.clearAll();
-    }
-
+      msOffice.clearAllExcel()
+        .then(function (data) {
+          document.getElementById("panel-confirm").classList.add("offscreen");
+        })
+        .catch(function (error) {
+          console.log('error: ' + error);
+        })
+      }
   } 
 }
 // resets the sidebar following logout
@@ -130,9 +138,11 @@ function resetSidebar () {
   
   // hide other panels, so login page is visible
   var otherPanels = document.querySelectorAll(".panel:not(#panel-auth)");
-  otherPanels.forEach(function(panel) {
-    panel.classList.add("offscreen");
-  });
+  // can't use forEach because that is not supported by Excel
+  for (var i = 0; i < otherPanels.length; ++i) {
+    otherPanels[i]
+  }
+
   // disable buttons and dropdowns
   document.getElementById("btn-template").disabled = true;
   document.getElementById("pnl-template").style.display = "none";
@@ -269,7 +279,7 @@ function logoutAttempt () {
   } else {
     showPanel("confirm");
     document.getElementById("message-confirm").innerHTML = message;
-    document.getElementById("btn-confirm-ok").onclick = logout; 
+    document.getElementById("btn-confirm-ok").onclick = function() { logout(true) }; 
     document.getElementById("btn-confirm-cancel").onclick = function() {
       hidePanel("confirm");
     }; 

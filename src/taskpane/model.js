@@ -5,7 +5,7 @@
  * ==============================
  *
  */
-export { params, model, uiSelection };
+export { params, templateFields, tempDataStore, Data };
 
 /*
  *
@@ -338,9 +338,6 @@ function Data() {
     this.fields = [];
 }
 
-// model becomes a new instance of the data store preserving the immutability of the primary data object.
-var model = new Data();
-
 function tempDataStore() {
     this.currentProject = '';
     this.projectComponents = [];
@@ -351,4 +348,3 @@ function tempDataStore() {
     this.artifactCustomFields = [];
 }
 
-var uiSelection = new tempDataStore();
