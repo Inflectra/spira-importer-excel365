@@ -157,7 +157,7 @@ function clearSheet(shouldClear) {
     if (isGoogle) {
       google.script.run.clearAll();
     } else {
-      msOffice.clearAllExcel()
+      msOffice.clearAll()
         .then((response) => document.getElementById("panel-confirm").classList.add("offscreen"))
         .catch((error) => errorNetwork(error));
     }
@@ -771,6 +771,7 @@ function getComponents(user, projectId) {
 
 // formats and sets component data on the model
 function getComponentsSuccess(data) {
+  console.log(data)
   // clear old values
   uiSelection.projectComponents = [];
   // add relevant data to the main model store

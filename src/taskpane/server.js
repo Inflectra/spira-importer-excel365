@@ -6,7 +6,7 @@
  *
  */
 export { 
-    clearAllExcel, 
+    clearAll, 
     getProjects, 
     getFromSpira, 
     warn, 
@@ -73,7 +73,8 @@ var API_BASE = '/services/v5_0/RestService.svc/projects/',
       8: "IntegerValue"
       
     },
-	INLINE_STYLING = "style='font-family: sans-serif'";
+  INLINE_STYLING = "style='font-family: sans-serif'",
+  IS_GOOGLE = typeof UrlFetchApp != "undefined";
 
 /*
  * ======================
@@ -170,40 +171,42 @@ function save() {
 //clears active sheet in spreadsheet
 //TODO: make this like excel and just delete the sheet and start fresh - likely easier
 function clearAll() {
-	// get active spreadsheet
-	var spreadSheet = SpreadsheetApp.getActiveSpreadsheet();
-	var sheet = spreadSheet.getActiveSheet();
 
-	// clear all formatting and content
-	var lastColumn = sheet.getMaxColumns(),
-		lastRow = sheet.getMaxRows();
-	sheet.clear(); //.showColumns(1,  lastColumn)
-
-	// clears data validations and notes from the entire sheet
-	var range = sheet.getRange(1, 1, lastRow, lastColumn);
-	range.clearDataValidations().clearNote();
-
-	// remove any protections on the sheet
-	var protections = spreadSheet.getProtections(SpreadsheetApp.ProtectionType.RANGE);
-	for (var i = 0; i < protections.length; i++) {
-	   var protection = protections[i];
-	   if (protection.canEdit()) {
-		   protection.remove();
-	   }
-   }
-
-	// Reset sheet name
-	sheet.setName(new Date().getTime());
-}
-
-function clearAllExcel() {
-	// in Excel it is easier to delete the sheet and make a new blank one
-	return Excel.run({ delayForCellEdit: true }, function (context) {
-		// add a sheet first so that after delete there is at least one sheet
-		context.workbook.worksheets.add();
-		context.workbook.worksheets.getActiveWorksheet().delete();
-		return context.sync();
-	})
+  if (IS_GOOGLE) {
+    // get active spreadsheet
+    var spreadSheet = SpreadsheetApp.getActiveSpreadsheet();
+    var sheet = spreadSheet.getActiveSheet();
+  
+    // clear all formatting and content
+    var lastColumn = sheet.getMaxColumns(),
+      lastRow = sheet.getMaxRows();
+    sheet.clear(); //.showColumns(1,  lastColumn)
+  
+    // clears data validations and notes from the entire sheet
+    var range = sheet.getRange(1, 1, lastRow, lastColumn);
+    range.clearDataValidations().clearNote();
+  
+    // remove any protections on the sheet
+    var protections = spreadSheet.getProtections(SpreadsheetApp.ProtectionType.RANGE);
+    for (var i = 0; i < protections.length; i++) {
+       var protection = protections[i];
+       if (protection.canEdit()) {
+         protection.remove();
+       }
+     }
+  
+    // Reset sheet name
+    sheet.setName(new Date().getTime());
+    
+  } else {
+    // in Excel it is easier to delete the sheet and make a new blank one
+    return Excel.run({ delayForCellEdit: true }, function (context) {
+      // add a sheet first so that after delete there is at least one sheet
+      context.workbook.worksheets.add();
+      context.workbook.worksheets.getActiveWorksheet().delete();
+      return context.sync();
+    })
+  }
 }
 
 
@@ -237,7 +240,7 @@ function fetcher(currentUser, fetcherURL) {
 	var params = { 'content-type': 'application/json' };
 
 	//call Google fetch function (UrlFetchApp) if using google
-	if (typeof UrlFetchApp != "undefined") {
+	if (IS_GOOGLE) {
 		var response = UrlFetchApp.fetch(fullUrl, params);
 		//returns parsed JSON
 		//unparsed response contains error codes if needed
@@ -580,24 +583,38 @@ function okWarn(dialog) {
 function templateLoader(model, fieldType) {
 	// clear spreadsheet depending on user input, and unhide everything
 	clearAll();
+  
+  var fields = model.fields;
+  var sheet;
+  var newSheetName = model.currentProject.name + ' - ' + model.currentArtifact.name
 
-	// select open file and select first sheet
-	var spreadSheet = SpreadsheetApp.getActiveSpreadsheet(),
-		sheet = spreadSheet.getActiveSheet(),
-		fields = model.fields;
+  // select active sheet
+  if (IS_GOOGLE) {
+    sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+    // set sheet (tab) name to model name
+    sheet.setName(newSheetName);
+    sheetSetForTemplate(sheet, model, fieldType, null);
 
-	// set sheet (tab) name to model name
-	sheet.setName(model.currentProject.name + ' - ' + model.currentArtifact.name);
+  } else {
+    return Excel.run(function (context) {
+      sheet = context.workbook.worksheets.getActiveWorksheet();
+      sheet.name = newSheetName;
+      return context.sync()
+        .then(function() {
+          sheetSetForTemplate(sheet, model, fieldType, context); 
+        }).catch(/*fail quietly*/);
+    })
+  } 
+}
 
-	// heading row - sets names and formatting
-	headerSetter(sheet, fields, model.colors);
-
-	// set validation rules on the columns
-	contentValidationSetter(sheet, model, fieldType);
-
-	// set any extra formatting options
-	contentFormattingSetter(sheet, model);
-
+// wrapper function to set the header row, validation rules, and any extra formatting
+function sheetSetForTemplate(sheet, model, fieldType, context) {
+  // heading row - sets names and formatting
+  headerSetter(sheet, model.fields, model.colors, context);
+  // set validation rules on the columns
+  contentValidationSetter(sheet, model, fieldType, context);
+  // set any extra formatting options
+  contentFormattingSetter(sheet, model, context);   
 }
 
 
@@ -607,7 +624,7 @@ function templateLoader(model, fieldType) {
 // @param: sheet - the sheet object
 // @param: fields - full field data
 // @param: colors - global colors used for formatting
-function headerSetter (sheet, fields, colors) {
+function headerSetter (sheet, fields, colors, context) {
 
 	var headerNames = [],
 		backgrounds = [],
@@ -629,14 +646,30 @@ function headerSetter (sheet, fields, colors) {
 		backgrounds.push(background);
 	}
 
-	sheet.getRange(1, 1, 1, fieldsLength)
-		.setWrap(true)
-		// the arrays need to be in an array as methods expect a 2D array for managing 2D ranges
-		.setBackgrounds([backgrounds])
-		.setFontColors([fontColors])
-		.setFontWeights([fontWeights])
-		.setValues([headerNames])
-		.protect().setDescription("header row").setWarningOnly(true);
+  if (IS_GOOGLE) {
+    sheet.getRange(1, 1, 1, fieldsLength)
+      .setWrap(true)
+      // the arrays need to be in an array as methods expect a 2D array for managing 2D ranges
+      .setBackgrounds([backgrounds])
+      .setFontColors([fontColors])
+      .setFontWeights([fontWeights])
+      .setValues([headerNames])
+      .protect().setDescription("header row").setWarningOnly(true);
+
+  } else {
+    var range = sheet.getRangeByIndexes(0, 0, 1, fieldsLength);
+    range.values = [headerNames];
+    for (var i = 0; i < fieldsLength; i++) {
+      var cellRange = sheet.getCell(0, i);
+      cellRange.set({
+        format: {
+            fill: { color: backgrounds[i] },
+            font: { color: fontColors[i], bold: fontWeights[i] == "bold" }
+        }
+      });
+    }
+    return context.sync();
+  }
 }
 
 
@@ -646,8 +679,10 @@ function headerSetter (sheet, fields, colors) {
 // @param: sheet - the sheet object
 // @param: model - full data to acccess global params as well as all fields
 // @param: fieldType - enums for field types
-function contentValidationSetter (sheet, model, fieldType) {
-	var nonHeaderRows = sheet.getMaxRows() - 1;
+function contentValidationSetter (sheet, model, fieldType, context) {
+  // we can't easily get the max rows for excel so use the number of rows it always seems to have
+  var nonHeaderRows =  IS_GOOGLE ? sheet.getMaxRows() - 1 : 1048576 - 1;
+
 	for (var index = 0; index < model.fields.length; index++) {
 		var columnNumber = index + 1,
 			list = [];
@@ -706,6 +741,7 @@ function contentValidationSetter (sheet, model, fieldType) {
 
 			// COMPONENT fields are dropdowns with the values coming from a project wide set list
 			case fieldType.component:
+        console.log(model)
 				for (var k = 0; k < model.projectComponents.length; k++) {
 					list.push(model.projectComponents[k].name);
 				}
@@ -725,7 +761,7 @@ function contentValidationSetter (sheet, model, fieldType) {
 				//do nothing
 				break;
 		}
-	}
+  }
 }
 
 
@@ -737,16 +773,29 @@ function contentValidationSetter (sheet, model, fieldType) {
 // @param: list - array of values to show in a dropdown and use for validation
 // @param: allowInvalid - bool to state whether to restrict any values to those in validation or not
 function setDropdownValidation (sheet, columnNumber, rowLength, list, allowInvalid) {
-	// create range
-	var range = sheet.getRange(2, columnNumber, rowLength);
-
-	// create the validation rule
-	// requireValueInList - params are the array to use, and whether to create a dropdown list
-	var rule = SpreadsheetApp.newDataValidation()
-		.requireValueInList(list, true)
-		.setAllowInvalid(allowInvalid)
-		.build();
-	range.setDataValidation(rule);
+  if (IS_GOOGLE) {
+    // create range
+    var range = sheet.getRange(2, columnNumber, rowLength);
+  
+    // create the validation rule
+    // requireValueInList - params are the array to use, and whether to create a dropdown list
+    var rule = SpreadsheetApp.newDataValidation()
+      .requireValueInList(list, true)
+      .setAllowInvalid(allowInvalid)
+      .build();
+    range.setDataValidation(rule);
+  
+  } else {
+    var range = sheet.getRangeByIndexes(1, columnNumber - 1, rowLength, 1);
+    range.dataValidation.clear();
+    let approvedListRule = {
+        list: {
+            inCellDropDown: true,
+            source: list.join()
+        }
+    };
+    range.dataValidation.rule = approvedListRule;
+  }
 }
 
 
@@ -757,16 +806,42 @@ function setDropdownValidation (sheet, columnNumber, rowLength, list, allowInval
 // @param: rowLength - int of the number of rows for range (global param)
 // @param: allowInvalid - bool to state whether to restrict any values to those in validation or not
 function setDateValidation (sheet, columnNumber, rowLength, allowInvalid) {
-	// create range
-	var range = sheet.getRange(2, columnNumber, rowLength);
+  if (IS_GOOGLE) {
+    // create range
+    var range = sheet.getRange(2, columnNumber, rowLength);
+  
+    // create the validation rule
+    var rule = SpreadsheetApp.newDataValidation()
+      .requireDate()
+      .setAllowInvalid(false)
+      .setHelpText('Must be a valid date')
+      .build();
+    range.setDataValidation(rule);
 
-	// create the validation rule
-	var rule = SpreadsheetApp.newDataValidation()
-		.requireDate()
-		.setAllowInvalid(false)
-		.setHelpText('Must be a valid date')
-		.build();
-	range.setDataValidation(rule);
+  } else {
+    var range = sheet.getRangeByIndexes(1, columnNumber - 1, rowLength, 1);
+    range.dataValidation.clear();
+
+    let greaterThanZeroRule = {
+      wholeNumber: {
+          formula1: "1970-01-01",
+          operator: Excel.DateTimeDataValidation.greaterThan
+      }
+    };
+    range.dataValidation.rule = greaterThanZeroRule;
+
+    range.dataValidation.prompt = {
+        message: "Please enter a date.",
+        showPrompt: true,
+        title: "Valid dates only."
+    };
+    range.dataValidation.errorAlert = {
+        message: "Sorry, only dates are allowed",
+        showAlert: true,
+        style: "Stop",
+        title: "Invalid date entered"
+    };
+  }
 }
 
 
@@ -777,17 +852,43 @@ function setDateValidation (sheet, columnNumber, rowLength, allowInvalid) {
 // @param: rowLength - int of the number of rows for range (global param)
 // @param: allowInvalid - bool to state whether to restrict any values to those in validation or not
 function setNumberValidation (sheet, columnNumber, rowLength, allowInvalid) {
-	// create range
-	var range = sheet.getRange(2, columnNumber, rowLength);
+  // create range
+  if (IS_GOOGLE) {
+    var range = sheet.getRange(2, columnNumber, rowLength);
+  
+    // create the validation rule
+    //must be a valid number greater than -1 (also excludes 1.1.0 style numbers)
+    var rule = SpreadsheetApp.newDataValidation()
+      .requireNumberGreaterThan(-1)
+      .setAllowInvalid(allowInvalid)
+      .setHelpText('Must be a positive number')
+      .build();
+    range.setDataValidation(rule);
+  
+  } else {
+    var range = sheet.getRangeByIndexes(1, columnNumber - 1, rowLength, 1);
+    range.dataValidation.clear();
 
-	// create the validation rule
-	//must be a valid number greater than -1 (also excludes 1.1.0 style numbers)
-	var rule = SpreadsheetApp.newDataValidation()
-		.requireNumberGreaterThan(-1)
-		.setAllowInvalid(allowInvalid)
-		.setHelpText('Must be a positive number')
-		.build();
-	range.setDataValidation(rule);
+    let greaterThanZeroRule = {
+      wholeNumber: {
+          formula1: 0,
+          operator: Excel.DataValidationOperator.greaterThan
+      }
+    };
+    range.dataValidation.rule = greaterThanZeroRule;
+
+    range.dataValidation.prompt = {
+        message: "Please enter a positive number.",
+        showPrompt: true,
+        title: "Positive numbers only."
+    };
+    range.dataValidation.errorAlert = {
+        message: "Sorry, only positive numbers are allowed",
+        showAlert: true,
+        style: "Stop",
+        title: "Negative Number Entered"
+    };
+  }
 }
 
 
@@ -822,15 +923,20 @@ function contentFormattingSetter (sheet, model) {
 // @param: name - string description for the protected range
 // @param: hide - optional bool to hide column completely
 function protectColumn (sheet, columnNumber, rowLength, bgColor, name, hide) {
-	// create range
-	var range = sheet.getRange(2, columnNumber, rowLength);
-	range.setBackground(bgColor)
-		.protect()
-		.setDescription(name)
-		.setWarningOnly(true);
-
-  if(hide) {
-	sheet.hideColumns(columnNumber);
+  // only for google as cannot protect individual cells easily in Excel
+  if (IS_GOOGLE) {
+    // create range
+    var range = sheet.getRange(2, columnNumber, rowLength);
+    range.setBackground(bgColor)
+      .protect()
+      .setDescription(name)
+      .setWarningOnly(true);
+  
+    if(hide) {
+    sheet.hideColumns(columnNumber);
+    }
+  } else {
+    // MS EXCEL
   }
 
 }
