@@ -771,7 +771,6 @@ function getComponents(user, projectId) {
 
 // formats and sets component data on the model
 function getComponentsSuccess(data) {
-  console.log(data)
   // clear old values
   uiSelection.projectComponents = [];
   // add relevant data to the main model store
@@ -1040,7 +1039,7 @@ function templateLoader() {
       .templateLoader(model, params.fieldType);
   } else {
     msOffice.templateLoader(model, params.fieldType)
-      .then((response) => templateLoaderSuccess(response.data))
+      .then((response) => templateLoaderSuccess())
       .catch((error) => errorNetwork(error));
   }
 }

@@ -741,7 +741,6 @@ function contentValidationSetter (sheet, model, fieldType, context) {
 
 			// COMPONENT fields are dropdowns with the values coming from a project wide set list
 			case fieldType.component:
-        console.log(model)
 				for (var k = 0; k < model.projectComponents.length; k++) {
 					list.push(model.projectComponents[k].name);
 				}
@@ -899,7 +898,7 @@ function contentFormattingSetter (sheet, model) {
 	for (var i = 0; i < model.fields.length; i++) {
 		var columnNumber = i + 1;
 
-		// hide unsupported fields
+		// change bg color of unsupported fields
 		if (model.fields[i].unsupported) {
 			protectColumn(
 			  sheet,
@@ -936,9 +935,14 @@ function protectColumn (sheet, columnNumber, rowLength, bgColor, name, hide) {
     sheet.hideColumns(columnNumber);
     }
   } else {
-    // MS EXCEL
+    var range = sheet.getRangeByIndexes(1, columnNumber - 1, rowLength, 1);
+    range.set({
+      format: {
+          fill: { color: bgColor }
+      }
+    });
+    return context.sync();
   }
-
 }
 
 
