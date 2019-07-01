@@ -1,25 +1,8 @@
 /*
  *
- * ==============================
- * MICROSOFT EXCEL SPECIFIC SETUP
- * ==============================
- *
- */
-import { params, templateFields, Data, tempDataStore } from './model.js';
-import * as msOffice from './server.js';
-
-
-
-
-
-
-
-
-/*
- *
- * =================================
- * UTILITIES & CROSS PANEL FUNCTIONS
- * =================================
+ * =============
+ * GENERAL SETUP
+ * =============
  *
  */
 
@@ -31,6 +14,50 @@ var uiSelection = new tempDataStore();
 var devMode = true;
 var isGoogle = false;
 
+
+
+
+
+
+
+
+
+/*
+ *
+ * ============================
+ * GOOGLE SHEETS SPECIFIC SETUP
+ * ============================
+ *
+ */
+
+// Google Sheets specific code to run at first launch
+(function () {
+  if (typeof google != "undefined") {
+    isGoogle = true;
+    // for dev mode only - comment out or set to false to disable any UI dev features
+    setDevStuff(devMode);
+
+    // add event listeners to the dom
+    setEventListeners();
+  }
+})();
+
+
+
+
+
+
+
+
+/*
+ *
+ * ==============================
+ * MICROSOFT EXCEL SPECIFIC SETUP
+ * ==============================
+ *
+ */
+import { params, templateFields, Data, tempDataStore } from './model.js';
+import * as msOffice from './server.js';
 
 
 // MS Excel specific code to run at first launch
@@ -46,19 +73,20 @@ Office.onReady(info => {
 
 
 
-// Google Sheets specific code to run at first launch
-(function () {
-  if (typeof google != "undefined") {
-    isGoogle = true;
-    // for dev mode only - comment out or set to false to disable any UI dev features
-    setDevStuff(devMode);
-
-    // add event listeners to the dom
-    setEventListeners();
-  }
-})();
 
 
+
+
+
+
+
+/*
+ *
+ * =================================
+ * UTILITIES & CROSS PANEL FUNCTIONS
+ * =================================
+ *
+ */
 
 function setDevStuff(devMode) {
   if (devMode) {
@@ -499,8 +527,8 @@ function createTemplateAttempt() {
 function createTemplate(shouldContinue) {
   if (shouldContinue) {
     clearSheet();
-
     showLoadingSpinner();
+    manageTemplateBtnState();
 
     // all data should already be loaded (as otherwise template button is disabled)
     // but check again that all data is present before kicking off template creation
@@ -513,7 +541,7 @@ function createTemplate(shouldContinue) {
       var checkGetsSuccess = setInterval(attemptTemplateLoader, 500);
       function attemptTemplateLoader() {
         if (allGetsSucceeded()) {
-          startTemplateLoader();
+          templateLoader();
           clearInterval(checkGetsSuccess);
         }
       }
@@ -857,7 +885,11 @@ function getBespoke(user, projectId, artifactId, field) {
       .getBespoke(user, projectId, artifactId, field);
   } else {
     msOffice.getBespoke(user, projectId, artifactId, field)
-      .then((response) => getBespokeSuccess(response.data))
+      .then((response) => getBespokeSuccess({
+          artifactName: artifactId,
+          field: field,
+          values: response.data
+      })) 
       .catch((error) => errorNetwork(error));
   }
 }
@@ -1059,7 +1091,7 @@ function templateLoaderSuccess(data) {
     getFromSpiraAttempt();
   }
   //enable the send to spira button
-  document.getElementById("btn-toSpira").innerHTML = "Send To SpiraPlan";
+  document.getElementById("btn-toSpira").innerHTML = "Send To Spira";
   document.getElementById("btn-toSpira").title = "Send entered data to SpiraPlan"
 
   //show text in the sidebar that tells the user what the template is set to:

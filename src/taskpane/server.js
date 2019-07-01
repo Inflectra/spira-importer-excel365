@@ -169,18 +169,13 @@ function save() {
 
 
 //clears active sheet in spreadsheet
-//TODO: make this like excel and just delete the sheet and start fresh - likely easier
 function clearAll() {
 
   if (IS_GOOGLE) {
     // get active spreadsheet
     var spreadSheet = SpreadsheetApp.getActiveSpreadsheet();
     var sheet = spreadSheet.getActiveSheet();
-  
-    // clear all formatting and content
-    var lastColumn = sheet.getMaxColumns(),
-      lastRow = sheet.getMaxRows();
-    sheet.clear(); //.showColumns(1,  lastColumn)
+    sheet.clear()
   
     // clears data validations and notes from the entire sheet
     var range = sheet.getRange(1, 1, lastRow, lastColumn);
@@ -193,17 +188,17 @@ function clearAll() {
        if (protection.canEdit()) {
          protection.remove();
        }
-     }
-  
+	 }
+	 
     // Reset sheet name
     sheet.setName(new Date().getTime());
     
   } else {
-    // in Excel it is easier to delete the sheet and make a new blank one
     return Excel.run({ delayForCellEdit: true }, function (context) {
-      // add a sheet first so that after delete there is at least one sheet
-      context.workbook.worksheets.add();
-      context.workbook.worksheets.getActiveWorksheet().delete();
+	  var sheet = context.workbook.worksheets.getActiveWorksheet();
+	  var now = new Date().getTime();
+	  sheet.name = now.toString();
+	  sheet.getRange().clear();
       return context.sync();
     })
   }
@@ -293,10 +288,15 @@ function getCustoms(currentUser, projectId, artifactName) {
 function getBespoke(currentUser, projectId, artifactName, field) {
 	var fetcherURL = API_BASE + projectId + field.bespoke.url + '?';
 	var results = fetcher(currentUser, fetcherURL);
-	return {
-		artifactName: artifactName,
-		field: field,
-		values: results
+	
+	if (IS_GOOGLE) {
+		return {
+			artifactName: artifactName,
+			field: field,
+			values: results
+		}
+	} else {
+		return results;
 	}
 }
 
@@ -586,7 +586,7 @@ function templateLoader(model, fieldType) {
   
   var fields = model.fields;
   var sheet;
-  var newSheetName = model.currentProject.name + ' - ' + model.currentArtifact.name
+  var newSheetName = model.currentArtifact.name + ", PR-" + model.currentProject.id;
 
   // select active sheet
   if (IS_GOOGLE) {
@@ -935,14 +935,35 @@ function protectColumn (sheet, columnNumber, rowLength, bgColor, name, hide) {
     sheet.hideColumns(columnNumber);
     }
   } else {
-    var range = sheet.getRangeByIndexes(1, columnNumber - 1, rowLength, 1);
-    range.set({
-      format: {
-          fill: { color: bgColor }
+	var range = sheet.getRangeByIndexes(1, columnNumber - 1, rowLength, 1);
+	
+	// set the background color
+	range.set({ format: { fill: { color: bgColor } } });
+	
+	// now we can add data validation
+	// the easiest hack way to not allow any entry into the cell is to make sure its text length can only be zero
+	range.dataValidation.clear();
+    let textLengthZero = {
+      textLength: {
+          formula1: 0,
+          operator: Excel.DataValidationOperator.equalTo
       }
-    });
-    return context.sync();
+    };
+    range.dataValidation.rule = textLengthZero;
+
+    range.dataValidation.prompt = {
+        message: "This is a protected field and not user editable.",
+        showPrompt: true,
+        title: "No entry allowed."
+    };
+    range.dataValidation.errorAlert = {
+        message: "Sorry, this is a protected field",
+        showAlert: true,
+        style: "Stop",
+        title: "No entry allowed"
+    };
   }
+  
 }
 
 
