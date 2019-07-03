@@ -51,7 +51,8 @@ var API_BASE = '/services/v5_0/RestService.svc/projects/',
 		testSets: 8
 	},
 	INITIAL_HIERARCHY_OUTDENT = -20,
-    GET_PAGINATION_SIZE = 100,
+	GET_PAGINATION_SIZE = 100,
+	EXCEL_ROW_COUNT = 1048576,
 	FIELD_MANAGEMENT_ENUMS = {
 		all: 1,
 		standard: 2,
@@ -173,8 +174,11 @@ function clearAll() {
 
   if (IS_GOOGLE) {
     // get active spreadsheet
-    var spreadSheet = SpreadsheetApp.getActiveSpreadsheet();
-    var sheet = spreadSheet.getActiveSheet();
+    var spreadSheet = SpreadsheetApp.getActiveSpreadsheet(),
+		sheet = spreadSheet.getActiveSheet(),
+		lastColumn = sheet.getMaxColumns(),
+		lastRow = sheet.getMaxRows();
+
     sheet.clear()
   
     // clears data validations and notes from the entire sheet
@@ -821,13 +825,13 @@ function setDateValidation (sheet, columnNumber, rowLength, allowInvalid) {
     var range = sheet.getRangeByIndexes(1, columnNumber - 1, rowLength, 1);
     range.dataValidation.clear();
 
-    let greaterThanZeroRule = {
-      wholeNumber: {
-          formula1: "1970-01-01",
-          operator: Excel.DateTimeDataValidation.greaterThan
+    let greaterThan1970Rule = {
+      date: {
+          formula1: "2000-01-01",
+          operator: Excel.DataValidationOperator.greaterThan
       }
     };
-    range.dataValidation.rule = greaterThanZeroRule;
+    range.dataValidation.rule = greaterThan1970Rule;
 
     range.dataValidation.prompt = {
         message: "Please enter a date.",
@@ -989,28 +993,69 @@ function protectColumn (sheet, columnNumber, rowLength, bgColor, name, hide) {
 // @param: model - full model object from client containing field data for specific artifact, list of project users, components, etc
 // @param: fieldType - list of fieldType enums from client params object
 function sendToSpira(model, fieldType) {
-	// 1. SETUP FUNCTION LEVEL VARS
-	// get the active spreadsheet and first sheet
-	var spreadSheet = SpreadsheetApp.getActiveSpreadsheet(),
-		sheet = spreadSheet.getActiveSheet(),
-		fields = model.fields,
-		artifact = model.currentArtifact,
-		artifactIsHierarchical = artifact.hierarchical,
-		artifactHasFolders = artifact.hasFolders,
-		lastRow = sheet.getLastRow() - 1 || 10, // hack to make sure we pass in some rows to the sheetRange, otherwise it causes an error
+	// 0. SETUP FUNCTION LEVEL VARS
+	var sheetData,
+	fields = model.fields,
+	artifact = model.currentArtifact,
+	artifactIsHierarchical = artifact.hierarchical,
+	artifactHasFolders = artifact.hasFolders,
+	entriesForExport = [],
+	lastIndentPosition = null;
+	
+	// 1. get the active spreadsheet and first sheet
+	if (IS_GOOGLE) {
+		var spreadSheet = SpreadsheetApp.getActiveSpreadsheet(),
+			sheet = spreadSheet.getActiveSheet(),
+			lastRow = sheet.getLastRow() - 1 || 10, // hack to make sure we pass in some rows to the sheetRange, otherwise it causes an error
+			sheetRange = sheet.getRange(2,1, lastRow, fields.length);
 
-		sheetRange = sheet.getRange(2,1, lastRow, fields.length),
-		sheetData = sheetRange.getValues(),
-		entriesForExport = [],
-		lastIndentPosition = null;
+		var sheetData = sheetRange.getValues();
+		createRawData(
+			sheetData,
+			model, 
+			fieldType, 
+			fields, 
+			artifact, 
+			artifactIsHierarchical, 
+			artifactHasFolders, 
+			entriesForExport, 
+			lastIndentPosition
+		)
+
+	} else {
+		return Excel.run({ delayForCellEdit: true }, function (context) {
+			var sheet = context.workbook.worksheets.getActiveWorksheet(),
+				sheetRange = sheet.getRangeByIndexes(1, 0, 1000, fields.length);
+				sheetRange.load("values");
+				return context.sync()
+			.then(() => {
+				var sheetData = sheetRange.values;
+				createRawData(
+					sheetData,
+					model, 
+					fieldType, 
+					fields, 
+					artifact, 
+					artifactIsHierarchical, 
+					artifactHasFolders, 
+					entriesForExport, 
+					lastIndentPosition
+				)
+			})
+			.catch();
+		}).catch();
+	}
+}
 
 
 
-	// 2. CREATE ARRAY OF ENTRIES
-	// loop to create artifact objects from each row taken from the spreadsheet
-	// vars needed: sheetData, artifact, fields, model, fieldType, artifactIsHierarchical, lastIndentPosition
+// 2. CREATE ARRAY OF ENTRIES
+// loop to create artifact objects from each row taken from the spreadsheet
+// vars needed: sheetData, artifact, fields, model, fieldType, artifactIsHierarchical, lastIndentPosition
+function createRawData(sheetData, model, fieldType, fields, artifact, artifactIsHierarchical, artifactHasFolders, entriesForExport, lastIndentPosition) {
+	console.log(sheetData);
 	for (var rowToPrep = 0; rowToPrep < sheetData.length; rowToPrep++) {
-
+	
 		// stop at the first row that is fully blank
 		if (sheetData[rowToPrep].join("") === "") {
 			break;
@@ -1024,20 +1069,20 @@ function sendToSpira(model, fieldType) {
 					countSubTypeRequiredFields: artifact.hasSubType ? rowCountRequiredFieldsByType(sheetData[rowToPrep], fields, true) : 0,
 					subTypeIsBlocked: !artifact.hasSubType ? true : rowBlocksSubType(sheetData[rowToPrep], fields)
 				},
-
+	
 				// create entry used to populate all relevant data for this row
 				entry = {};
-
+	
 			// first check for errors
 			var hasProblems = rowHasProblems(rowChecks);
 			if (hasProblems) {
 				entry.validationMessage = hasProblems;
-
+	
 			// if error free determine what field filtering is required - needed to choose type/subtype fields if subtype is present
 			} else {
 				var fieldsToFilter = relevantFields(rowChecks);
 				entry = createEntryFromRow( sheetData[rowToPrep], model, fieldType, artifactIsHierarchical, lastIndentPosition, fieldsToFilter );
-
+	
 				// FOR SUBTYPE ENTRIES add flag on entry if it is a subtype
 				if (fieldsToFilter === FIELD_MANAGEMENT_ENUMS.subType) {
 					entry.isSubType = true;
@@ -1051,10 +1096,15 @@ function sendToSpira(model, fieldType) {
 		}
 	}
 
+	checkRawData(entriesForExport, artifact);
+}
 
-	// 3. GET READY TO SEND DATA TO SPIRA
-    // check we have some entries and with no errors
-	// Create and show a window to tell the user what is going on
+
+// 3. GET READY TO SEND DATA TO SPIRA
+// check we have some entries and with no errors
+// Create and show a window to tell the user what is going on
+function checkRawData(entriesForExport, artifact) {
+	console.log('entriesForExport', entriesForExport);
 	if (!entriesForExport.length) {
 		var nothingToExportMessage = HtmlService.createHtmlOutput('<p ' + INLINE_STYLING + '>There are no entries to send to SpiraTeam</p>').setWidth(250).setHeight(75);
 		SpreadsheetApp.getUi().showModalDialog(nothingToExportMessage, 'Check Sheet');
