@@ -59,6 +59,8 @@ var isGoogle = false;
 import { params, templateFields, Data, tempDataStore } from './model.js';
 import * as msOffice from './server.js';
 
+export { showPanel, hidePanel };
+
 
 // MS Excel specific code to run at first launch
 Office.onReady(info => {
@@ -627,6 +629,7 @@ function sendToSpira(log) {
   if (devMode) console.log(log);
   //if array (which holds error responses) is present, and errors present
   if (log.errorCount) {
+    //TODO - it doesn't look like this var is declared anywhere or even used
     errorMessages = log.entries
       .filter(function (entry) { return entry.error; })
       .map(function (entry) { return entry.message; });
