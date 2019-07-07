@@ -1053,7 +1053,11 @@ function sendToSpira(model, fieldType) {
 // @param: context - MS Excel specific context that defines the async update env that Excel uses
 function sendToSpiraManage(sheetData, sheet, sheetRange, model, fieldType, fields, artifact, artifactIsHierarchical, context) {
 	var entriesForExport = createExportEntries(sheetData, model, fieldType, fields, artifact, artifactIsHierarchical);
-	return sendExportEntries(entriesForExport, sheetData, sheet, sheetRange, model, fieldType, fields, artifact, context);
+	if (IS_GOOGLE) {
+		return sendExportEntriesGoogle(entriesForExport, sheetData, sheet, sheetRange, model, fieldType, fields, artifact, context);
+	} else {
+		return sendExportEntriesExcel(entriesForExport, sheetData, sheet, sheetRange, model, fieldType, fields, artifact, context);
+	}
 }
 
 // 2. CREATE ARRAY OF ENTRIES
@@ -1108,10 +1112,10 @@ function createExportEntries(sheetData, model, fieldType, fields, artifact, arti
 }
 
 
-// 3. GET READY TO SEND DATA TO SPIRA + 4. ACTUALLY SEND THE DATA
+// 3. FOR GOOGLE ONLY: GET READY TO SEND DATA TO SPIRA + 4. ACTUALLY SEND THE DATA
 // check we have some entries and with no errors
 // Create and show a message to tell the user what is going on
-function sendExportEntries(entriesForExport, sheetData, sheet, sheetRange, model, fieldType, fields, artifact, context) {
+function sendExportEntriesGoogle(entriesForExport, sheetData, sheet, sheetRange, model, fieldType, fields, artifact, context) {
 	if (!entriesForExport.length) {
 		popupShow('There are no entries to send to Spira', 'Check Sheet')
 		return "nothing to send";
@@ -1122,11 +1126,107 @@ function sendExportEntries(entriesForExport, sheetData, sheet, sheetRange, model
 		var log = {
 				errorCount: 0,
 				successCount: 0,
+				doNotContinue: false,
+				// set var for parent - used to designate eg a test case so it can be sent with the test step post
+				parentId: -1,
 				entriesLength: entriesForExport.length,
 				entries: []
-			},
-			// set var for parent - used to designate eg a test case so it can be sent with the test step post
-			parentId = -1;
+			};
+
+
+		// loop through objects to send and update the log
+		function sendSingleEntry(i) {
+			// set the correct parentId for hierarchical artifacts
+			// set before launching the API call as we need to look back through previous entries
+			if (artifact.hierarchical) {
+				log.parentId = getHierarchicalParentId(entriesForExport[i].indentPosition, log.entries);
+			}
+			var sentToSpira = manageSendingToSpira(entriesForExport[i], model.user, model.currentProject.id, artifact, fields, fieldType, log.parentId );
+
+			// update the parent ID for a subtypes based on the successful API call
+			if (artifact.hasSubType) {
+				log.parentId = sentToSpira.parentId;
+			}
+
+			log = processSendToSpiraResponse(i, sentToSpira, entriesForExport, artifact, response, log);
+			if (sentToSpira.error && artifact.hierarchical) {
+				// break out of the recursive loop
+				log.doNotContinue = true;
+			}
+		}
+
+		// 4. SEND DATA TO SPIRA AND MANAGE RESPONSES
+		// KICK OFF THE FOR LOOP (IE THE FUNCTION ABOVE) HERE
+		// We use a function rather than a loop so that we can more readily use promises to chain things together and make the calls happen synchronously
+		// we need the calls to be synchronous because we need to do the status and ID of the preceding entry for hierarchical artifacts
+		for (var i = 0; i < entriesForExport.length; i++) {
+			console.log('sendSingleEntry: ', i);
+			if (!log.doNotContinue) {
+				log = checkSingleEntryForErrors(i, log, entriesForExport, artifact);
+				console.log(log);
+				if (log.entries.length && log.entries[i] && log.entries[i].error) {
+				} else {
+					sendSingleEntry(i);	
+				}
+			}
+		}
+
+		// review all activity and set final status
+		log.status = log.errorCount ? (log.errorCount == log.entriesLength ? STATUS_ENUM.allError : STATUS_ENUM.someError) : STATUS_ENUM.allSuccess;
+
+		// call the final function here - so we know that it is only called after the recursive function above (ie all posting) has ended
+		return updateSheetWithExportResults(log, sheetData, sheet, sheetRange, model, fieldType, fields, artifact, context);
+ 	}
+}
+
+
+// 3. FOR EXCEL ONLY: GET READY TO SEND DATA TO SPIRA + 4. ACTUALLY SEND THE DATA
+// DIFFERENT TO GOOGLE: this uses async await for its function and subfunction
+// check we have some entries and with no errors
+// Create and show a message to tell the user what is going on
+async function sendExportEntriesExcel(entriesForExport, sheetData, sheet, sheetRange, model, fieldType, fields, artifact, context) {
+	if (!entriesForExport.length) {
+		popupShow('There are no entries to send to Spira', 'Check Sheet')
+		return "nothing to send";
+	} else {
+		popupShow('Preparing to send...', 'Progress');
+
+		// create required variables for managing responses for sending data to spirateam
+		var log = {
+				errorCount: 0,
+				successCount: 0,
+				doNotContinue: false,
+				// set var for parent - used to designate eg a test case so it can be sent with the test step post
+				parentId: -1,
+				entriesLength: entriesForExport.length,
+				entries: []
+			};
+
+
+		// loop through objects to send and update the log
+		async function sendSingleEntry(i) {
+			// set the correct parentId for hierarchical artifacts
+			// set before launching the API call as we need to look back through previous entries
+			if (artifact.hierarchical) {
+				log.parentId = getHierarchicalParentId(entriesForExport[i].indentPosition, log.entries);
+			}
+			
+			await manageSendingToSpira(entriesForExport[i], model.user, model.currentProject.id, artifact, fields, fieldType, log.parentId )
+				.then(function(response) {
+					// update the parent ID for a subtypes based on the successful API call
+					if (artifact.hasSubType) {
+						log.parentId = sentToSpira.parentId;
+					}
+					log = processSendToSpiraResponse(i, response.data, entriesForExport, artifact, response, log);
+
+					console.log('in then of manage sending to spira', response)
+
+					if (response.error && artifact.hierarchical) {
+						// break out of the recursive loop
+						log.doNotContinue = true;
+					}
+				})
+		}
 
 
 
@@ -1134,100 +1234,26 @@ function sendExportEntries(entriesForExport, sheetData, sheet, sheetRange, model
 		// KICK OFF THE FOR LOOP (IE THE FUNCTION ABOVE) HERE
 		// We use a function rather than a loop so that we can more readily use promises to chain things together and make the calls happen synchronously
 		// we need the calls to be synchronous because we need to do the status and ID of the preceding entry for hierarchical artifacts
-		var count = 0;
-		sendSingleEntry(count);
-
-		// loop through objects to send
-		function sendSingleEntry(i) {
-			if (i < entriesForExport.length) {
-				  var response = {};
-
-				// skip if there was an error validating the sheet row
-				if (entriesForExport[i].validationMessage) {
-					response.error = true;
-					response.message = entriesForExport[i].validationMessage;
-					log.errorCount++;
-
-					// stop if the artifact is hierarchical because we don't know what side effects there could be to any further items.
-					if (artifact.hierarchical) {
-						response.message += " - no further entries were sent to avoid creating an incorrect hierarchy";
-						// make sure to push the response so that the client can process error message
-						log.entries.push(response);
-						// we do not call this function again with i++ so that we effectively break out of the loop
-						// review all activity and set final status
-						log.status = log.errorCount ? (log.errorCount == log.entriesLength ? STATUS_ENUM.allError : STATUS_ENUM.someError) : STATUS_ENUM.allSuccess;
-						return log;
-						
-					} else {
-						log.entries.push(response);
-						count++;
-						sendSingleEntry(count);
-					}
-				// skip if a sub type row does not have a parent to hook to
-				} else if (entriesForExport[i].isSubType && !parentId) {
-					response.error = true;
-					response.message = "can't add a child type when there is no corresponding parent type";
-					log.errorCount++;
-					log.entries.push(response);
-					count++;
-					sendSingleEntry(count);
-					
-	
-				// send to Spira and update the response object
+		for (var i = 0; i < entriesForExport.length; i++) {
+			console.log('sendSingleEntry: ', i);
+			if (!log.doNotContinue) {
+				log = checkSingleEntryForErrors(i, log, entriesForExport, artifact);
+				console.log(log);
+				if (log.entries.length && log.entries[i] && log.entries[i].error) {
 				} else {
-				
-					// set the correct parentId for hierarchical artifacts
-					// set before launching the API call as we need to look back through previous entries
-					if (artifact.hierarchical) {
-					parentId = getHierarchicalParentId(entriesForExport[i].indentPosition, log.entries);
-					}
-				
-					if (IS_GOOGLE) {
-						var sentToSpira = manageSendingToSpira(entriesForExport[i], model.user, model.currentProject.id, artifact, fields, fieldType, parentId );
-
-						// update the parent ID for a subtypes based on the successful API call
-						if (artifact.hasSubType) {
-							parentId = sentToSpira.parentId;
-						}
-
-						log = processSendToSpiraResponse(i, sentToSpira, entriesForExport, artifact, response, log);
-						if (sentToSpira.error && artifact.hierarchical) {
-							// break out of the recursive loop
-						} else {
-							count++;
-							sendSingleEntry(count);
-						}
-
-					} else {
-						manageSendingToSpira(entriesForExport[i], model.user, model.currentProject.id, artifact, fields, fieldType, parentId )
-							.then(function(response) {
-								// update the parent ID for a subtypes based on the successful API call
-								if (artifact.hasSubType) {
-									parentId = sentToSpira.parentId;
-								}
-								log = processSendToSpiraResponse(i, response.data, entriesForExport, artifact, response, log);
-
-								console.log('in then of manage sending to spira', response)
-
-								if (response.error && artifact.hierarchical) {
-									// break out of the recursive loop
-								} else {
-									count++;
-									sendSingleEntry(count);
-								}
-							})
-
-					}
-				}	
-			} else {
-				// review all activity and set final status
-				log.status = log.errorCount ? (log.errorCount == log.entriesLength ? STATUS_ENUM.allError : STATUS_ENUM.someError) : STATUS_ENUM.allSuccess;
-				console.log(log)
-
-				// call the final function here - so we know that it is only called after the recursive function above (ie all posting) has ended
-				return updateSheetWithExportResults(log, sheetData, sheet, sheetRange, model, fieldType, fields, artifact, context);
+					await sendSingleEntry(i);	
+				}
 			}
 		}
+		console.log('sendSingleEntry loop has finished')
+
+
+		// review all activity and set final status
+		log.status = log.errorCount ? (log.errorCount == log.entriesLength ? STATUS_ENUM.allError : STATUS_ENUM.someError) : STATUS_ENUM.allSuccess;
+		console.log('final log from sendExportEntries', log);
+
+		// call the final function here - so we know that it is only called after the recursive function above (ie all posting) has ended
+		return updateSheetWithExportResults(log, sheetData, sheet, sheetRange, model, fieldType, fields, artifact, context);
  	}
 }
 
@@ -1291,6 +1317,40 @@ function updateSheetWithExportResults(log, sheetData, sheet, sheetRange, model, 
 		return context.sync().then(() => log);
 	}
 }
+
+
+
+function checkSingleEntryForErrors(i, log, entriesForExport, artifact, parentId) {
+	var response = {};
+
+	// skip if there was an error validating the sheet row
+	if (entriesForExport[i].validationMessage) {
+		response.error = true;
+		response.message = entriesForExport[i].validationMessage;
+		log.errorCount++;
+
+		// stop if the artifact is hierarchical because we don't know what side effects there could be to any further items.
+		if (artifact.hierarchical) {
+			log.doNotContinue = true;
+			response.message += " - no further entries were sent to avoid creating an incorrect hierarchy";
+			// make sure to push the response so that the client can process error message
+			log.entries.push(response);
+			// we do not call this function again with i++ so that we effectively break out of the loop
+			// review all activity and set final status
+			log.status = log.errorCount ? (log.errorCount == log.entriesLength ? STATUS_ENUM.allError : STATUS_ENUM.someError) : STATUS_ENUM.allSuccess;
+		} else {
+			log.entries.push(response);
+		}
+	// skip if a sub type row does not have a parent to hook to
+	} else if (entriesForExport[i].isSubType && !log.parentId) {
+		response.error = true;
+		response.message = "can't add a child type when there is no corresponding parent type";
+		log.errorCount++;
+		log.entries.push(response);
+	}
+	return log;
+}
+
 
 
 // function that reviews a specific cell against it's field and errors for providing UI feedback on errors

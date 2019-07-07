@@ -614,7 +614,7 @@ function sendToSpiraAttempt() {
         .sendToSpira(model, params.fieldType);
     } else {
       msOffice.sendToSpira(model, params.fieldType)
-        .then((response) => sendToSpira(response.data))
+        .then((response) => sendToSpira(response))
         .catch((error) => errorImpExp(error));
     }
   } else {
