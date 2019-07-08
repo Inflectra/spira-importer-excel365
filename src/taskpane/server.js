@@ -8,7 +8,7 @@
 export { 
     clearAll, 
     getProjects, 
-    getFromSpira, 
+    getFromSpiraExcel, 
     warn, 
     sendToSpira, 
     operationComplete,
@@ -389,12 +389,12 @@ function getArtifacts(user, projectId, artifactTypeId, startRow, numberOfRows, a
     case ART_ENUMS.releases:
       fullURL += "/releases/search?start_row=" + startRow + "&number_rows=" + numberOfRows + "&";
       var rawResponse = poster("", user, fullURL);
-      response = JSON.parse(rawResponse); // this particular return needs to be parsed here
+      response = IS_GOOGLE ? JSON.parse(rawResponse) : rawResponse; // this particular return needs to be parsed here
       break;
     case ART_ENUMS.tasks:
       fullURL += "/tasks?starting_row=" + startRow + "&number_of_rows=" + numberOfRows + "&sort_field=TaskId&sort_direction=ASC&";
       var rawResponse = poster("", user, fullURL);
-      response = JSON.parse(rawResponse); // this particular return needs to be parsed here
+      response = IS_GOOGLE ? JSON.parse(rawResponse) : rawResponse; // this particular return needs to be parsed here
       break;
   }
   return response;
@@ -1249,18 +1249,14 @@ async function sendExportEntriesExcel(entriesForExport, sheetData, sheet, sheetR
 		// We use a function rather than a loop so that we can more readily use promises to chain things together and make the calls happen synchronously
 		// we need the calls to be synchronous because we need to do the status and ID of the preceding entry for hierarchical artifacts
 		for (var i = 0; i < entriesForExport.length; i++) {
-			console.log('sendSingleEntry: ', i);
 			if (!log.doNotContinue) {
 				log = checkSingleEntryForErrors(i, log, entriesForExport, artifact);
-				console.log(log);
 				if (log.entries.length && log.entries[i] && log.entries[i].error) {
 				} else {
 					await sendSingleEntry(i);	
 				}
 			}
 		}
-		console.log('sendSingleEntry loop has finished')
-
 
 		// review all activity and set final status
 		log.status = log.errorCount ? (log.errorCount == log.entriesLength ? STATUS_ENUM.allError : STATUS_ENUM.someError) : STATUS_ENUM.allSuccess;
@@ -1977,27 +1973,26 @@ function processSendToSpiraResponse(i, sentToSpira, entriesForExport, artifact, 
  *
  */
 
-// handles getting paginated artifacts from Spira and saving them as a single array
+// GOOGLE SPECIFIC VARIATION OF THIS FUNCTION handles getting paginated artifacts from Spira and saving them as a single array
 // @param: model: full model object from client
 // @param: enum of fieldTypes used
-function getFromSpira(model, fieldType) {
+function getFromSpiraGoogle(model, fieldType) {
   //var artifactCount = getArtifactCount(model.user, model.currentProject.id, model.currentArtifact.id);
 
   // 1. get from spira
   // note we don't do this by getting the count of each artifact first, because of a bug in getting the release count
-  var pageSize = GET_PAGINATION_SIZE;
   var currentPage = 0;
   var artifacts = [];
   var getNextPage = true;
   
   while (getNextPage && currentPage < 100) {
-    var startRow = (currentPage * pageSize) + 1;
+    var startRow = (currentPage * GET_PAGINATION_SIZE) + 1;
     var pageOfArtifacts = getArtifacts(
       model.user, 
       model.currentProject.id, 
       model.currentArtifact.id, 
       startRow, 
-      pageSize,
+      GET_PAGINATION_SIZE,
       null
     );
     // if we got a non empty array back then we have artifacts to process
@@ -2075,14 +2070,149 @@ function getFromSpira(model, fieldType) {
   );
   
   // 6. add data to sheet
-  var spreadSheet = SpreadsheetApp.getActiveSpreadsheet(),
-    sheet = spreadSheet.getActiveSheet(),
-    range = sheet.getRange(2,1, artifacts.length, model.fields.length);
-  
-  range.setValues(artifactsAsCells);
-  return JSON.parse(JSON.stringify(artifactsAsCells));
-  //return JSON.parse(JSON.stringify(artifacts));
+  if (IS_GOOGLE) {
+	  var spreadSheet = SpreadsheetApp.getActiveSpreadsheet(),
+		sheet = spreadSheet.getActiveSheet(),
+		range = sheet.getRange(2,1, artifacts.length, model.fields.length);
+	  
+	  range.setValues(artifactsAsCells);
+	  return JSON.parse(JSON.stringify(artifactsAsCells));
+  } else {
+	return Excel.run({ delayForCellEdit: true }, function (context) {
+		var sheet = context.workbook.worksheets.getActiveWorksheet(),
+			range = sheet.getRangeByIndexes(1, 0, artifacts.length, model.fields.length);
+		range.values = artifactsAsCells;
+		return context.sync()
+			.then(function() {
+				return artifactsAsCells;
+			})
+	  })
+  }
 }
+
+// EXCEL SPECIFIC VARIATION OF THIS FUNCTION handles getting paginated artifacts from Spira and saving them as a single array
+// @param: model: full model object from client
+// @param: enum of fieldTypes used
+async function getFromSpiraExcel(model, fieldType) {
+	//var artifactCount = getArtifactCount(model.user, model.currentProject.id, model.currentArtifact.id);
+  
+	// 1. get from spira
+	// note we don't do this by getting the count of each artifact first, because of a bug in getting the release count
+	var currentPage = 0;
+	var artifacts = [];
+	var getNextPage = true;
+
+	async function getArtifactsPage(startRow) {
+		await getArtifacts(
+			model.user, 
+			model.currentProject.id, 
+			model.currentArtifact.id, 
+			startRow, 
+			GET_PAGINATION_SIZE,
+			null
+		).then(function(response) {
+			// if we got a non empty array back then we have artifacts to process
+			if (response.data.length) {
+				artifacts = artifacts.concat(response.data);
+				console.log(artifacts)
+				// if we got less artifacts than the max we asked for, then we reached the end of the list in this request - and should stop
+				if (response.data.length < GET_PAGINATION_SIZE) {
+				getNextPage = false;
+				// if we got the full page size back then there may be more artifacts to get
+				} else {
+				currentPage++;
+				}
+			// if we got no artifacts back, stop now
+			} else {
+				getNextPage = false;
+			}
+		})
+	}
+	
+	while (getNextPage && currentPage < 100) {
+	  var startRow = (currentPage * GET_PAGINATION_SIZE) + 1;
+	  await getArtifactsPage(startRow);
+	  // if we got a non empty array back then we have artifacts to process
+	}
+	
+	// 2. if there were no artifacts at all break out now
+	if (!artifacts.length) return "no artifacts were returned";
+	
+	// 3. Make sure hierarchical artifacts are ordered correctly
+	if (model.currentArtifact.hierarchical) {
+	  artifacts.sort(function(a, b) {
+		return a.indentLevel < b.indentLevel ? -1 : 1;
+	  });
+	}
+	
+	
+	// 4. if artifact has subtype that needs to be retrieved separately, do so
+	if (model.currentArtifact.hasSubType) {
+	  // find the id field
+	  var idFieldNameArray = model.fields.filter(function(field) {
+		return field.type === fieldType.id;
+	  });
+	  // if we have an id field, then we can find the id number for each artifact in the array
+	  if (idFieldNameArray && idFieldNameArray[0].field) {
+		var idFieldName = idFieldNameArray[0].field;
+		var artifactsWithSubTypes = [];
+		artifacts.forEach(function(art) {
+		  artifactsWithSubTypes.push(art);
+		  var subTypeArtifacts = getArtifacts(
+			model.user, 
+			model.currentProject.id, 
+			model.currentArtifact.subTypeId, 
+			null, 
+			null,
+			art[idFieldName]
+		  );
+		  // take action if we got any sub types back - ie if they exist for the specific artifact
+		  if (subTypeArtifacts && subTypeArtifacts.length) { 
+			var subTypeArtifactsWithMeta = subTypeArtifacts.map(function(sub) {
+			  sub.isSubType = true;
+			  sub.parentId = art[idFieldName];
+			  return sub;
+			});
+			// now add the steps into the original object
+			artifactsWithSubTypes = artifactsWithSubTypes.concat(subTypeArtifactsWithMeta);
+		  }
+		})
+		// update the original array (I know that mutation is bad, but it makes things easy here)
+		artifacts = artifactsWithSubTypes;
+	  }
+	}
+  
+	// 5. create 2d array from data to put into sheet
+	var artifactsAsCells = matchArtifactsToFields(
+	  artifacts, 
+	  model.currentArtifact,
+	  model.fields, 
+	  fieldType, 
+	  model.projectUsers, 
+	  model.projectComponents, 
+	  model.projectReleases
+	);
+	
+	// 6. add data to sheet
+	if (IS_GOOGLE) {
+		var spreadSheet = SpreadsheetApp.getActiveSpreadsheet(),
+		  sheet = spreadSheet.getActiveSheet(),
+		  range = sheet.getRange(2,1, artifacts.length, model.fields.length);
+		
+		range.setValues(artifactsAsCells);
+		return JSON.parse(JSON.stringify(artifactsAsCells));
+	} else {
+	  return Excel.run({ delayForCellEdit: true }, function (context) {
+		  var sheet = context.workbook.worksheets.getActiveWorksheet(),
+			  range = sheet.getRangeByIndexes(1, 0, artifacts.length, model.fields.length);
+		  range.values = artifactsAsCells;
+		  return context.sync()
+			  .then(function() {
+				  return artifactsAsCells;
+			  })
+		})
+	}
+  }
 
 // matches data against the fields to be shown in the spreadsheet - not all data fields are shown
 // @param: array of the artifact objects we GOT from Spira

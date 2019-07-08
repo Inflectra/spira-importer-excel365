@@ -570,11 +570,11 @@ function getFromSpiraAttempt() {
     if (isGoogle) {
       google.script.run
         .withFailureHandler(errorImpExp)
-        .withSuccessHandler(getFromSpira)
-        .getFromSpira(model, params.fieldType);
+        .withSuccessHandler(getFromSpiraComplete)
+        .getFromSpiraGoogle(model, params.fieldType);
     } else {
-      msOffice.getFromSpira(model, params.fieldType)
-        .then((response) => getFromSpira(response.data))
+      msOffice.getFromSpiraExcel(model, params.fieldType)
+        .then((response) => getFromSpiraComplete(response.data))
         .catch((error) => errorImpExp(error));
     }
   } else {
@@ -585,7 +585,7 @@ function getFromSpiraAttempt() {
 
 
 
-function getFromSpira(log) {
+function getFromSpiraComplete(log) {
   if (devMode) console.log(log);
   //if array (which holds error responses) is present, and errors present
   if (log && log.errorCount) {
@@ -597,7 +597,11 @@ function getFromSpira(log) {
 
   //runs the export success function, passes a boolean flag, if there are errors the flag is true.
   if (log && log.status) {
-    //google.script.run.operationComplete(log.status);
+    if (isGoogle) {
+      google.script.run.operationComplete(log.status);
+    } else {
+      msOffice.operationComplete(log.status);
+    }
   }
 }
 
