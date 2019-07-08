@@ -11,7 +11,7 @@ export {
     getFromSpira, 
     warn, 
     sendToSpira, 
-    exportSuccess,
+    operationComplete,
     getComponents,
     getCustoms,
     getBespoke,
@@ -64,6 +64,16 @@ var API_BASE = '/services/v5_0/RestService.svc/projects/',
 		allSuccess: 1,
 		allError: 2,
 		someError: 3
+	},
+	STATUS_MESSAGE_GOOGLE = {
+		1: "All done! To send more data over, clear the sheet first.",
+		2: "Sorry, but there were some problems (these cells are marked in red). Check the notes on the relevant ID field for explanations.",
+		3: "We're really sorry, but we couldn't send anything to SpiraTeam - please check notes on the ID fields for more information."
+	},
+	STATUS_MESSAGE_EXCEL = {
+		1: "All done! To send more data over, clear the sheet first.",
+		2: "Sorry, but there were some problems (these cells are marked in red). Check the cells at the end of relevant rows for explanations.",
+		3: "We're really sorry, but we couldn't send anything to SpiraTeam - please check cells at the end of the row for more information."
 	},
     CUSTOM_PROP_TYPE_ENUM = {
       1: "StringValue",
@@ -222,16 +232,16 @@ function popupShow(message, messageTitle) {
 		SpreadsheetApp.getUi().showModalDialog(htmlMessage, messageTitle || "");		 
 	} else {
 		showPanel("confirm");
-		document.getElementById("message-confirm").innerHTML = "<b>" + messageTitle + ":</b> " + message;
-		document.getElementById("btn-confirm-ok").style.visibility = "hidden";
-		document.getElementById("btn-confirm-cancel").onclick = () => hidePanel("confirm");
+		document.getElementById("message-confirm").innerHTML = (messageTitle ? "<b>" + messageTitle + ":</b> " : "") + message;
+		document.getElementById("btn-confirm-cancel").style.visibility = "hidden";
+		document.getElementById("btn-confirm-ok").onclick = () => popupHide();
 	}
 }
 
 function popupHide() {
 	hidePanel("confirm");
 	document.getElementById("message-confirm").innerHTML = "";
-	document.getElementById("btn-confirm-ok").style.visibility = "visible";
+	document.getElementById("btn-confirm-cancel").style.visibility = "visible";
 }
 
 
@@ -561,13 +571,13 @@ function warn(string) {
 
 // Alert pop up for export success
 // @param: message - string sent from the export function
-function exportSuccess(message) {
-	if (message ==	STATUS_ENUM.allSuccess) {
-		okWarn("All done! To send more data over, clear the sheet first.");
-	} else if (message == STATUS_ENUM.someError) {
-		okWarn("Sorry, but there were some problems. Check the notes on the relevant ID field for explanations.");
-	} else if (message == STATUS_ENUM.allError){
-		okWarn("We're really sorry, but we couldn't send anything to SpiraTeam - please check notes on the ID fields  for more information.");
+function operationComplete(messageEnum) {
+	if (IS_GOOGLE) {
+		var message = STATUS_MESSAGE_GOOGLE[messageEnum] || STATUS_MESSAGE_GOOGLE['1'];
+		okWarn(message);
+	} else {
+		var message = STATUS_MESSAGE_EXCEL[messageEnum] || STATUS_MESSAGE_EXCEL['1'];
+		popupShow(message, "");
 	}
 }
 
@@ -1236,8 +1246,6 @@ async function sendExportEntriesExcel(entriesForExport, sheetData, sheet, sheetR
 
 		// review all activity and set final status
 		log.status = log.errorCount ? (log.errorCount == log.entriesLength ? STATUS_ENUM.allError : STATUS_ENUM.someError) : STATUS_ENUM.allSuccess;
-		popupHide();
-		showPanel("main");
 
 		// call the final function here - so we know that it is only called after the recursive function above (ie all posting) has ended
 		return updateSheetWithExportResults(log, sheetData, sheet, sheetRange, model, fieldType, fields, artifact, context);
@@ -1335,7 +1343,7 @@ function checkSingleEntryForErrors(i, log, entriesForExport, artifact, parentId)
 			log.entries.push(response);
 			// we do not call this function again with i++ so that we effectively break out of the loop
 			// review all activity and set final status
-			log.status = log.errorCount ? (log.errorCount == log.entriesLength ? STATUS_ENUM.allError : STATUS_ENUM.someError) : STATUS_ENUM.allSuccess;
+			log.status = log.errorCount ? (log.errorCount == log.entriesLength ? STATUS.allError : STATUS_ENUM.someError) : STATUS_ENUM.allSuccess;
 		} else {
 			log.entries.push(response);
 		}

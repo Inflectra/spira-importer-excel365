@@ -592,7 +592,7 @@ function getFromSpira(log) {
 
   //runs the export success function, passes a boolean flag, if there are errors the flag is true.
   if (log && log.status) {
-    //google.script.run.exportSuccess(log.status);
+    //google.script.run.operationComplete(log.status);
   }
 }
 
@@ -610,11 +610,11 @@ function sendToSpiraAttempt() {
     if (isGoogle) {
       google.script.run
         .withFailureHandler(errorImpExp)
-        .withSuccessHandler(sendToSpira)
+        .withSuccessHandler(sendToSpiraComplete)
         .sendToSpira(model, params.fieldType);
     } else {
       msOffice.sendToSpira(model, params.fieldType)
-        .then((response) => sendToSpira(response))
+        .then((response) => sendToSpiraComplete(response))
         .catch((error) => errorImpExp(error));
     }
   } else {
@@ -625,12 +625,12 @@ function sendToSpiraAttempt() {
 
 
 
-function sendToSpira(log) {
+function sendToSpiraComplete(log) {
   if (devMode) console.log(log);
   //if array (which holds error responses) is present, and errors present
   if (log.errorCount) {
     //TODO - it doesn't look like this var is declared anywhere or even used
-    errorMessages = log.entries
+    var errorMessages = log.entries
       .filter(function (entry) { return entry.error; })
       .map(function (entry) { return entry.message; });
   }
@@ -638,9 +638,9 @@ function sendToSpira(log) {
   //runs the export success function, passes a boolean flag, if there are errors the flag is true.
   if (log && log.status) {
     if (isGoogle) {
-      google.script.run.exportSuccess(log.status);
+      google.script.run.operationComplete(log.status);
     } else {
-      // MS Excel
+      msOffice.operationComplete(log.status);
     }
   }
 }
