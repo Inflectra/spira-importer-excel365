@@ -1160,7 +1160,6 @@ function sendExportEntriesGoogle(entriesForExport, sheetData, sheet, sheetRange,
 		for (var i = 0; i < entriesForExport.length; i++) {
 			if (!log.doNotContinue) {
 				log = checkSingleEntryForErrors(i, log, entriesForExport, artifact);
-				console.log(log);
 				if (log.entries.length && log.entries[i] && log.entries[i].error) {
 				} else {
 					sendSingleEntry(i);	
@@ -1186,7 +1185,7 @@ async function sendExportEntriesExcel(entriesForExport, sheetData, sheet, sheetR
 		popupShow('There are no entries to send to Spira', 'Check Sheet')
 		return "nothing to send";
 	} else {
-		popupShow('Preparing to send...', 'Progress');
+		popupShow('Starting to send...', 'Progress');
 
 		// create required variables for managing responses for sending data to spirateam
 		var log = {
