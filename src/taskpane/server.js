@@ -63,17 +63,20 @@ var API_BASE = '/services/v5_0/RestService.svc/projects/',
 	STATUS_ENUM = {
 		allSuccess: 1,
 		allError: 2,
-		someError: 3
+		someError: 3,
+		wrongSheet: 4
 	},
 	STATUS_MESSAGE_GOOGLE = {
 		1: "All done! To send more data over, clear the sheet first.",
 		2: "Sorry, but there were some problems (these cells are marked in red). Check the notes on the relevant ID field for explanations.",
-		3: "We're really sorry, but we couldn't send anything to SpiraTeam - please check notes on the ID fields for more information."
+		3: "We're really sorry, but we couldn't send anything to SpiraTeam - please check notes on the ID fields for more information.",
+		4: "You are not on the correct worksheet. Please go to the sheet that matches the one listed on the Spira taskpane."
 	},
 	STATUS_MESSAGE_EXCEL = {
 		1: "All done! To send more data over, clear the sheet first.",
 		2: "Sorry, but there were some problems (these cells are marked in red). Check the cells at the end of relevant rows for explanations.",
-		3: "We're really sorry, but we couldn't send anything to SpiraTeam - please check cells at the end of the row for more information."
+		3: "We're really sorry, but we couldn't send anything to SpiraTeam - please check cells at the end of the row for more information.",
+		4: "You are not on the correct worksheet. Please go to the sheet that matches the one listed on the Spira taskpane."
 	},
     CUSTOM_PROP_TYPE_ENUM = {
       1: "StringValue",
@@ -1029,7 +1032,8 @@ function sendToSpira(model, fieldType) {
 	// 0. SETUP FUNCTION LEVEL VARS
 	var fields = model.fields,
 		artifact = model.currentArtifact,
-		artifactIsHierarchical = artifact.hierarchical;
+		artifactIsHierarchical = artifact.hierarchical,
+		requiredSheetName = model.currentArtifact.name + ", PR-" + model.currentProject.id
 	
 	// 1. get the active spreadsheet and first sheet
 	if (IS_GOOGLE) {
@@ -1038,18 +1042,33 @@ function sendToSpira(model, fieldType) {
 			lastRow = sheet.getLastRow() - 1 || 10, // hack to make sure we pass in some rows to the sheetRange, otherwise it causes an error
 			sheetRange = sheet.getRange(2,1, lastRow, fields.length),
 			sheetData = sheetRange.getValues(),
-		    entriesForExport = createExportEntries(sheetData, model, fieldType, fields, artifact, artifactIsHierarchical);
-		return sendExportEntriesGoogle(entriesForExport, sheetData, sheet, sheetRange, model, fieldType, fields, artifact, null);
+			entriesForExport = createExportEntries(sheetData, model, fieldType, fields, artifact, artifactIsHierarchical);
+		if (sheet.getName() == requiredSheetName) {
+			return sendExportEntriesGoogle(entriesForExport, sheetData, sheet, sheetRange, model, fieldType, fields, artifact, null);
+		} else {
+			var log = {
+				status: STATUS_ENUM.wrongSheet 
+			};
+			return log;
+		}
 	} else {
 		return Excel.run({ delayForCellEdit: true }, function (context) {
 			var sheet = context.workbook.worksheets.getActiveWorksheet(),
 				sheetRange = sheet.getRangeByIndexes(1, 0, EXCEL_MAX_ROWS, fields.length);
+				sheet.load("name");
 				sheetRange.load("values");
 				return context.sync()
 			.then(() => {
-				var sheetData = sheetRange.values,
-					entriesForExport = createExportEntries(sheetData, model, fieldType, fields, artifact, artifactIsHierarchical);
-				return sendExportEntriesExcel(entriesForExport, sheetData, sheet, sheetRange, model, fieldType, fields, artifact, context);
+				if (sheet.name == requiredSheetName) {
+					var sheetData = sheetRange.values,
+						entriesForExport = createExportEntries(sheetData, model, fieldType, fields, artifact, artifactIsHierarchical);
+					return sendExportEntriesExcel(entriesForExport, sheetData, sheet, sheetRange, model, fieldType, fields, artifact, context);
+				} else {
+					var log = {
+						status: STATUS_ENUM.wrongSheet 
+					};
+					return log;
+				}
 			})
 			.catch();
 		}).catch();

@@ -223,6 +223,11 @@ function resetSidebar() {
   document.getElementById("template-data-box").style.display = "none";
   document.getElementById("template-project").textContent = "";
   document.getElementById("template-artifact").textContent = "";
+
+  // reset guide text on the main pane
+  document.getElementById("main-guide-1").classList.remove("pale");
+  document.getElementById("main-guide-2").classList.add("pale");
+
   // reset anything required if in devmode
   setDevStuff();
 }
@@ -489,6 +494,8 @@ function manageTemplateBtnState() {
         document.getElementById("btn-toSpira").disabled = false;
         document.getElementById("btn-fromSpira").disabled = false;
         document.getElementById("message-fetching-data").style.visibility = "hidden";
+        document.getElementById("main-guide-1").classList.add("pale");
+        document.getElementById("main-guide-2").classList.remove("pale");
         clearInterval(checkGetsSuccess);
 
         // if there is a discrepancy between the dropdown and the currently active template
@@ -515,7 +522,6 @@ function createTemplateAttempt() {
       .withSuccessHandler(createTemplate)
       .warn(message);
   } else {
-    // MS Excel - todo createTemplate!
     showPanel("confirm");
     document.getElementById("message-confirm").innerHTML = message;
     document.getElementById("btn-confirm-ok").onclick = () => createTemplate(true);
@@ -548,7 +554,6 @@ function createTemplate(shouldContinue) {
         }
       }
     }
-
   }
 }
 
@@ -1101,6 +1106,11 @@ function templateLoaderSuccess(data) {
   document.getElementById("template-project").textContent = model.currentProject.name;
   document.getElementById("template-artifact").textContent = model.currentArtifact.name;
   document.getElementById("template-data-box").style.display = "";
+
+  // de-emphasise the explanatory message - we have to put it in a set timeout because there is already a delay set for other checks that affect the view state of this element
+  setTimeout(function() {
+    document.getElementById("main-guide-2").classList.add("pale");
+  }, 750);
 }
 
 
