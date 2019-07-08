@@ -137,22 +137,22 @@ function setEventListeners() {
 // used to show or hide / hide / show a specific panel
 // @param: panel - string. suffix for items to act on (eg if id = panel-help, choice = "help")
 function panelToggle(panel) {
-  var panelId = "panel-" + panel;
-  document.getElementById(panelId).classList.toggle("offscreen");
+  var panelElement = document.getElementById("panel-" + panel);
+  panelElement.classList.toggle("offscreen");
 }
 
 
 
 function hidePanel(panel) {
-  var panelId = "panel-" + panel;
-  document.getElementById(panelId).classList.add("offscreen");
+  var panelElement = document.getElementById("panel-" + panel);
+  panelElement.classList.add("offscreen");
 }
 
 
 
 function showPanel(panel) {
-  var panelId = "panel-" + panel;
-  document.getElementById(panelId).classList.remove("offscreen");
+  var panelElement = document.getElementById("panel-" + panel);
+  panelElement.classList.remove("offscreen");
 }
 
 

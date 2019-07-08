@@ -53,10 +53,12 @@
     padding: 1rem;
     position: absolute;
     transition: left 0.2s;
+    visibility: visible;
     width: 100vw
 }
 .panel.offscreen {
     left: 100%;
+    visibility: hidden;
 }
 .footer {
     bottom: 0;

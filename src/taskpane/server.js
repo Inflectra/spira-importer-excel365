@@ -228,6 +228,12 @@ function popupShow(message, messageTitle) {
 	}
 }
 
+function popupHide() {
+	hidePanel("confirm");
+	document.getElementById("message-confirm").innerHTML = "";
+	document.getElementById("btn-confirm-ok").style.visibility = "visible";
+}
+
 
 
 
@@ -1020,11 +1026,10 @@ function sendToSpira(model, fieldType) {
 		var spreadSheet = SpreadsheetApp.getActiveSpreadsheet(),
 			sheet = spreadSheet.getActiveSheet(),
 			lastRow = sheet.getLastRow() - 1 || 10, // hack to make sure we pass in some rows to the sheetRange, otherwise it causes an error
-			sheetRange = sheet.getRange(2,1, lastRow, fields.length);
-
-		var sheetData = sheetRange.getValues();
-		return sendToSpiraManage(sheetData, sheet, sheetRange, model, fieldType, fields, artifact, artifactIsHierarchical);
-
+			sheetRange = sheet.getRange(2,1, lastRow, fields.length),
+			sheetData = sheetRange.getValues(),
+		    entriesForExport = createExportEntries(sheetData, model, fieldType, fields, artifact, artifactIsHierarchical);
+		return sendExportEntriesGoogle(entriesForExport, sheetData, sheet, sheetRange, model, fieldType, fields, artifact, null);
 	} else {
 		return Excel.run({ delayForCellEdit: true }, function (context) {
 			var sheet = context.workbook.worksheets.getActiveWorksheet(),
@@ -1032,33 +1037,16 @@ function sendToSpira(model, fieldType) {
 				sheetRange.load("values");
 				return context.sync()
 			.then(() => {
-				var sheetData = sheetRange.values;
-				return sendToSpiraManage(sheetData, sheet, sheetRange, model, fieldType, fields, artifact, artifactIsHierarchical, context);
+				var sheetData = sheetRange.values,
+					entriesForExport = createExportEntries(sheetData, model, fieldType, fields, artifact, artifactIsHierarchical);
+				return sendExportEntriesExcel(entriesForExport, sheetData, sheet, sheetRange, model, fieldType, fields, artifact, context);
 			})
 			.catch();
 		}).catch();
 	}
 }
 
-// Wrapper function that handles the different stages of prepping and sending data to Spira and then updating the user
-// This makes it easier to break out the code and also means it is more clear how the functions are chained together
-// @param: sheetData - the raw data from the cells in the active sheet - an array of arrays
-// @param: sheet - Google/Excel object representing the current active sheet
-// @param: sheetRange - Google/Excel object representing the selected range
-// @param: model - full model object from client containing field data for specific artifact, list of project users, components, etc
-// @param: fieldType - list of fieldType enums from client params object
-// @param: fields - list of all fields contained in the artifact in question
-// @param: artifact - object about the selected object
-// @param: artifactIsHierarchical - bool
-// @param: context - MS Excel specific context that defines the async update env that Excel uses
-function sendToSpiraManage(sheetData, sheet, sheetRange, model, fieldType, fields, artifact, artifactIsHierarchical, context) {
-	var entriesForExport = createExportEntries(sheetData, model, fieldType, fields, artifact, artifactIsHierarchical);
-	if (IS_GOOGLE) {
-		return sendExportEntriesGoogle(entriesForExport, sheetData, sheet, sheetRange, model, fieldType, fields, artifact, context);
-	} else {
-		return sendExportEntriesExcel(entriesForExport, sheetData, sheet, sheetRange, model, fieldType, fields, artifact, context);
-	}
-}
+
 
 // 2. CREATE ARRAY OF ENTRIES
 // loop to create artifact objects from each row taken from the spreadsheet
@@ -1160,7 +1148,6 @@ function sendExportEntriesGoogle(entriesForExport, sheetData, sheet, sheetRange,
 		// We use a function rather than a loop so that we can more readily use promises to chain things together and make the calls happen synchronously
 		// we need the calls to be synchronous because we need to do the status and ID of the preceding entry for hierarchical artifacts
 		for (var i = 0; i < entriesForExport.length; i++) {
-			console.log('sendSingleEntry: ', i);
 			if (!log.doNotContinue) {
 				log = checkSingleEntryForErrors(i, log, entriesForExport, artifact);
 				console.log(log);
@@ -1217,9 +1204,8 @@ async function sendExportEntriesExcel(entriesForExport, sheetData, sheet, sheetR
 					if (artifact.hasSubType) {
 						log.parentId = sentToSpira.parentId;
 					}
-					log = processSendToSpiraResponse(i, response.data, entriesForExport, artifact, response, log);
-
-					console.log('in then of manage sending to spira', response)
+					console.log('manageSendingToSpira > then for ', i, response);
+					log = processSendToSpiraResponse(i, response, entriesForExport, artifact, response, log);
 
 					if (response.error && artifact.hierarchical) {
 						// break out of the recursive loop
@@ -1250,7 +1236,8 @@ async function sendExportEntriesExcel(entriesForExport, sheetData, sheet, sheetR
 
 		// review all activity and set final status
 		log.status = log.errorCount ? (log.errorCount == log.entriesLength ? STATUS_ENUM.allError : STATUS_ENUM.someError) : STATUS_ENUM.allSuccess;
-		console.log('final log from sendExportEntries', log);
+		popupHide();
+		showPanel("main");
 
 		// call the final function here - so we know that it is only called after the recursive function above (ie all posting) has ended
 		return updateSheetWithExportResults(log, sheetData, sheet, sheetRange, model, fieldType, fields, artifact, context);
@@ -1264,7 +1251,7 @@ function updateSheetWithExportResults(log, sheetData, sheet, sheetRange, model, 
 		notes = [],
 		values = [];
 	// first handle cell formatting
-	for (var row = 0; row < sheetData.length; row++) {
+	for (var row = 0; row < log.entries.length; row++) {
 		var rowBgColors = [],
 			rowNotes = [],
 			rowValues = [];
@@ -1272,26 +1259,28 @@ function updateSheetWithExportResults(log, sheetData, sheet, sheetRange, model, 
 			var bgColor,
 				note = null,
 				value = sheetData[row][col];
-
-			if (log.entries.length > row) {
-				var isSubType = (log.entries[row].details &&  log.entries[row].details.entry && log.entries[row].details.entry.isSubType) ? log.entries[row].details.entry.isSubType : false;
-				bgColor = setFeedbackBgColor(sheetData[row][col], log.entries[row].error, fields[col], fieldType, artifact, model.colors );
-				note = setFeedbackNote(sheetData[row][col], log.entries[row].error, fields[col], fieldType, log.entries[row].message );
-				value = setFeedbackValue(sheetData[row][col], log.entries[row].error, fields[col], fieldType, log.entries[row].newId || "", isSubType );
-			} else {
-				bgColor = setFeedbackBgColor(sheetData[row][col], false, fields[col], fieldType, artifact, model.colors );
-			}
+			
+				// first handle when we are dealing with data that has been sent to Spira
+			var isSubType = (log.entries[row].details &&  log.entries[row].details.entry && log.entries[row].details.entry.isSubType) ? log.entries[row].details.entry.isSubType : false;
+			
+			bgColor = setFeedbackBgColor(sheetData[row][col], log.entries[row].error, fields[col], fieldType, artifact, model.colors);
+			note = setFeedbackNote(sheetData[row][col], log.entries[row].error, fields[col], fieldType, log.entries[row].message);
+			value = setFeedbackValue(sheetData[row][col], log.entries[row].error, fields[col], fieldType, log.entries[row].newId || "", isSubType);
 
 			if (IS_GOOGLE) {
 				rowBgColors.push(bgColor);
 				rowNotes.push(note);
 				rowValues.push(value);
 			} else {
-				var cellRange = sheet.getCell(row, col);
-				cellRange.set({ format: {fill: { color: bgColor }} });
-				cellRange.value = value;
-
+				var cellRange = sheet.getCell(row + 1, col);
 				if (note) rowNotes.push(note);
+				if (bgColor) {
+					cellRange.set({ format: {fill: { color: bgColor }} });
+				} else {
+					cellRange.clear();
+				}
+				cellRange.values = [[value]];
+
 			}
 		}
 		if (IS_GOOGLE) {
@@ -1301,10 +1290,19 @@ function updateSheetWithExportResults(log, sheetData, sheet, sheetRange, model, 
 		
 		// for Excel we can't pass in arrays of data for values, but we still take action here for notes - because Excel API does not allow the addition of comments
 		} else {
+			var endRowCell = sheet.getCell(row + 1, fields.length);
 			if (rowNotes.length) {
-				var endRowCell = sheet.getCell(fields.length, col);
 				endRowCell.set({ format: {fill: { color: model.colors.warning }} });
-				endRowCell.value = rowNotes.join();
+				endRowCell.values = [[rowNotes.join()]];
+
+				var endRowHeader = sheet.getCell(0, fields.length);
+				endRowHeader.set({ format: {
+					fill: { color: model.colors.bgHeader },
+					font: { color: model.colors.header }
+				}});
+				endRowHeader.values = [["Error Messages"]];
+			} else {
+				endRowCell.clear();
 			}
 		}
 	}	
@@ -1464,43 +1462,70 @@ function manageSendingToSpira (entry, user, projectId, artifact, fields, fieldTy
 	// send object to relevant artifact post service
 	if (IS_GOOGLE) {
 		data = postArtifactToSpira(entry, user, projectId, artifactTypeIdToSend, parentId);
+
+		// save data for logging to client
+		output.httpCode = (data && data.getResponseCode() ) ? data.getResponseCode() : "notSent";
+
+		// parse the data if we have a success
+		if (output.httpCode == 200) {
+			output.fromSpira = JSON.parse(data.getContentText());
+
+			// get the id/subType id of the newly created artifact
+			var artifactIdField = getIdFieldName(fields, fieldType, entry.isSubType);
+			output.newId = output.fromSpira[artifactIdField];
+
+			// update the output parent ID to the new id only if the artifact has a subtype and this entry is NOT a subtype
+			if (artifact.hasSubType && !entry.isSubType) {
+				output.parentId = output.newId;
+			}
+
+		} else {
+			//we have an error - so set the flag and the message
+			output.error = true;
+			if (data && data.getContentText()) {
+				output.errorMessage = data.getContentText();
+			} else {
+				output.errorMessage = "send attempt failed";
+			}
+
+			// reset the parentId if we are not on a subType - to make sure subTypes are not added to the wrong parent
+			if (artifact.hasSubType && !entry.isSubType) {
+				output.parentId = 0;
+			}
+		}
+		return output;
+
 	} else {
 		return postArtifactToSpira(entry, user, projectId, artifactTypeIdToSend, parentId)
-			.then((response) => { console.log('axios post success', response); return response; })
-			.catch((error) => { console.log('axios post error', error); return error;});
+			.then((response) => { 
+				output.fromSpira = response.data;
+
+				// get the id/subType id of the newly created artifact
+				var artifactIdField = getIdFieldName(fields, fieldType, entry.isSubType);
+				output.newId = output.fromSpira[artifactIdField];
+
+				// update the output parent ID to the new id only if the artifact has a subtype and this entry is NOT a subtype
+				if (artifact.hasSubType && !entry.isSubType) {
+					output.parentId = output.newId;
+				} 
+				return output;
+			})
+			.catch((error) => { 
+				//we have an error - so set the flag and the message
+				output.error = true;
+				if (error) {
+					output.errorMessage = error;
+				} else {
+					output.errorMessage = "send attempt failed";
+				}
+
+				// reset the parentId if we are not on a subType - to make sure subTypes are not added to the wrong parent
+				if (artifact.hasSubType && !entry.isSubType) {
+					output.parentId = 0;
+				}
+				return output;
+			});
 	}
-
-	// save data for logging to client
-	output.httpCode = (data && data.getResponseCode() ) ? data.getResponseCode() : "notSent";
-
-	// parse the data if we have a success
-	if (output.httpCode == 200) {
-		output.fromSpira = JSON.parse(data.getContentText());
-
-		// get the id/subType id of the newly created artifact
-		var artifactIdField = getIdFieldName(fields, fieldType, entry.isSubType);
-		output.newId = output.fromSpira[artifactIdField];
-
-		// update the output parent ID to the new id only if the artifact has a subtype and this entry is NOT a subtype
-		if (artifact.hasSubType && !entry.isSubType) {
-			output.parentId = output.newId;
-		}
-
-	} else {
-		//we have an error - so set the flag and the message
-		output.error = true;
-		if (data && data.getContentText()) {
-			output.errorMessage = data.getContentText();
-		} else {
-			output.errorMessage = "send attempt failed";
-		}
-
-		// reset the parentId if we are not on a subType - to make sure subTypes are not added to the wrong parent
-		if (artifact.hasSubType && !entry.isSubType) {
-			output.parentId = 0;
-		}
-	}
-	return output;
 }
 
 
@@ -1900,7 +1925,7 @@ function processSendToSpiraResponse(i, sentToSpira, entriesForExport, artifact, 
 			}
 		}
 		//modal that displays the status of each artifact sent
-		popupShow('Sending ' + (i + 1) + ' of ' + (entriesForExport.length) + '...', 'Progress');
+		popupShow('Sent ' + (i + 1) + ' of ' + (entriesForExport.length) + '...', 'Progress');
 	}
 
 	// finally write out the response to the log and return
