@@ -574,7 +574,7 @@ function getFromSpiraAttempt() {
         .getFromSpiraGoogle(model, params.fieldType);
     } else {
       msOffice.getFromSpiraExcel(model, params.fieldType)
-        .then((response) => getFromSpiraComplete(response.data))
+        .then((response) => getFromSpiraComplete(response))
         .catch((error) => errorImpExp(error));
     }
   } else {
@@ -1103,8 +1103,8 @@ function templateLoaderSuccess(data) {
     getFromSpiraAttempt();
   }
   //enable the send to spira button
-  document.getElementById("btn-toSpira").innerHTML = "Send To Spira";
-  document.getElementById("btn-toSpira").title = "Send entered data to SpiraPlan"
+  document.getElementById("btn-toSpira").innerHTML = "Add To Spira";
+  document.getElementById("btn-toSpira").title = "Create entered data in SpiraPlan"
 
   //show text in the sidebar that tells the user what the template is set to:
   document.getElementById("template-project").textContent = model.currentProject.name;

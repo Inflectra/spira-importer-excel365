@@ -637,8 +637,8 @@ function templateLoader(model, fieldType) {
 
   } else {
     return Excel.run(function (context) {
-      sheet = context.workbook.worksheets.getActiveWorksheet();
-      sheet.name = newSheetName;
+	  sheet = context.workbook.worksheets.getActiveWorksheet();
+	  sheet.name = newSheetName;
       return context.sync()
         .then(function() {
           sheetSetForTemplate(sheet, model, fieldType, context); 
@@ -1055,22 +1055,22 @@ function sendToSpira(model, fieldType) {
 		return Excel.run({ delayForCellEdit: true }, function (context) {
 			var sheet = context.workbook.worksheets.getActiveWorksheet(),
 				sheetRange = sheet.getRangeByIndexes(1, 0, EXCEL_MAX_ROWS, fields.length);
-				sheet.load("name");
-				sheetRange.load("values");
-				return context.sync()
-			.then(() => {
-				if (sheet.name == requiredSheetName) {
-					var sheetData = sheetRange.values,
-						entriesForExport = createExportEntries(sheetData, model, fieldType, fields, artifact, artifactIsHierarchical);
-					return sendExportEntriesExcel(entriesForExport, sheetData, sheet, sheetRange, model, fieldType, fields, artifact, context);
-				} else {
-					var log = {
-						status: STATUS_ENUM.wrongSheet 
-					};
-					return log;
-				}
-			})
-			.catch();
+			sheet.load("name");
+			sheetRange.load("values");
+			return context.sync()
+		.then(() => {
+			if (sheet.name == requiredSheetName) {
+				var sheetData = sheetRange.values,
+					entriesForExport = createExportEntries(sheetData, model, fieldType, fields, artifact, artifactIsHierarchical);
+				return sendExportEntriesExcel(entriesForExport, sheetData, sheet, sheetRange, model, fieldType, fields, artifact, context);
+			} else {
+				var log = {
+					status: STATUS_ENUM.wrongSheet 
+				};
+				return log;
+			}
+		})
+		.catch();
 		}).catch();
 	}
 }
@@ -2094,8 +2094,6 @@ function getFromSpiraGoogle(model, fieldType) {
 // @param: model: full model object from client
 // @param: enum of fieldTypes used
 async function getFromSpiraExcel(model, fieldType) {
-	//var artifactCount = getArtifactCount(model.user, model.currentProject.id, model.currentArtifact.id);
-  
 	// 1. get from spira
 	// note we don't do this by getting the count of each artifact first, because of a bug in getting the release count
 	var currentPage = 0;
@@ -2114,7 +2112,6 @@ async function getFromSpiraExcel(model, fieldType) {
 			// if we got a non empty array back then we have artifacts to process
 			if (response.data.length) {
 				artifacts = artifacts.concat(response.data);
-				console.log(artifacts)
 				// if we got less artifacts than the max we asked for, then we reached the end of the list in this request - and should stop
 				if (response.data.length < GET_PAGINATION_SIZE) {
 				getNextPage = false;
