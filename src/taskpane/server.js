@@ -18,7 +18,9 @@ export {
     getReleases,
     getUsers,
     templateLoader,
-    error
+	error,
+	
+	getTemplateFromProjectId
 };
 
 import { showPanel, hidePanel } from './taskpane.js';
@@ -40,8 +42,9 @@ import { showPanel, hidePanel } from './taskpane.js';
 
 
 // globals
-var API_BASE = '/services/v5_0/RestService.svc/projects/',
-	API_BASE_NO_SLASH = '/services/v5_0/RestService.svc/projects',
+var API_PROJECT_BASE = '/services/v6_0/RestService.svc/projects/',
+	API_PROJECT_BASE_NO_SLASH = '/services/v6_0/RestService.svc/projects',
+	API_TEMPLATE_BASE = '/services/v6_0/RestService.svc/project-templates/',
 	ART_ENUMS = {
 		requirements: 1,
 		testCases: 2,
@@ -273,8 +276,9 @@ function fetcher(currentUser, fetcherURL) {
 
 	//build URL from args
 	var fullUrl = currentUser.url + fetcherURL + "username=" + currentUser.userName + APIKEY;
+	console.log(fullUrl)
 	//set MIME type
-	var params = { 'content-type': 'application/json' };
+	var params = { "Content-Type": "application/json" };
 
 	//call Google fetch function (UrlFetchApp) if using google
 	if (IS_GOOGLE) {
@@ -284,8 +288,13 @@ function fetcher(currentUser, fetcherURL) {
 		return JSON.parse(response);
 
 	//for MS Excel, use axios to return a promise to the taskpane
+	//for v6 API in Spira you HAVE to send a Content-Type header
+	//axios only sends this as a header if there is data - so we pass in data but empty to make sure the headers gets sent
 	} else {
-		return axios.get(fullUrl);
+		// return axios.get(fullUrl);
+		return superagent
+			.get(fullUrl)
+			.set("Content-Type", "application/json")
 	}
 
 }
@@ -296,7 +305,18 @@ function fetcher(currentUser, fetcherURL) {
 // This function is called on initial log in and therefore also acts as user validation
 // @param: currentUser - object with details about the current user
 function getProjects(currentUser) {
-  var fetcherURL = API_BASE_NO_SLASH + '?';
+  var fetcherURL = API_PROJECT_BASE_NO_SLASH + '?';
+	return fetcher(currentUser, fetcherURL);
+}
+
+
+
+// Gets projects accessible by current logged in user
+// This function is called on initial log in and therefore also acts as user validation
+// @param: currentUser - object with details about the current user
+// @param: projectId - int id for current project
+function getTemplateFromProjectId(currentUser, projectId) {
+	var fetcherURL = API_PROJECT_BASE + projectId + '?';
 	return fetcher(currentUser, fetcherURL);
 }
 
@@ -306,7 +326,7 @@ function getProjects(currentUser) {
 // @param: currentUser - object with details about the current user
 // @param: projectId - int id for current project
 function getComponents(currentUser, projectId) {
-	var fetcherURL = API_BASE + projectId + '/components?active_only=true&include_deleted=false&';
+	var fetcherURL = API_PROJECT_BASE + projectId + '/components?active_only=true&include_deleted=false&';
 	return fetcher(currentUser, fetcherURL);
 }
 
@@ -315,9 +335,9 @@ function getComponents(currentUser, projectId) {
 // Gets custom fields for selected project and artifact
 // @param: currentUser - object with details about the current user
 // @param: projectId - int id for current project
-// @param: artifactName - string name of the current artifact
-function getCustoms(currentUser, projectId, artifactName) {
-	var fetcherURL = API_BASE + projectId + '/custom-properties/' + artifactName + '?';
+// @param: artifactName - int of the current artifact - API refers to this as the artifactTypeName but the ID is required
+function getCustoms(currentUser, templateId, artifactName) {
+	var fetcherURL = API_TEMPLATE_BASE + templateId + '/custom-properties/' + artifactName + '?';
 	return fetcher(currentUser, fetcherURL);
 }
 
@@ -327,8 +347,8 @@ function getCustoms(currentUser, projectId, artifactName) {
 // @param: currentUser - object with details about the current user
 // @param: projectId - int id for current project
 // @param: artifactName - string name of the current artifact
-function getBespoke(currentUser, projectId, artifactName, field) {
-	var fetcherURL = API_BASE + projectId + field.bespoke.url + '?';
+function getBespoke(currentUser, templateId, artifactName, field) {
+	var fetcherURL = API_TEMPLATE_BASE + templateId + field.bespoke.url + '?';
 	var results = fetcher(currentUser, fetcherURL);
 	
 	if (IS_GOOGLE) {
@@ -348,7 +368,7 @@ function getBespoke(currentUser, projectId, artifactName, field) {
 // @param: currentUser - object with details about the current user
 // @param: projectId - int id for current project
 function getReleases(currentUser, projectId) {
-  var fetcherURL = API_BASE + projectId + '/releases?';
+  var fetcherURL = API_PROJECT_BASE + projectId + '/releases?';
   return fetcher(currentUser, fetcherURL);
 }
 
@@ -358,13 +378,13 @@ function getReleases(currentUser, projectId) {
 // @param: currentUser - object with details about the current user
 // @param: projectId - int id for current project
 function getUsers(currentUser, projectId) {
-  var fetcherURL = API_BASE + projectId + '/users?';
+  var fetcherURL = API_PROJECT_BASE + projectId + '/users?';
   return fetcher(currentUser, fetcherURL);
 }
 
 
 function getArtifacts(user, projectId, artifactTypeId, startRow, numberOfRows, artifactId) {
-  var fullURL = API_BASE + projectId;
+  var fullURL = API_PROJECT_BASE + projectId;
   var response = null;
   
     switch (artifactTypeId) {
@@ -469,45 +489,45 @@ function postArtifactToSpira(entry, user, projectId, artifactTypeId, parentId) {
 		case ART_ENUMS.requirements:
 			// url to post initial RQ to ensure it is fully outdented
 			if (entry.indentPosition === 0 ) { 
-				postUrl = API_BASE + projectId + '/requirements/indent/' + INITIAL_HIERARCHY_OUTDENT + '?';
+				postUrl = API_PROJECT_BASE + projectId + '/requirements/indent/' + INITIAL_HIERARCHY_OUTDENT + '?';
 			// if no parentId then post as a regular RQ 
 			} else if (parentId === -1) {
-				postUrl = API_BASE + projectId + '/requirements?';
+				postUrl = API_PROJECT_BASE + projectId + '/requirements?';
 			// we should have a parent Id set so add this RQ as its child
 			} else {
-				postUrl = API_BASE + projectId + '/requirements/parent/' + parentId + '?';
+				postUrl = API_PROJECT_BASE + projectId + '/requirements/parent/' + parentId + '?';
 			}
 			break;
 
 		// TEST CASES
 		case ART_ENUMS.testCases:
-			postUrl = API_BASE + projectId + '/test-cases?';
+			postUrl = API_PROJECT_BASE + projectId + '/test-cases?';
 			break;
 
 		// INCIDENTS
 		case ART_ENUMS.incidents:
-			postUrl = API_BASE + projectId + '/incidents?';
+			postUrl = API_PROJECT_BASE + projectId + '/incidents?';
 			break;
 		
 		// RELEASES
 		case ART_ENUMS.releases:
 			// if no parentId then post as a regular release
 			if (parentId === -1) {
-				postUrl = API_BASE + projectId + '/releases?';
+				postUrl = API_PROJECT_BASE + projectId + '/releases?';
 			// we should have a parent Id set so add this RQ as its child
 			} else {
-				postUrl = API_BASE + projectId + '/releases/' + parentId + '?';
+				postUrl = API_PROJECT_BASE + projectId + '/releases/' + parentId + '?';
 			}
 			break;
 
 		// TASKS
 		case ART_ENUMS.tasks:
-			postUrl = API_BASE + projectId + '/tasks?';
+			postUrl = API_PROJECT_BASE + projectId + '/tasks?';
 			break;
 
 		// TEST STEPS
 		case ART_ENUMS.testSteps:
-			postUrl = parentId !== -1 ? API_BASE + projectId + '/test-cases/' + parentId + '/test-steps?' : null;
+			postUrl = parentId !== -1 ? API_PROJECT_BASE + projectId + '/test-cases/' + parentId + '/test-steps?' : null;
 			// only post the test step if we have a parent id
 			break;
 	}

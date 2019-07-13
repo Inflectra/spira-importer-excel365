@@ -94,9 +94,12 @@ function setDevStuff(devMode) {
   if (devMode) {
     document.getElementById("btn-dev").classList.remove("hidden");
 
-    model.user.url = "https://training.spiraservice.net";
+    model.user.url = "http://localhost/spira";
     model.user.userName = "administrator";
-    model.user.api_key = btoa("&api-key=" + encodeURIComponent("{FF7212BA-8EDB-4B98-9C47-631B46308786}"));
+    model.user.api_key = btoa("&api-key=" + encodeURIComponent("{B9050F75-C5E6-4244-8712-FBF20061A976}"));
+    // model.user.url = "https://training.spiraservice.net";
+    // model.user.userName = "administrator";
+    // model.user.api_key = btoa("&api-key=" + encodeURIComponent("{FF7212BA-8EDB-4B98-9C47-631B46308786}"));
     loginAttempt();
   }
 }
@@ -330,7 +333,7 @@ function login() {
       .getProjects(model.user);
   } else {
     msOffice.getProjects(model.user)
-      .then((response) => populateProjects(response.data))
+      .then((response) => populateProjects(response.body))
       .catch((error) => errorNetwork(error));
   }
 }
@@ -344,7 +347,8 @@ function populateProjects(projects) {
   var pairedDownProjectsData = projects.map(function (project) {
     var result = {
       id: project.ProjectId,
-      name: project.Name
+      name: project.Name,
+      templateId: project.ProjectTemplateId
     };
     return result;
   });
@@ -436,14 +440,35 @@ function changeProjectSelect(e) {
       // kick off API calls
       getProjectSpecificInformation(model.user, uiSelection.currentProject.id);
 
+      
       // get new data for artifact and this project, if artifact has been selected
       if (uiSelection.currentArtifact) {
-        getArtifactSpecificInformation(model.user, uiSelection.currentProject.id, uiSelection.currentArtifact)
+        // for 6.1 the v6 API for get projects does not get the project template IDs so have to do this
+        getTemplateFromProjectId(model.user, uiSelection.currentProject.id, uiSelection.currentArtifact);
+        // USE THIS CODE WHEN bug in 6.1 is fixed
+        //getArtifactSpecificInformation(model.user, uiSelection.currentProject.templateId, uiSelection.currentArtifact)
       }
     }
   }
 }
 
+function getTemplateFromProjectId(user, projectId, artifact) {
+  if (isGoogle) {
+    google.script.run
+      .withSuccessHandler(getArtifactSpecificInformationInterim)
+      .withFailureHandler(errorNetwork)
+      .getTemplateFromProjectId(user, projectId);
+  } else {
+    msOffice.getTemplateFromProjectId(user, projectId)
+      .then((response) => getArtifactSpecificInformationInterim(response.body))
+      .catch((error) => errorNetwork(error));
+  }
+
+  function getArtifactSpecificInformationInterim(template) {
+    uiSelection.currentProject.templateId = template.ProjectTemplateId;
+    getArtifactSpecificInformation(model.user, template.ProjectTemplateId, uiSelection.currentArtifact)
+  }
+}
 
 
 function changeArtifactSelect(e) {
@@ -754,9 +779,9 @@ function getProjectSpecificInformation(user, projectId) {
 
 // kicks off all relevant API calls to get artifact specific information
 // @param: user - the user object of the logged in user
-// @param: projectId - int of the reqested project
+// @param: templateId - int of the reqested project template
 // @param: artifact - object of the reqested artifact - needed to query on different parts of object
-function getArtifactSpecificInformation(user, projectId, artifact) {
+function getArtifactSpecificInformation(user, templateId, artifact) {
   // first reset get counts
   model.artifactGetRequestsMade = 0;
   model.artifactGetRequestsToMake = model.baselineArtifactGetRequests;
@@ -766,12 +791,12 @@ function getArtifactSpecificInformation(user, projectId, artifact) {
     model.artifactGetRequestsToMake += bespokeData.length;
     // get any bespoke field information
     bespokeData.forEach(function (field) {
-      getBespoke(user, projectId, artifact.field, field);
+      getBespoke(user, templateId, artifact.field, field);
     });
   }
-
+console.log(artifact)
   // get standard artifact information - eg custom fields
-  getCustoms(user, projectId, artifact.id);
+  getCustoms(user, templateId, artifact.id);
 }
 
 
@@ -802,7 +827,7 @@ function getComponents(user, projectId) {
       .getComponents(user, projectId);
   } else {
     msOffice.getComponents(user, projectId)
-      .then((response) => getComponentsSuccess(response.data))
+      .then((response) => getComponentsSuccess(response.body))
       .catch((error) => errorNetwork(error));
   }
 }
@@ -840,7 +865,7 @@ function getCustoms(user, projectId, artifactId) {
       .getCustoms(user, projectId, artifactId);
   } else {
     msOffice.getCustoms(user, projectId, artifactId)
-      .then((response) => getCustomsSuccess(response.data))
+      .then((response) => getCustomsSuccess(response.body))
       .catch((error) => errorNetwork(error));
   }
 }
@@ -887,16 +912,16 @@ function getCustomsSuccess(data) {
 }
 // starts GET request to Spira for project users properties
 // @param: user - the user object of the logged in user
-// @param: projectId - int of the reqested project
-function getBespoke(user, projectId, artifactId, field) {
+// @param: templateId - int of the reqested template
+function getBespoke(user, templateId, artifactId, field) {
   // call server side fetch
   if (isGoogle) {
     google.script.run
       .withSuccessHandler(getBespokeSuccess)
       .withFailureHandler(errorNetwork)
-      .getBespoke(user, projectId, artifactId, field);
+      .getBespoke(user, templateId, artifactId, field);
   } else {
-    msOffice.getBespoke(user, projectId, artifactId, field)
+    msOffice.getBespoke(user, templateId, artifactId, field)
       .then((response) => getBespokeSuccess({
           artifactName: artifactId,
           field: field,
@@ -970,7 +995,7 @@ function getReleases(user, projectId, artifactId) {
       .getReleases(user, projectId);
   } else {
     msOffice.getReleases(user, projectId)
-      .then((response) => getReleasesSuccess(response.data))
+      .then((response) => getReleasesSuccess(response.body))
       .catch((error) => errorNetwork(error));
   }
 }
@@ -1002,7 +1027,7 @@ function getUsers(user, projectId) {
       .getUsers(user, projectId);
   } else {
     msOffice.getUsers(user, projectId)
-      .then((response) => getUsersSuccess(response.data))
+      .then((response) => getUsersSuccess(response.body))
       .catch((error) => errorNetwork(error));
   }
 }

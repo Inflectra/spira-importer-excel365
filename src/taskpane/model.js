@@ -72,44 +72,33 @@ var templateFields = {
         {field: "Description", name: "Description", type: params.fieldType.text},
         {field: "ReleaseVersionNumber", name: "Release Version", type: params.fieldType.release},
         {field: "RequirementTypeId", name: "Type", type: params.fieldType.drop, required: true, 
-            values: [
-                {id: -1, name: "Package"},
-                {id: 1, name: "Need"},
-                {id: 2, name: "Feature"},
-                {id: 3, name: "Use Case"},
-                {id: 4, name: "User Story"},
-                {id: 5, name: "Quality"},
-                {id: 6, name: "Design Element"}
-            ]
+            bespoke: {
+                url: "/requirements/types", 
+                idField: "RequirementTypeId", 
+                nameField: "Name", 
+                isActive: "IsActive"
+            }
         },
         {field: "ImportanceId", name: "Importance", type: params.fieldType.drop, 
-            values: [
-                {id: 1, name: "1 -Critical"},
-                {id: 2, name: "2 -High"},
-                {id: 3, name: "3 -Medium"},
-                {id: 4, name: "4 -Low"}
-            ]
+            bespoke: {
+                url: "/requirements/importances", 
+                idField: "ImportanceId", 
+                nameField: "Name", 
+                isActive: "Active"
+            }
         },
         {field: "StatusId", name: "Status", type: params.fieldType.drop, 
-            values: [
-                {id: 1, name: "Requested"},
-                {id: 2, name: "Planned"},
-                {id: 3, name: "In Progress"},
-                {id: 4, name: "Developed"},
-                {id: 5, name: "Accepted"},
-                {id: 6, name: "Rejected"},
-                {id: 7, name: "Under Review"},
-                {id: 8, name: "Obsolete"},
-                {id: 9, name: "Tested"},
-                {id: 10, name: "Completed"}
-            ]
+            bespoke: {
+                url: "/requirements/statuses", 
+                idField: "RequirementStatusId", 
+                nameField: "Name", 
+                isActive: "Active"
+            }
         },
         {field: "EstimatePoints", name: "Estimate", type: params.fieldType.num},
         {field: "AuthorId", name: "Author", type: params.fieldType.user},
         {field: "OwnerId", name: "Owner", type: params.fieldType.user},
-        {field: "ComponentId", name: "Component", type: params.fieldType.component},
-        // unsupported {field: "LinkedRequirementIds", name: "Linked Requirements", type: params.fieldType.arr, unsupported: true},
-        // unsupported {field: "Comment", name: "Comment", type: params.fieldType.text, unsupported: true}        
+        {field: "ComponentId", name: "Component", type: params.fieldType.component},      
     ],
 
     releases: [
@@ -131,7 +120,7 @@ var templateFields = {
             values: [
                 {id: 1, name: 'Major Release'},
                 {id: 2, name: 'Minor Release'},
-                {id: 3, name: 'Iteration'},
+                {id: 3, name: 'Sprint'},
                 {id: 4, name: 'Phase'}
             ]
         },
@@ -149,33 +138,28 @@ var templateFields = {
         {field: "Description", name: "Task Description", type: params.fieldType.text},
         {field: "ReleaseId", name: "Release/Iteration", type: params.fieldType.release},
         {field: "TaskTypeId", name: "Type", type: params.fieldType.drop, required: true, 
-            values: [
-                {id: 1, name: "Development"},
-                {id: 2, name: "Testing"},
-                {id: 3, name: "Management"},
-                {id: 4, name: "Infrastructure"},
-                {id: 5, name: "Other"}
-            ]
+            bespoke: {
+                url: "/tasks/types", 
+                idField: "TaskTypeId", 
+                nameField: "Name", 
+                isActive: "IsActive"
+            }
         },
         {field: "TaskPriorityId", name: "Priority", type: params.fieldType.drop,
-            values: [
-                {id: 1, name: "1 - Critical"},
-                {id: 2, name: "2 - High"},
-                {id: 3, name: "3 - Medium"},
-                {id: 4, name: "4 - Low"}
-            ]
+            bespoke: {
+                url: "/tasks/priorities", 
+                idField: "PriorityId", 
+                nameField: "Name", 
+                isActive: "Active"
+            }
         },
         {field: "TaskStatusId", name: "Status", type: params.fieldType.drop, required: true,
-            values: [
-                {id: 1, name: "Not Started"},
-                {id: 2, name: "In Progress"},
-                {id: 3, name: "Completed"},
-                {id: 4, name: "Blocked"},
-                {id: 5, name: "Deferred"},
-                {id: 6, name: "Rejected"},
-                {id: 7, name: "Duplicate"},
-                {id: 8, name: "Under Review"}
-            ]
+            bespoke: {
+                url: "/tasks/statuses", 
+                idField: "TaskStatusId", 
+                nameField: "Name", 
+                isActive: "Active"
+            }
         },
         {field: "AuthorId", name: "Author", type: params.fieldType.user},
         {field: "OwnerId", name: "Owner", type: params.fieldType.user},
@@ -243,40 +227,28 @@ var templateFields = {
         {field: "ExpectedResult", name: "Test Step Expected Result", type: params.fieldType.text, isSubTypeField: true, requiredForSubType: true},
         {field: "SampleData", name: "Test Step Sample Data", type: params.fieldType.text, isSubTypeField: true},
         {field: "TestCasePriorityId", name: "Test Case Priority", type: params.fieldType.drop, 
-            values: [
-                {id: 1, name: "1 - Critical"},
-                {id: 2, name: "2 - High"},
-                {id: 3, name: "3 - Medium"},
-                {id: 4, name: "4 - Low"}
-            ]
+            bespoke: {
+                url: "/test-cases/priorities", 
+                idField: "PriorityId", 
+                nameField: "Name", 
+                isActive: "Active"
+            }
         },
         {field: "TestCaseTypeId", name: "Test Case Type", type: params.fieldType.drop, required: true, 
-            values: [
-                {id: 1, name: "Acceptance"},
-                {id: 2, name: "Compatibility"},
-                {id: 3, name: "Functional"},
-                {id: 4, name: "Integration"},
-                {id: 5, name: "Load/Performance"},
-                {id: 6, name: "Network"},
-                {id: 7, name: "Regression"},
-                {id: 8, name: "Scenario"},
-                {id: 9, name: "Security"},
-                {id: 10, name: "Unit"},
-                {id: 11, name: "Usability"},
-                {id: 12, name: "Exploratory"}
-            ]
+            bespoke: {
+                url: "/test-cases/types", 
+                idField: "TestCaseTypeId", 
+                nameField: "Name", 
+                isActive: "IsActive"
+            }
         },
         {field: "TestCaseStatusId", name: "Test Case Status", type: params.fieldType.drop, required: true,
-            values: [
-                {id: 1, name: "Draft"},
-                {id: 2, name: "Ready for Review"},
-                {id: 3, name: "Rejected"},
-                {id: 4, name: "Approved"},
-                {id: 5, name: "Ready for Test"},
-                {id: 6, name: "Obsolete"},
-                {id: 7, name: "Tested"},
-                {id: 8, name: "Verified"}
-            ]
+            bespoke: {
+                url: "/test-cases/statuses", 
+                idField: "TestCaseStatusId", 
+                nameField: "Name", 
+                isActive: "Active"
+            }
         },
         {field: "OwnerId", name: "Test Case Owner", type: params.fieldType.user},
         {field: "TestCaseFolderId", name: "Test Case Folder", type: params.fieldType.drop, values: [], 
@@ -347,4 +319,3 @@ function tempDataStore() {
     this.currentArtifact = '';
     this.artifactCustomFields = [];
 }
-
