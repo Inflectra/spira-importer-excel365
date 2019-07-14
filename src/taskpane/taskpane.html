@@ -8,7 +8,7 @@
     <meta charset="UTF-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>SpiraPlan Integration</title>
+    <title>SpiraPlan Import/Export Tool</title>
 
     <!-- Office JavaScript API -->
     <script type="text/javascript" src="https://appsforoffice.microsoft.com/lib/1.1/hosted/office.js"></script>
@@ -27,13 +27,13 @@
 <body class="ms-font-m ms-welcome ms-Fabric">
     <header class="header">
         <img src="https://files.inflectra.com/google/sheets/spiraplan-icon.svg" class="header-logo">
-        <h3 class="header-heading">SpiraPlan Integration</h3>
+        <h3 class="header-heading">SpiraPlan Import/Export Tool</h3>
     </header>
 
 
     <!--auth page-->
     <div class="panel" id="panel-auth">
-        <p>Please enter the information used to access your server.</p>
+        <h4>Connect to Spira</h4>
         
         <ul class="form">
             <li class="form-pair">
@@ -84,7 +84,7 @@
         </ul>
         
         <p class="secondary">
-            The RSS token can be generated from your 'My Profile' screen inside SpiraTeam. For further assistance contact your system administrator
+            For further assistance click HELP or contact your Spira system administrator.
         </p>
         
         <div class="mt-md">
@@ -95,14 +95,6 @@
                 type="button"
                 >
                 Log In
-            </button>
-            <button 
-                class="ms-Button ms-Button--default"
-                id="btn-clearAuth"
-                title="Clear the login form"
-                type="button"
-                >
-                Clear
             </button>
             <button 
                 class="ms-Button ms-Button--default"
@@ -127,15 +119,70 @@
 
 
 
+    <!--decision page-->
+    <div class="panel offscreen" id="panel-decide">
+        <p 
+            class="secondary" 
+            id="js--loggedInAs-decision"
+            >
+        </p>
+
+        <p class="mt-md">The Spira Import/Export Tool helps you: get information from Spira into this spreadsheet (export your data); or prepare data to send to Spira (import new data)</p>
+        <p class="mt-md"><b>What do you want to do?</b></p>
+        
+        <div class="mt-md">
+            <button 
+                class="action ms-Button ms-Button--primary" 
+                id="btn-decide-send"
+                title="Prepare data to send into Spira"
+                type="button"
+                >
+                Send data to Spira
+            </button>
+        </div>
+        <div class="mt-md">
+            <button 
+                class="action ms-Button ms-Button--primary"
+                id="btn-decide-get"
+                title="Get data out of Spira"
+                type="button"
+                >
+                Get data from Spira
+            </button>
+        </div>
+
+
+        <div class="mt-lg">
+            <button 
+                class="ms-Button"
+                id="btn-decide-logout"
+                title="Logout"
+                type="button"
+                >
+                Logout
+            </button>
+        </div>
+    </div> 
+
+
+
     <!--main screen-->
     <div class="panel offscreen" id="panel-main">
         <p 
             class="secondary" 
-            id="js--loggedInAs"
+            id="js--loggedInAs-main"
             >
         </p>
         
         <div class="btn-group pb-md">
+            <button 
+                class="ms-Button ms-Button--default"
+                id="btn-main-back"
+                title="Go back to choose to send data to or get data from Spira"
+                type="button"
+                >
+                Back
+            </button>
             <button 
                 class="ms-Button ms-Button--default"
                 id="btn-help-main"
@@ -156,7 +203,8 @@
         
         
         <p id="main-guide-1">
-            <b>1. Choose which part of Spira to connect to</b>
+            <b id="main-guide-1-toSpira">1. Choose where to send data to in Spira</b>
+            <b id="main-guide-1-fromSpira">1. Choose where to get data from in Spira</b>
         </p>
         <ul class="form">
             <li class="form-pair">
@@ -192,9 +240,8 @@
         
         
         <p class="ma-0 form-label pale" style="visibility: hidden" id="message-fetching-data">
-            Fetching the data needed to load the template... 
+            Fetching the data needed... 
         </p>
-        
         
         
         <div 
@@ -203,7 +250,7 @@
             style="display: none" 
             >
             <p>
-                You've chosen different options to the ones currently loaded into the template
+                The template is set to: <span id="template-artifact"></span>, in project: <span id="template-project"></span>, but you have chosen different options
             </p>
             <button 
                 class="action ms-Button ms-Button--default"
@@ -220,7 +267,7 @@
 
         <div>
             <p id="main-guide-2" class="pale">
-                <b>2. Either: prepare to add data to Spira; or get data from Spira </b>
+                <b>2. Start the data transfer with Spira</b>
             </p>
             <button
                 class="ms-Button ms-Button--default"
@@ -240,12 +287,6 @@
                 >
                 Get from Spira
             </button>
-            <div style="display: none" id="template-data-box">
-                <p>
-                    The template is currently configured to: 
-                    <span id="template-artifact"></span>, in project: <span id="template-project"></span>
-                </p>
-            </div>
         </div>
     </div>
         
@@ -256,7 +297,7 @@
         <!-- help button and module for help page -->
         <button 
             class="ms-Button ms-Button--default"
-            id="btn-help-help"
+            id="btn-help-back"
             type="button"
             >
             Back
@@ -292,23 +333,25 @@
         </div>
 
         <div id="help-section-login" class="help-section hidden">
-            <h4>Logging into SpiraTeam</h4>
+            <h4>Connecting Your Spira App</h4>
+            <p id="help-connection-google">You can use this add-on with SpiraTest®, SpiraTeam®, or SpiraPlan®. It works with any cloud Spira app. Any on premise Spira needs to be accessible over the internet.</p>
+            <p id="help-connection-excel">You can use this add-on with SpiraTest®, SpiraTeam®, or SpiraPlan®. If you are using Excel in the browser, your Spira app needs to be accessible over the internet.</p>
             <ol class="list">
                 <li>
                     <p>
                         <b>Enter your SpiraTeam URL</b>
-                        <small>Please enter the web address that you use to access SpiraTeam® in your browser. This is usually of the form 'http://(hostname)/SpiraTeam'. Make sure that you remove any suffixes from the address (e.g. Default.aspx)</small>
                     </p>
+                    <small>Use the web address you use to access Spira in your browser. This is usually of the form 'http://(hostname)/spiraplan'. Make sure you remove any suffixes from the address (e.g. Default.aspx or "/")</small>
                 </li>
                 <li>
                     <p><b>Enter your user name</b></p>
                     <small>
-                        Please enter the user name you use to log in to SpiraTeam. (Not Case Sensitive)
+                        Enter the user name you use to log in to Spira. (Not Case Sensitive)
                     </small>
                 </li>
                 <li>
                     <p><b>Enter your RSS token</b></p>
-                    <small> Please enter your RSS token including the curly braces i.e {ExampleRSS}</small>
+                    <small>You can find or generate this from your user profile page inside Spira. Make sure to include the curly braces i.e {ExampleRSS}</small>
                 </li>
             </ol>
         </div>

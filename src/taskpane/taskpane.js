@@ -39,6 +39,9 @@ var isGoogle = false;
 
     // add event listeners to the dom
     setEventListeners();
+
+    // dom specific changes
+    document.getElementById("help-connection-excel").style.display = "none";
   }
 })();
 
@@ -66,10 +69,13 @@ export { showPanel, hidePanel };
 Office.onReady(info => {
   if (info.host === Office.HostType.Excel) {
     // on init make sure to run any required startup functions
-    document.body.classList.add('ms-office');
     setEventListeners();
     // for dev mode only - comment out or set to false to disable any UI dev features
     setDevStuff(devMode);
+    
+    // dom specific changes
+    document.body.classList.add('ms-office');
+    document.getElementById("help-connection-google").style.display = "none";
   }
 });
 
@@ -105,7 +111,6 @@ function setDevStuff(devMode) {
 
 function setEventListeners() {
   document.getElementById("btn-login").onclick = loginAttempt;
-  //document.getElementById("btn-clearAuth").onclick = clearAuthForm;
   document.getElementById("btn-help-login").onclick = function () {
     panelToggle('help');
     showChosenHelpSection('login');
@@ -116,7 +121,13 @@ function setEventListeners() {
     panelToggle('help');
     showChosenHelpSection('actions')
   };
+  document.getElementById("btn-decide-send").onclick = function () { showMainPanel("send") };
+  document.getElementById("btn-decide-get").onclick = function () { showMainPanel("get") };
+  document.getElementById("btn-decide-logout").onclick = logoutAttempt;
+
   document.getElementById("btn-logout").onclick = logoutAttempt;
+
+  document.getElementById("btn-main-back").onclick = hideMainPanel;
 
   // changing of dropdowns
   document.getElementById("select-project").onchange = changeProjectSelect;
@@ -126,7 +137,7 @@ function setEventListeners() {
   document.getElementById("btn-fromSpira").onclick = getFromSpiraAttempt;
   document.getElementById("btn-template").onclick = updateTemplateAttempt;
 
-  document.getElementById("btn-help-help").onclick = function () { panelToggle('help') };
+  document.getElementById("btn-help-back").onclick = function () { panelToggle("help") };
   document.getElementById("btn-help-section-login").onclick = function () { showChosenHelpSection('login') };
   document.getElementById("btn-help-section-actions").onclick = function () { showChosenHelpSection('actions') };
   document.getElementById("btn-help-section-fields").onclick = function () { showChosenHelpSection('fields') };
@@ -205,9 +216,10 @@ function resetSidebar() {
 
   // hide other panels, so login page is visible
   var otherPanels = document.querySelectorAll(".panel:not(#panel-auth)");
+  console.log(otherPanels);
   // can't use forEach because that is not supported by Excel
   for (var i = 0; i < otherPanels.length; ++i) {
-    otherPanels[i]
+    otherPanels[i].classList.add("offscreen");
   }
 
   // disable buttons and dropdowns
@@ -220,9 +232,13 @@ function resetSidebar() {
   // reset artifact dropdown to 'Select an Artifact'
   document.getElementById("select-artifact").selectedIndex = "0";
   // hide and clear the template info box
-  document.getElementById("template-data-box").style.display = "none";
   document.getElementById("template-project").textContent = "";
   document.getElementById("template-artifact").textContent = "";
+
+  // reset action buttons
+  document.getElementById("btn-fromSpira").style.display = "";
+  document.getElementById("btn-toSpira").style.display = "";
+
 
   // reset guide text on the main pane
   document.getElementById("main-guide-1").classList.remove("pale");
@@ -352,9 +368,15 @@ function populateProjects(projects) {
   // now add paired down project array to data store
   model.projects = pairedDownProjectsData;
 
-  // get UI logic ready for main panel
-  showMainPanel();
+  // sets the display current logged in user name
+  document.getElementById("js--loggedInAs-decision").innerHTML = "Logged in as: " + model.user.userName;
+  document.getElementById("js--loggedInAs-main").innerHTML = "Logged in as: " + model.user.userName;
+  
+  // get UI logic ready for decision panel
+  showPanel("decide");
+  hideLoadingSpinner();
 }
+
 
 
 
@@ -372,14 +394,35 @@ function populateProjects(projects) {
 */
 
 // manage the switching of the UI off the login screen on succesful login and retrieval of projects
-function showMainPanel() {
-  // displays the current logged in user name
-  document.getElementById("js--loggedInAs").innerHTML = "Logged in as: " + model.user.userName;
-
+function showMainPanel(type) {
   setDropdown("select-project", model.projects, "Select a project");
   setDropdown("select-artifact", params.artifacts, "Select an artifact");
+
+  // set the buttons to the correct mode
+  if (type == "send") {
+    document.getElementById("btn-fromSpira").style.display = "none";
+    document.getElementById("main-guide-1-fromSpira").style.display = "none";
+  } else {
+    document.getElementById("btn-toSpira").style.display = "none";
+    document.getElementById("main-guide-1-toSpira").style.display = "none";
+  }
+
+  // opens the panel
   showPanel("main");
   hideLoadingSpinner();
+}
+
+
+function hideMainPanel() {
+  hidePanel("main");
+
+  // reset the buttons and dropdowns
+  setDropdown("select-project", model.projects, "Select a project");
+  setDropdown("select-artifact", params.artifacts, "Select an artifact");
+  document.getElementById("btn-fromSpira").style.display = "";
+  document.getElementById("btn-toSpira").style.display = "";
+  document.getElementById("main-guide-1-toSpira").style.display = "";
+  document.getElementById("main-guide-1-fromSpira").style.display = "";
 }
 
 
@@ -499,12 +542,15 @@ function manageTemplateBtnState() {
         clearInterval(checkGetsSuccess);
 
         // if there is a discrepancy between the dropdown and the currently active template
-        if (isModelDifferentToSelection()) {
-          document.getElementById("pnl-template").style.display = "";
-          document.getElementById("btn-template").disabled = false;
-        } else {
-          document.getElementById("pnl-template").style.display = "none";
-          document.getElementById("btn-template").disabled = true;
+        // only do this is user will send to spira - determined by whether the send to spira button is visible
+        if(document.getElementById("btn-toSpira").style.display != "none") {
+          if (isModelDifferentToSelection()) {
+            document.getElementById("pnl-template").style.display = "";
+            document.getElementById("btn-template").disabled = false;
+          } else {
+            document.getElementById("pnl-template").style.display = "none";
+            document.getElementById("btn-template").disabled = true;
+          }
         }
       }
     }
@@ -1109,7 +1155,6 @@ function templateLoaderSuccess(data) {
   //show text in the sidebar that tells the user what the template is set to:
   document.getElementById("template-project").textContent = model.currentProject.name;
   document.getElementById("template-artifact").textContent = model.currentArtifact.name;
-  document.getElementById("template-data-box").style.display = "";
 
   // de-emphasise the explanatory message - we have to put it in a set timeout because there is already a delay set for other checks that affect the view state of this element
   setTimeout(function() {
