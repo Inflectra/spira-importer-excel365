@@ -183,8 +183,9 @@ function hideLoadingSpinner() {
 
 // clear spreadsheet, model
 function clearAddonData() {
-  clearSheet();
+  //clearSheet();
   model = new Data();
+  uiSelection = new tempDataStore();
   setDevStuff(devMode);
 }
 
@@ -216,18 +217,24 @@ function resetSidebar() {
 
   // hide other panels, so login page is visible
   var otherPanels = document.querySelectorAll(".panel:not(#panel-auth)");
-  console.log(otherPanels);
   // can't use forEach because that is not supported by Excel
   for (var i = 0; i < otherPanels.length; ++i) {
     otherPanels[i].classList.add("offscreen");
   }
 
+  resetUi();
+  // reset anything required if in devmode
+  setDevStuff();
+}
+
+function resetUi() {
   // disable buttons and dropdowns
   document.getElementById("btn-template").disabled = true;
   document.getElementById("pnl-template").style.display = "none";
   document.getElementById("select-artifact").disabled = true;
   document.getElementById("btn-fromSpira").disabled = true;
   document.getElementById("btn-toSpira").disabled = true;
+  document.getElementById("btn-toSpira").innerHTML = "Prepare Template";
 
   // reset artifact dropdown to 'Select an Artifact'
   document.getElementById("select-artifact").selectedIndex = "0";
@@ -243,9 +250,6 @@ function resetSidebar() {
   // reset guide text on the main pane
   document.getElementById("main-guide-1").classList.remove("pale");
   document.getElementById("main-guide-2").classList.add("pale");
-
-  // reset anything required if in devmode
-  setDevStuff();
 }
 
 
@@ -417,12 +421,8 @@ function hideMainPanel() {
   hidePanel("main");
 
   // reset the buttons and dropdowns
-  setDropdown("select-project", model.projects, "Select a project");
-  setDropdown("select-artifact", params.artifacts, "Select an artifact");
-  document.getElementById("btn-fromSpira").style.display = "";
-  document.getElementById("btn-toSpira").style.display = "";
-  document.getElementById("main-guide-1-toSpira").style.display = "";
-  document.getElementById("main-guide-1-fromSpira").style.display = "";
+  resetUi();
+  clearAddonData();
 }
 
 
@@ -608,8 +608,8 @@ function createTemplate(shouldContinue) {
 function getFromSpiraAttempt() {
   // first update state to reflect user intent
   model.isGettingDataAttempt = true;
-  //check that template is loaded
-  if (model.isTemplateLoaded) {
+  //check that template is loaded and that it matches the UI choices
+  if (model.isTemplateLoaded && !isModelDifferentToSelection()) {
     showLoadingSpinner();
 
     //call export function
@@ -681,15 +681,16 @@ function sendToSpiraAttempt() {
 
 
 function sendToSpiraComplete(log) {
+  hideLoadingSpinner();
   if (devMode) console.log(log);
+
   //if array (which holds error responses) is present, and errors present
   if (log.errorCount) {
-    //TODO - it doesn't look like this var is declared anywhere or even used
     var errorMessages = log.entries
-      .filter(function (entry) { return entry.error; })
-      .map(function (entry) { return entry.message; });
+        .filter(function (entry) { return entry.error; })
+        .map(function (entry) { return entry.message; });
+    console.log("Error log: ", errorMessages);
   }
-  hideLoadingSpinner();
   //runs the export success function, passes a boolean flag, if there are errors the flag is true.
   if (log && log.status) {
     if (isGoogle) {
