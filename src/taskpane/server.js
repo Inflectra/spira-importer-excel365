@@ -1274,7 +1274,7 @@ function updateSheetWithExportResults(log, sheetData, sheet, sheetRange, model, 
 		notes = [],
 		values = [];
 	// first handle cell formatting
-	for (var row = 0; row < log.entries.length; row++) {
+	for (var row = 0; row < sheetData; row++) {
 		var rowBgColors = [],
 			rowNotes = [],
 			rowValues = [];
@@ -1283,12 +1283,16 @@ function updateSheetWithExportResults(log, sheetData, sheet, sheetRange, model, 
 				note = null,
 				value = sheetData[row][col];
 			
+				
+			// we may have more rows than entries - because the entries can be stopped early (eg when an error is found on a hierarchical artifact)
+			if (log.entries.length > row) {
 				// first handle when we are dealing with data that has been sent to Spira
-			var isSubType = (log.entries[row].details &&  log.entries[row].details.entry && log.entries[row].details.entry.isSubType) ? log.entries[row].details.entry.isSubType : false;
-			
-			bgColor = setFeedbackBgColor(sheetData[row][col], log.entries[row].error, fields[col], fieldType, artifact, model.colors);
-			note = setFeedbackNote(sheetData[row][col], log.entries[row].error, fields[col], fieldType, log.entries[row].message);
-			value = setFeedbackValue(sheetData[row][col], log.entries[row].error, fields[col], fieldType, log.entries[row].newId || "", isSubType);
+				var isSubType = (log.entries[row].details &&  log.entries[row].details.entry && log.entries[row].details.entry.isSubType) ? log.entries[row].details.entry.isSubType : false;
+				
+				bgColor = setFeedbackBgColor(sheetData[row][col], log.entries[row].error, fields[col], fieldType, artifact, model.colors);
+				note = setFeedbackNote(sheetData[row][col], log.entries[row].error, fields[col], fieldType, log.entries[row].message);
+				value = setFeedbackValue(sheetData[row][col], log.entries[row].error, fields[col], fieldType, log.entries[row].newId || "", isSubType);
+			}
 
 			if (IS_GOOGLE) {
 				rowBgColors.push(bgColor);
