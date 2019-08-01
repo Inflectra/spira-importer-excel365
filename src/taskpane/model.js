@@ -287,7 +287,7 @@ var templateFields = {
               indent: "IndentLevel"
             }
         },
-        {field: "ComponentIds", name: "Test Case Component", type: params.fieldType.arr}
+        {field: "ComponentIds", name: "Test Case Component", type: params.fieldType.component}
      ]
 };
 

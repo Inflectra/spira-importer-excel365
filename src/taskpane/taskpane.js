@@ -1185,7 +1185,7 @@ function errorPopUp(err, type) {
   if (isGoogle) {
     google.script.run.error(type);
   } else {
-    // MS Excel
+    console.log(err, type)
   }
   hideLoadingSpinner();
   console.log(err);
