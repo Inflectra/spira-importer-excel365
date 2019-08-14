@@ -2087,6 +2087,7 @@ function getFromSpiraGoogle(model, fieldType) {
 // @param: enum of fieldTypes used
 function getFromSpiraExcel(model, fieldType) {
   getDataFromSpiraExcel(model, fieldType).then((response) => {
+    console.log('in promise then of getDataFromSpiraExcel')
     return processDataFromSpiraExcel(response, model, fieldType)
   });
 }
@@ -2110,6 +2111,7 @@ async function getDataFromSpiraExcel(model, fieldType) {
       GET_PAGINATION_SIZE,
       null
     ).then(function (response) {
+      console.log('in getDataFromSpiraExcel then for', startRow)
       // if we got a non empty array back then we have artifacts to process
       if (response.data.length) {
         artifacts = artifacts.concat(response.data);
@@ -2128,6 +2130,7 @@ async function getDataFromSpiraExcel(model, fieldType) {
   }
 
   while (getNextPage && currentPage < 100) {
+    console.log('in getDataFromSpiraExcel while loop', currentPage)
     var startRow = (currentPage * GET_PAGINATION_SIZE) + 1;
     await getArtifactsPage(startRow);
   }
@@ -2211,6 +2214,7 @@ function processDataFromSpiraExcel(artifacts, model, fieldType) {
     range.values = artifactsAsCells;
     return context.sync()
       .then(function () {
+        console.log('inside final then of processData')
         return artifactsAsCells;
       })
   })

@@ -100,9 +100,12 @@ function setDevStuff(devMode) {
   if (devMode) {
     document.getElementById("btn-dev").classList.remove("hidden");
 
-    model.user.url = "https://training.spiraservice.net";
+    model.user.url = "http://localhost/spira";
     model.user.userName = "administrator";
-    model.user.api_key = btoa("&api-key=" + encodeURIComponent("{FF7212BA-8EDB-4B98-9C47-631B46308786}"));
+    model.user.api_key = btoa("&api-key=" + encodeURIComponent("{B9050F75-C5E6-4244-8712-FBF20061A976}"));
+    // model.user.url = "https://training.spiraservice.net";
+    // model.user.userName = "administrator";
+    // model.user.api_key = btoa("&api-key=" + encodeURIComponent("{FF7212BA-8EDB-4B98-9C47-631B46308786}"));
     loginAttempt();
   }
 }
@@ -611,7 +614,6 @@ function getFromSpiraAttempt() {
   //check that template is loaded and that it matches the UI choices
   if (model.isTemplateLoaded && !isModelDifferentToSelection()) {
     showLoadingSpinner();
-
     //call export function
     if (isGoogle) {
       google.script.run
