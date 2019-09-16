@@ -1197,7 +1197,7 @@ function sendExportEntriesGoogle(entriesForExport, sheetData, sheet, sheetRange,
 
 
 // 3. FOR EXCEL ONLY: GET READY TO SEND DATA TO SPIRA + 4. ACTUALLY SEND THE DATA
-// DIFFERENT TO GOOGLE: this uses async await for its function and subfunction
+// DIFFERENT TO GOOGLE: this uses js ES6 a-sync and a-wait for its function and subfunction
 // check we have some entries and with no errors
 // Create and show a message to tell the user what is going on
 async function sendExportEntriesExcel(entriesForExport, sheetData, sheet, sheetRange, model, fieldType, fields, artifact, context) {
@@ -2086,8 +2086,7 @@ function getFromSpiraGoogle(model, fieldType) {
 // @param: model: full model object from client
 // @param: enum of fieldTypes used
 function getFromSpiraExcel(model, fieldType) {
-  getDataFromSpiraExcel(model, fieldType).then((response) => {
-    console.log('in promise then of getDataFromSpiraExcel')
+  return getDataFromSpiraExcel(model, fieldType).then((response) => {
     return processDataFromSpiraExcel(response, model, fieldType)
   });
 }
@@ -2111,7 +2110,6 @@ async function getDataFromSpiraExcel(model, fieldType) {
       GET_PAGINATION_SIZE,
       null
     ).then(function (response) {
-      console.log('in getDataFromSpiraExcel then for', startRow)
       // if we got a non empty array back then we have artifacts to process
       if (response.data.length) {
         artifacts = artifacts.concat(response.data);
@@ -2130,7 +2128,6 @@ async function getDataFromSpiraExcel(model, fieldType) {
   }
 
   while (getNextPage && currentPage < 100) {
-    console.log('in getDataFromSpiraExcel while loop', currentPage)
     var startRow = (currentPage * GET_PAGINATION_SIZE) + 1;
     await getArtifactsPage(startRow);
   }
@@ -2192,7 +2189,7 @@ async function getDataFromSpiraExcel(model, fieldType) {
   return artifacts;
 }
 
-// EXCEL SPECIFIC to process all the async data retrieved from Spira and then display it
+// EXCEL SPECIFIC to process all the data retrieved from Spira and then display it
 // @param: artifacts: array of raw data from Spira (with subtypes already present if needed)
 // @param: model: full model object from client
 // @param: enum object of the different fieldTypes
@@ -2214,7 +2211,6 @@ function processDataFromSpiraExcel(artifacts, model, fieldType) {
     range.values = artifactsAsCells;
     return context.sync()
       .then(function () {
-        console.log('inside final then of processData')
         return artifactsAsCells;
       })
   })
