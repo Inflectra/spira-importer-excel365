@@ -294,7 +294,7 @@ function fetcher(currentUser, fetcherURL) {
 		// return axios.get(fullUrl);
 		return superagent
 			.get(fullUrl)
-			.set("Content-Type", "application/json")
+			.set("Content-Type", "application/json", "accepts", "application/json")
 	}
 
 }
