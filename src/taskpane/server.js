@@ -531,13 +531,6 @@ function postArtifactToSpira(entry, user, projectId, artifactTypeId, parentId) {
 			break;
 	}
 
-    // TEST STEPS
-    case ART_ENUMS.testSteps:
-      postUrl = parentId !== -1 ? API_BASE + projectId + '/test-cases/' + parentId + '/test-steps?' : null;
-      // only post the test step if we have a parent id
-      break;
-  }
-
   return postUrl ? poster(JSON_body, user, postUrl) : null;
 }
 
