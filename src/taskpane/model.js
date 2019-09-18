@@ -170,7 +170,8 @@ var templateFields = {
                 url: "/task-folders", 
                 idField: "TaskFolderId", 
                 nameField: "Name", 
-                indent: "IndentLevel"
+                indent: "IndentLevel",
+                isProjectBased: true
             }
         },              
     ],
@@ -256,7 +257,8 @@ var templateFields = {
               url: "/test-folders", 
               idField: "TestCaseFolderId", 
               nameField: "Name", 
-              indent: "IndentLevel"
+              indent: "IndentLevel",
+              isProjectBased: true
             }
         },
         {field: "ComponentIds", name: "Test Case Component", type: params.fieldType.component}

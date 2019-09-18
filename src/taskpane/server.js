@@ -275,7 +275,6 @@ function fetcher(currentUser, fetcherURL) {
 
 	//build URL from args
 	var fullUrl = currentUser.url + fetcherURL + "username=" + currentUser.userName + APIKEY;
-	console.log(fullUrl)
 	//set MIME type
 	var params = { "Content-Type": "application/json" };
 
@@ -288,9 +287,7 @@ function fetcher(currentUser, fetcherURL) {
 
 	//for MS Excel, use axios to return a promise to the taskpane
 	//for v6 API in Spira you HAVE to send a Content-Type header
-	//axios only sends this as a header if there is data - so we pass in data but empty to make sure the headers gets sent
 	} else {
-		// return axios.get(fullUrl);
 		return superagent
 			.get(fullUrl)
 			.set("Content-Type", "application/json", "accepts", "application/json")
@@ -344,10 +341,18 @@ function getCustoms(currentUser, templateId, artifactName) {
 
 // Gets data for a bespoke specified field (for selected project and artifact)
 // @param: currentUser - object with details about the current user
+// @param: templateId - int id for current template
 // @param: projectId - int id for current project
 // @param: artifactName - string name of the current artifact
-function getBespoke(currentUser, templateId, artifactName, field) {
-	var fetcherURL = API_TEMPLATE_BASE + templateId + field.bespoke.url + '?';
+// @param: field - object of the field from the model
+function getBespoke(currentUser, templateId, projectId, artifactName, field) {
+  var fetcherURL = "";
+  // a couple of dynamic fields are project based - like folders
+  if (field.bespoke.isProjectBased) {
+    fetcherURL = API_PROJECT_BASE + projectId + field.bespoke.url + '?';
+  } else {
+    fetcherURL = API_TEMPLATE_BASE + templateId + field.bespoke.url + '?';
+  }
 	var results = fetcher(currentUser, fetcherURL);
 	
 	if (IS_GOOGLE) {
@@ -457,11 +462,12 @@ function poster(body, currentUser, postUrl) {
     var response = UrlFetchApp.fetch(fullUrl, params);
     return response;
   } else {
-    //for MS Excel, use axios to return a promise to the taskpane
-    // by default axios has a content-type of json, but you get an error when you don't specifically include it in the header
-    return axios.post(fullUrl, body, {
-      headers: { 'Content-Type': 'application/json' }
-    });
+    //for MS Excel, use superagent to return a promise to the taskpane
+    return superagent
+      .post(fullUrl)
+      .send(body)
+			.set("Content-Type", "application/json", "accepts", "application/json")
+
   }
 }
 
@@ -1545,7 +1551,7 @@ function manageSendingToSpira(entry, user, projectId, artifact, fields, fieldTyp
   } else {
     return postArtifactToSpira(entry, user, projectId, artifactTypeIdToSend, parentId)
       .then(function (response) {
-        output.fromSpira = response.data;
+        output.fromSpira = response.body;
 
         // get the id/subType id of the newly created artifact
         var artifactIdField = getIdFieldName(fields, fieldType, entry.isSubType);
@@ -2131,10 +2137,10 @@ async function getDataFromSpiraExcel(model, fieldType) {
       null
     ).then(function (response) {
       // if we got a non empty array back then we have artifacts to process
-      if (response.data.length) {
-        artifacts = artifacts.concat(response.data);
+      if (response.body && response.body.length) {
+        artifacts = artifacts.concat(response.body);
         // if we got less artifacts than the max we asked for, then we reached the end of the list in this request - and should stop
-        if (response.data.length < GET_PAGINATION_SIZE) {
+        if (response.body && response.body.length < GET_PAGINATION_SIZE) {
           getNextPage = false;
           // if we got the full page size back then there may be more artifacts to get
         } else {
@@ -2182,8 +2188,8 @@ async function getDataFromSpiraExcel(model, fieldType) {
           art[idFieldName]
         ).then(function (response) {
           // take action if we got any sub types back - ie if they exist for the specific artifact
-          if (response.data && response.data.length) {
-            var subTypeArtifactsWithMeta = response.data.map(function (sub) {
+          if (response.body && response.body.length) {
+            var subTypeArtifactsWithMeta = response.body.map(function (sub) {
               sub.isSubType = true;
               sub.parentId = art[idFieldName];
               return sub;

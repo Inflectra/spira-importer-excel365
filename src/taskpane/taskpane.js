@@ -483,14 +483,14 @@ function changeProjectSelect(e) {
       // kick off API calls
       getProjectSpecificInformation(model.user, uiSelection.currentProject.id);
 
+      // for 6.1 the v6 API for get projects does not get the project template IDs so have to do this
+      getTemplateFromProjectId(model.user, uiSelection.currentProject.id, uiSelection.currentArtifact);
       
       // get new data for artifact and this project, if artifact has been selected
-      if (uiSelection.currentArtifact) {
-        // for 6.1 the v6 API for get projects does not get the project template IDs so have to do this
-        getTemplateFromProjectId(model.user, uiSelection.currentProject.id, uiSelection.currentArtifact);
-        // USE THIS CODE WHEN bug in 6.1 is fixed
-        //getArtifactSpecificInformation(model.user, uiSelection.currentProject.templateId, uiSelection.currentArtifact)
-      }
+      // USE THIS CODE WHEN bug in 6.1 is fixed
+      // if (uiSelection.currentArtifact) {
+        //getArtifactSpecificInformation(model.user, uiSelection.currentProject.templateId, uiSelection.currentProject.id, uiSelection.currentArtifact)
+      // }
     }
   }
 }
@@ -509,7 +509,9 @@ function getTemplateFromProjectId(user, projectId, artifact) {
 
   function getArtifactSpecificInformationInterim(template) {
     uiSelection.currentProject.templateId = template.ProjectTemplateId;
-    getArtifactSpecificInformation(model.user, template.ProjectTemplateId, uiSelection.currentArtifact)
+    if (uiSelection.currentArtifact) {
+      getArtifactSpecificInformation(model.user, template.ProjectTemplateId, uiSelection.currentProject.id, uiSelection.currentArtifact)
+    }
   }
 }
 
@@ -531,8 +533,10 @@ function changeArtifactSelect(e) {
       // enable template button only when all info is received - otherwise keep it disabled
       manageTemplateBtnState();
 
-      // kick off API calls
-      getArtifactSpecificInformation(model.user, uiSelection.currentProject.id, uiSelection.currentArtifact);
+      // kick off API calls - if we have a current template and project
+      if (uiSelection.currentProject.templateId && uiSelection.currentProject.id) {
+        getArtifactSpecificInformation(model.user, uiSelection.currentProject.templateId, uiSelection.currentProject.id, uiSelection.currentArtifact);
+      }
 
 
     }
@@ -827,7 +831,7 @@ function getProjectSpecificInformation(user, projectId) {
 // @param: user - the user object of the logged in user
 // @param: templateId - int of the reqested project template
 // @param: artifact - object of the reqested artifact - needed to query on different parts of object
-function getArtifactSpecificInformation(user, templateId, artifact) {
+function getArtifactSpecificInformation(user, templateId, projectId, artifact) {
   // first reset get counts
   model.artifactGetRequestsMade = 0;
   model.artifactGetRequestsToMake = model.baselineArtifactGetRequests;
@@ -837,10 +841,9 @@ function getArtifactSpecificInformation(user, templateId, artifact) {
     model.artifactGetRequestsToMake += bespokeData.length;
     // get any bespoke field information
     bespokeData.forEach(function (field) {
-      getBespoke(user, templateId, artifact.field, field);
+      getBespoke(user, templateId, projectId, artifact.field, field);
     });
   }
-console.log(artifact)
   // get standard artifact information - eg custom fields
   getCustoms(user, templateId, artifact.id);
 }
@@ -959,15 +962,15 @@ function getCustomsSuccess(data) {
 // starts GET request to Spira for project users properties
 // @param: user - the user object of the logged in user
 // @param: templateId - int of the reqested template
-function getBespoke(user, templateId, artifactId, field) {
+function getBespoke(user, templateId, projectId, artifactId, field) {
   // call server side fetch
   if (isGoogle) {
     google.script.run
       .withSuccessHandler(getBespokeSuccess)
       .withFailureHandler(errorNetwork)
-      .getBespoke(user, templateId, artifactId, field);
+      .getBespoke(user, templateId, projectId, artifactId, field);
   } else {
-    msOffice.getBespoke(user, templateId, artifactId, field)
+    msOffice.getBespoke(user, templateId, projectId, artifactId, field)
       .then((response) => getBespokeSuccess({
           artifactName: artifactId,
           field: field,
@@ -988,7 +991,7 @@ function getBespokeSuccess(data) {
   uiSelection[data.artifactName][data.field.field] = [];
 
   // if there is data take steps to add it to the artifact object
-  if (data.values.length) {
+  if (data && data.values && data.values.length) {
     // map through user obj and assign names
     var values = data.values.map(function (item) {
       var obj = {};
