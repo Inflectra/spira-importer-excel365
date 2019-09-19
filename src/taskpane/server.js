@@ -1257,7 +1257,7 @@ async function sendExportEntriesExcel(entriesForExport, sheetData, sheet, sheetR
         .then(function (response) {
           // update the parent ID for a subtypes based on the successful API call
           if (artifact.hasSubType) {
-            log.parentId = sentToSpira.parentId;
+            log.parentId = response.parentId;
           }
           log = processSendToSpiraResponse(i, response, entriesForExport, artifact, log);
 
@@ -1344,7 +1344,7 @@ function updateSheetWithExportResults(log, entriesForExport, sheetData, sheet, s
       var rowFirstCell = sheet.getCell(row + 1, 0);
       if (rowNotes.length) {
         rowFirstCell.set({ format: { fill: { color: model.colors.warning } } });
-        rowFirstCell.values = [["ERROR: " + rowNotes.join()]];
+        rowFirstCell.values = [[rowNotes.join()]];
       }
     }
   }
@@ -1754,7 +1754,12 @@ function createEntryFromRow(row, model, fieldType, artifactIsHierarchical, lastI
         // DATES - parse the data and add prefix/suffix for WCF
         case fieldType.date:
           if (row[index]) {
-            value = "\/Date(" + Date.parse(row[index]) + ")\/";
+            if (IS_GOOGLE) {
+              value = row[index];
+            } else {
+              // for Excel, dates are returned as days since 1900 - so we need to adjust this for JS date formats
+              value = new Date((row[index] - (25567+1 )) * 86400 * 1000);
+            }
             customType = "DateTimeValue";
           }
           break;
