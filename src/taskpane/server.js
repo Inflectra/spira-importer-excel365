@@ -65,8 +65,8 @@ var API_PROJECT_BASE = '/services/v6_0/RestService.svc/projects/',
 	},
 	STATUS_ENUM = {
 		allSuccess: 1,
-		allError: 2,
-		someError: 3,
+		someError: 2,
+		allError: 3,
 		wrongSheet: 4
 	},
 	STATUS_MESSAGE_GOOGLE = {
@@ -77,8 +77,8 @@ var API_PROJECT_BASE = '/services/v6_0/RestService.svc/projects/',
 	},
 	STATUS_MESSAGE_EXCEL = {
 		1: "All done! To send more data over, clear the sheet first.",
-		2: "Sorry, but there were some problems (these cells are marked in red). Check the cells at the end of relevant rows for explanations.",
-		3: "We're really sorry, but we couldn't send anything to SpiraTeam - please check cells at the end of the row for more information.",
+		2: "Sorry, but there were some problems (these cells are marked in red). Check the notes on the relevant ID field for explanations.",
+		3: "We're really sorry, but we couldn't send anything to SpiraTeam - please check notes on the ID fields for more information.",
 		4: "You are not on the correct worksheet. Please go to the sheet that matches the one listed on the Spira taskpane."
 	},
     CUSTOM_PROP_TYPE_ENUM = {
@@ -1204,8 +1204,9 @@ function sendExportEntriesGoogle(entriesForExport, sheetData, sheet, sheetRange,
     // we need the calls to be synchronous because we need to do the status and ID of the preceding entry for hierarchical artifacts
     for (var i = 0; i < entriesForExport.length; i++) {
       if (!log.doNotContinue) {
-        log = checkSingleEntryForErrors(i, log, entriesForExport, artifact);
+        log = checkSingleEntryForErrors(entriesForExport[i], log, artifact);
         if (log.entries.length && log.entries[i] && log.entries[i].error) {
+          // do nothing
         } else {
           sendSingleEntry(i);
         }
@@ -1275,8 +1276,9 @@ async function sendExportEntriesExcel(entriesForExport, sheetData, sheet, sheetR
     // we need the calls to be synchronous because we need to do the status and ID of the preceding entry for hierarchical artifacts
     for (var i = 0; i < entriesForExport.length; i++) {
       if (!log.doNotContinue) {
-        log = checkSingleEntryForErrors(i, log, entriesForExport, artifact);
+        log = checkSingleEntryForErrors(entriesForExport[i], log, artifact);
         if (log.entries.length && log.entries[i] && log.entries[i].error) {
+          // do nothing
         } else {
           await sendSingleEntry(i);
         }
@@ -1309,7 +1311,7 @@ function updateSheetWithExportResults(log, entriesForExport, sheetData, sheet, s
 
 
       // we may have more rows than entries - because the entries can be stopped early (eg when an error is found on a hierarchical artifact)
-      if (log.entries.length >= row) {
+      if (log.entries.length > row) {
         // first handle when we are dealing with data that has been sent to Spira
         var isSubType = (log.entries[row].details && log.entries[row].details.entry && log.entries[row].details.entry.isSubType) ? log.entries[row].details.entry.isSubType : false;
 
@@ -1327,8 +1329,6 @@ function updateSheetWithExportResults(log, entriesForExport, sheetData, sheet, s
         if (note) rowNotes.push(note);
         if (bgColor) {
           cellRange.set({ format: { fill: { color: bgColor } } });
-        } else {
-          cellRange.clear();
         }
         cellRange.values = [[value]];
 
@@ -1344,7 +1344,7 @@ function updateSheetWithExportResults(log, entriesForExport, sheetData, sheet, s
       var rowFirstCell = sheet.getCell(row + 1, 0);
       if (rowNotes.length) {
         rowFirstCell.set({ format: { fill: { color: model.colors.warning } } });
-        rowFirstCell.values = [["ROW ERROR: " + rowNotes.join()]];
+        rowFirstCell.values = [["ERROR: " + rowNotes.join()]];
       }
     }
   }
@@ -1359,13 +1359,12 @@ function updateSheetWithExportResults(log, entriesForExport, sheetData, sheet, s
 
 
 
-function checkSingleEntryForErrors(i, log, entriesForExport, artifact, parentId) {
+function checkSingleEntryForErrors(singleEntry, log, artifact) {
   var response = {};
-
   // skip if there was an error validating the sheet row
-  if (entriesForExport[i].validationMessage) {
+  if (singleEntry.validationMessage) {
     response.error = true;
-    response.message = entriesForExport[i].validationMessage;
+    response.message = singleEntry.validationMessage;
     log.errorCount++;
 
     // stop if the artifact is hierarchical because we don't know what side effects there could be to any further items.
@@ -1376,12 +1375,12 @@ function checkSingleEntryForErrors(i, log, entriesForExport, artifact, parentId)
       log.entries.push(response);
       // we do not call this function again with i++ so that we effectively break out of the loop
       // review all activity and set final status
-      log.status = log.errorCount ? (log.errorCount == log.entriesLength ? STATUS.allError : STATUS_ENUM.someError) : STATUS_ENUM.allSuccess;
+      log.status = log.errorCount ? (log.errorCount == log.entriesLength ? STATUS_ENUM.allError : STATUS_ENUM.someError) : STATUS_ENUM.allSuccess;
     } else {
       log.entries.push(response);
     }
     // skip if a sub type row does not have a parent to hook to
-  } else if (entriesForExport[i].isSubType && !log.parentId) {
+  } else if (singleEntry.isSubType && !log.parentId) {
     response.error = true;
     response.message = "can't add a child type when there is no corresponding parent type";
     log.errorCount++;
