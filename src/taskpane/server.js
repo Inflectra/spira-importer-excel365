@@ -6,21 +6,20 @@
  *
  */
 export { 
-    clearAll, 
-    getProjects, 
-    getFromSpiraExcel, 
-    warn, 
-    sendToSpira, 
-    operationComplete,
-    getComponents,
-    getCustoms,
-    getBespoke,
-    getReleases,
-    getUsers,
-    templateLoader,
-	error,
-	
-	getTemplateFromProjectId
+  clearAll, 
+  error,
+  getBespoke,
+  getComponents,
+  getCustoms,
+  getFromSpiraExcel, 
+  getProjects, 
+  getReleases,
+  getUsers,
+	getTemplateFromProjectId,
+  operationComplete,
+  sendToSpira, 
+  templateLoader,
+  warn
 };
 
 import { showPanel, hidePanel } from './taskpane.js';
@@ -560,12 +559,19 @@ function postArtifactToSpira(entry, user, projectId, artifactTypeId, parentId) {
 // Assigns string value and routes error call from client.js.html
 // @param: type - string identifying the message to be displayed
 function error(type) {
+  var message = "";
   if (type == 'impExp') {
-    okWarn('There was an input error. Please check that your entries are correct.');
+    message = 'There was an input error. Please check that your entries are correct.';
   } else if (type == 'unknown') {
-    okWarn('Unkown error. Please try again later or contact your system administrator');
+    message = 'Unkown error. Please try again later or contact your system administrator';
   } else {
-    okWarn('Network error. Please check your username, url, and password. If correct make sure you have the correct permissions.');
+    message = 'Network error. Please check your username, url, and password. If correct make sure you have the correct permissions.';
+  }
+
+  if (IS_GOOGLE) {
+    okWarn(message);
+  } else {
+    popupShow(message, "");
   }
 }
 

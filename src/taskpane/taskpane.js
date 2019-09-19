@@ -11,7 +11,7 @@ var model = new Data();
 var uiSelection = new tempDataStore();
 
 // if devmode enabled, set the required fields and show the dev button
-var devMode = true;
+var devMode = false;
 var isGoogle = false;
 
 
@@ -1212,7 +1212,7 @@ function errorPopUp(err, type) {
   if (isGoogle) {
     google.script.run.error(type);
   } else {
-    console.log(err, type)
+    msOffice.error(err, type);
   }
   hideLoadingSpinner();
   console.log(err);
