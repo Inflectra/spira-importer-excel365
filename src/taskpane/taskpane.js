@@ -840,8 +840,8 @@ function getArtifactSpecificInformation(user, templateId, projectId, artifact) {
   if (bespokeData) {
     model.artifactGetRequestsToMake += bespokeData.length;
     // get any bespoke field information
-    bespokeData.forEach(function (field) {
-      getBespoke(user, templateId, projectId, artifact.field, field);
+    bespokeData.forEach(function (bespokeField) {
+      getBespoke(user, templateId, projectId, artifact.field, bespokeField);
     });
   }
   // get standard artifact information - eg custom fields
@@ -974,7 +974,7 @@ function getBespoke(user, templateId, projectId, artifactId, field) {
       .then((response) => getBespokeSuccess({
           artifactName: artifactId,
           field: field,
-          values: response.data
+          values: response.body
       })) 
       .catch((error) => errorNetwork(error));
   }

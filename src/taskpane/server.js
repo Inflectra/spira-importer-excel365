@@ -1112,7 +1112,6 @@ function createExportEntries(sheetData, model, fieldType, fields, artifact, arti
     entriesForExport = [];
 
   for (var rowToPrep = 0; rowToPrep < sheetData.length; rowToPrep++) {
-
     // stop at the first row that is fully blank
     if (sheetData[rowToPrep].join("") === "") {
       break;
@@ -1217,7 +1216,7 @@ function sendExportEntriesGoogle(entriesForExport, sheetData, sheet, sheetRange,
     log.status = log.errorCount ? (log.errorCount == log.entriesLength ? STATUS_ENUM.allError : STATUS_ENUM.someError) : STATUS_ENUM.allSuccess;
 
     // call the final function here - so we know that it is only called after the recursive function above (ie all posting) has ended
-    return updateSheetWithExportResults(log, sheetData, sheet, sheetRange, model, fieldType, fields, artifact, null);
+    return updateSheetWithExportResults(log, entriesForExport, sheetData, sheet, sheetRange, model, fieldType, fields, artifact, null);
   }
 }
 
@@ -1288,18 +1287,18 @@ async function sendExportEntriesExcel(entriesForExport, sheetData, sheet, sheetR
     log.status = log.errorCount ? (log.errorCount == log.entriesLength ? STATUS_ENUM.allError : STATUS_ENUM.someError) : STATUS_ENUM.allSuccess;
 
     // call the final function here - so we know that it is only called after the recursive function above (ie all posting) has ended
-    return updateSheetWithExportResults(log, sheetData, sheet, sheetRange, model, fieldType, fields, artifact, context);
+    return updateSheetWithExportResults(log, entriesForExport, sheetData, sheet, sheetRange, model, fieldType, fields, artifact, context);
   }
 }
 
 
 // 5. SET MESSAGES AND FORMATTING ON SHEET
-function updateSheetWithExportResults(log, sheetData, sheet, sheetRange, model, fieldType, fields, artifact, context) {
+function updateSheetWithExportResults(log, entriesForExport, sheetData, sheet, sheetRange, model, fieldType, fields, artifact, context) {
   var bgColors = [],
     notes = [],
     values = [];
   // first handle cell formatting
-  for (var row = 0; row < sheetData; row++) {
+  for (var row = 0; row < entriesForExport.length; row++) {
     var rowBgColors = [],
       rowNotes = [],
       rowValues = [];
@@ -1310,7 +1309,7 @@ function updateSheetWithExportResults(log, sheetData, sheet, sheetRange, model, 
 
 
       // we may have more rows than entries - because the entries can be stopped early (eg when an error is found on a hierarchical artifact)
-      if (log.entries.length > row) {
+      if (log.entries.length >= row) {
         // first handle when we are dealing with data that has been sent to Spira
         var isSubType = (log.entries[row].details && log.entries[row].details.entry && log.entries[row].details.entry.isSubType) ? log.entries[row].details.entry.isSubType : false;
 
@@ -1342,21 +1341,10 @@ function updateSheetWithExportResults(log, sheetData, sheet, sheetRange, model, 
 
       // for Excel we can't pass in arrays of data for values, but we still take action here for notes - because Excel API does not allow the addition of comments
     } else {
-      var endRowCell = sheet.getCell(row + 1, fields.length);
+      var rowFirstCell = sheet.getCell(row + 1, 0);
       if (rowNotes.length) {
-        endRowCell.set({ format: { fill: { color: model.colors.warning } } });
-        endRowCell.values = [[rowNotes.join()]];
-
-        var endRowHeader = sheet.getCell(0, fields.length);
-        endRowHeader.set({
-          format: {
-            fill: { color: model.colors.bgHeader },
-            font: { color: model.colors.header }
-          }
-        });
-        endRowHeader.values = [["Error Messages"]];
-      } else {
-        endRowCell.clear();
+        rowFirstCell.set({ format: { fill: { color: model.colors.warning } } });
+        rowFirstCell.values = [["ROW ERROR: " + rowNotes.join()]];
       }
     }
   }
