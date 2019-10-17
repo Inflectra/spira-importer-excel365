@@ -10,14 +10,14 @@
   <DefaultLocale>en-US</DefaultLocale>
   
   <!-- Used on the store and various places of the Office UI such as the add-ins dialog. -->
-  <DisplayName DefaultValue="SpiraPlan Integration"/>
+  <DisplayName DefaultValue="SpiraPlan Import/Export Tool"/>
   <Description DefaultValue="Get and send information with your SpiraTest/Team/Plan application"/>
   
   <!-- Used on installation screens and the add-ins dialog. -->
-  <IconUrl DefaultValue="https://files.inflectra.com/office365/excel/assets/icon-32.png"/>
-  <HighResolutionIconUrl DefaultValue="https://files.inflectra.com/office365/excel/assets/icon-80.png"/>
+  <IconUrl DefaultValue="https://files.inflectra.com/office365/excel2/assets/icon-32.png"/>
+  <HighResolutionIconUrl DefaultValue="https://files.inflectra.com/office365/excel2/assets/icon-80.png"/>
   
-  <SupportUrl DefaultValue="https://www.inflectra.com/Documents/SpiraTestPlanTeam%20Migration%20and%20Integration%20Guide.pdf"/>
+  <SupportUrl DefaultValue="http://spiradoc.inflectra.com/Migration-and-Integration/Importing-from-Microsoft-Excel-(Office365)/"/>
 
   <!-- Domains that will be allowed when navigating. For example, if you use ShowTaskpane and then have an href link, navigation will only be allowed if the domain is on this list. -->
   <AppDomains>
@@ -33,8 +33,8 @@
     <Host Name="Workbook"/>
   </Hosts>
   <DefaultSettings>
-    <SourceLocation DefaultValue="https://localhost:3000/taskpane.html"/>
-    <!-- <SourceLocation DefaultValue="https://files.inflectra.com/office365/excel/taskpane.html"/> -->
+    <!-- <SourceLocation DefaultValue="https://localhost:3000/taskpane.html"/> -->
+    <SourceLocation DefaultValue="https://files.inflectra.com/office365/excel2/taskpane.html"/>
   </DefaultSettings>
   <!-- End TaskPane Mode integration.  -->
 
@@ -87,16 +87,16 @@
     </Hosts>
     <Resources>
       <bt:Images>
-        <bt:Image id="Icon.16x16" DefaultValue="https://files.inflectra.com/office365/excel/assets/icon-16.png"/>
-        <bt:Image id="Icon.32x32" DefaultValue="https://files.inflectra.com/office365/excel/assets/icon-32.png"/>
-        <bt:Image id="Icon.80x80" DefaultValue="https://files.inflectra.com/office365/excel/assets/icon-80.png"/>
+        <bt:Image id="Icon.16x16" DefaultValue="https://files.inflectra.com/office365/excel2/assets/icon-16.png"/>
+        <bt:Image id="Icon.32x32" DefaultValue="https://files.inflectra.com/office365/excel2/assets/icon-32.png"/>
+        <bt:Image id="Icon.80x80" DefaultValue="https://files.inflectra.com/office365/excel2/assets/icon-80.png"/>
       </bt:Images>
       <bt:Urls>
         <bt:Url id="GetStarted.LearnMoreUrl" DefaultValue="https://go.microsoft.com/fwlink/?LinkId=276812"/>
-        <bt:Url id="Commands.Url" DefaultValue="https://localhost:3000/commands.html"/>
-        <bt:Url id="Taskpane.Url" DefaultValue="https://localhost:3000/taskpane.html"/>
-        <!-- <bt:Url id="Commands.Url" DefaultValue="https://files.inflectra.com/office365/excel/commands.html"/> -->
-        <!-- <bt:Url id="Taskpane.Url" DefaultValue="https://files.inflectra.com/office365/excel/taskpane.html"/> -->
+        <!-- <bt:Url id="Commands.Url" DefaultValue="https://localhost:3000/commands.html"/>
+        <bt:Url id="Taskpane.Url" DefaultValue="https://localhost:3000/taskpane.html"/> -->
+        <bt:Url id="Commands.Url" DefaultValue="https://files.inflectra.com/office365/excel2/commands.html"/>
+        <bt:Url id="Taskpane.Url" DefaultValue="https://files.inflectra.com/office365/excel2/taskpane.html"/>
       </bt:Urls>
       <bt:ShortStrings>
         <bt:String id="GetStarted.Title" DefaultValue="Get started with the SpiraPlan add-in!"/>
