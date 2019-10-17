@@ -426,7 +426,7 @@ function hideMainPanel() {
 
   // reset the buttons and dropdowns
   resetUi();
-  clearAddonData();
+  uiSelection = new tempDataStore();
 }
 
 
