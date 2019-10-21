@@ -186,7 +186,6 @@ function hideLoadingSpinner() {
 
 // clear spreadsheet, model
 function clearAddonData() {
-  //clearSheet();
   model = new Data();
   uiSelection = new tempDataStore();
   setDevStuff(devMode);

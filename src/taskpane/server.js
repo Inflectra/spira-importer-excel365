@@ -214,10 +214,10 @@ function clearAll() {
     }
 
   } else {
-    return Excel.run({ delayForCellEdit: true }, function (context) {
+    return Excel.run(context => {
       var sheet = context.workbook.worksheets.getActiveWorksheet();
       var now = new Date().getTime();
-      sheet.name = now.toString();
+      // sheet.name = now.toString();
       sheet.getRange().clear();
       return context.sync();
     })
@@ -284,7 +284,6 @@ function fetcher(currentUser, fetcherURL) {
     //unparsed response contains error codes if needed
     return JSON.parse(response);
 
-	//for MS Excel, use axios to return a promise to the taskpane
 	//for v6 API in Spira you HAVE to send a Content-Type header
 	} else {
 		return superagent
@@ -652,9 +651,6 @@ function okWarn(dialog) {
 // @param: model - full model object from client containing field data for specific artifact, list of project users, components, etc
 // @param: fieldType - list of fieldType enums from client params object
 function templateLoader(model, fieldType) {
-  // clear spreadsheet depending on user input, and unhide everything
-  clearAll();
-
   var fields = model.fields;
   var sheet;
   var newSheetName = model.currentArtifact.name + ", PR-" + model.currentProject.id;
@@ -672,7 +668,7 @@ function templateLoader(model, fieldType) {
       sheet.name = newSheetName;
       return context.sync()
         .then(function () {
-          sheetSetForTemplate(sheet, model, fieldType, context);
+          return sheetSetForTemplate(sheet, model, fieldType, context);
         })
         .catch(/*fail quietly*/);
     })
