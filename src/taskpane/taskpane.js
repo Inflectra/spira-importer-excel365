@@ -133,7 +133,7 @@ function setEventListeners() {
   document.getElementById("btn-main-back").onclick = hideMainPanel;
 
   // changing of dropdowns
-  document.getElementById("select-project").onchange = changeProjectSelect;
+  document.getElementById("select-product").onchange = changeProjectSelect;
   document.getElementById("select-artifact").onchange = changeArtifactSelect;
 
   document.getElementById("btn-toSpira").onclick = sendToSpiraAttempt;
@@ -403,7 +403,7 @@ function populateProjects(projects) {
 
 // manage the switching of the UI off the login screen on succesful login and retrieval of projects
 function showMainPanel(type) {
-  setDropdown("select-project", model.projects, "Select a project");
+  setDropdown("select-product", model.projects, "Select a product");
   setDropdown("select-artifact", params.artifacts, "Select an artifact");
 
   // set the buttons to the correct mode
@@ -788,7 +788,7 @@ function showChosenHelpSection(choice) {
 // returns a project object
 function getSelectedProject() {
   // store dropdown value
-  var select = document.getElementById("select-project");
+  var select = document.getElementById("select-product");
   var projectDropdownVal = select.options[select.selectedIndex].value;
   // filter the project lists to those chosen 
   var projectSelected = model.projects.filter(function (project) {
