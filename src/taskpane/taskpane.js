@@ -422,10 +422,11 @@ function showMainPanel(type) {
 
 function hideMainPanel() {
   hidePanel("main");
-
   // reset the buttons and dropdowns
   resetUi();
   uiSelection = new tempDataStore();
+  // make sure the system does not think any data is loaded
+  model.isTemplateLoaded = false;
 }
 
 

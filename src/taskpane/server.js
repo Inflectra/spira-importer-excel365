@@ -217,7 +217,7 @@ function clearAll() {
     return Excel.run(context => {
       var sheet = context.workbook.worksheets.getActiveWorksheet();
       var now = new Date().getTime();
-      // sheet.name = now.toString();
+      // for excel we do not reset the sheet name because this can cause timing problems on some versions of Excel
       sheet.getRange().clear();
       return context.sync();
     })
@@ -664,10 +664,20 @@ function templateLoader(model, fieldType) {
 
   } else {
     return Excel.run(function (context) {
+      // store the sheet and worksheet list for use later
       sheet = context.workbook.worksheets.getActiveWorksheet();
-      sheet.name = newSheetName;
+      var worksheets = context.workbook.worksheets;
+      worksheets.load('items');
+      
       return context.sync()
         .then(function () {
+          // check that no other worksheet has the same name as the one we need to call this sheet
+          var newNameMatches = worksheets.items.filter(x => x.name == newSheetName && x.id !== sheet.id);
+          // if any sheet names (other than the active sheet) have a match we change them to something unique
+          if (newNameMatches.length) {
+            newNameMatches.forEach(x => x.name = x.name + "_" + new Date().getTime());
+          }
+          sheet.name = newSheetName;
           return sheetSetForTemplate(sheet, model, fieldType, context);
         })
         .catch(/*fail quietly*/);
