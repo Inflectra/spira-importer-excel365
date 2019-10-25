@@ -23,7 +23,6 @@
   <AppDomains>
     <AppDomain>inflectra.com</AppDomain>
     <AppDomain>https://www.inflectra.com</AppDomain>
-    <AppDomain>https://www.files.inflectra.com/</AppDomain>
   </AppDomains>
   <!--End Basic Settings. -->
 
@@ -32,6 +31,13 @@
   <Hosts>
     <Host Name="Workbook"/>
   </Hosts>
+
+  <Requirements>
+    <Sets DefaultMinVersion="1.1">
+      <Set Name="ExcelApi" MinVersion="1.1"/>
+    </Sets>
+  </Requirements>
+
   <DefaultSettings>
     <!-- <SourceLocation DefaultValue="https://localhost:3000/taskpane.html"/> -->
     <SourceLocation DefaultValue="https://files.inflectra.com/office365/excel2/taskpane.html"/>
