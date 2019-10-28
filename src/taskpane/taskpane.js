@@ -118,18 +118,26 @@ function setEventListeners() {
     panelToggle('help');
     showChosenHelpSection('login');
   };
+  document.getElementById("lnk-help-login").onclick = function () {
+    panelToggle('help');
+    showChosenHelpSection('login');
+  };
   document.getElementById("btn-dev").onclick = setAuthDetails;
 
-  document.getElementById("btn-help-main").onclick = function () {
+
+  document.getElementById("lnk-help-decide").onclick = function () {
     panelToggle('help');
-    showChosenHelpSection('actions')
+    showChosenHelpSection('modes')
   };
   document.getElementById("btn-decide-send").onclick = function () { showMainPanel("send") };
   document.getElementById("btn-decide-get").onclick = function () { showMainPanel("get") };
   document.getElementById("btn-decide-logout").onclick = logoutAttempt;
+  document.getElementById("btn-help-main").onclick = function () {
+    panelToggle('help');
+    showChosenHelpSection('data')
+  };
 
   document.getElementById("btn-logout").onclick = logoutAttempt;
-
   document.getElementById("btn-main-back").onclick = hideMainPanel;
 
   // changing of dropdowns
@@ -142,8 +150,8 @@ function setEventListeners() {
 
   document.getElementById("btn-help-back").onclick = function () { panelToggle("help") };
   document.getElementById("btn-help-section-login").onclick = function () { showChosenHelpSection('login') };
-  document.getElementById("btn-help-section-actions").onclick = function () { showChosenHelpSection('actions') };
-  document.getElementById("btn-help-section-fields").onclick = function () { showChosenHelpSection('fields') };
+  document.getElementById("btn-help-section-modes").onclick = function () { showChosenHelpSection('modes') };
+  document.getElementById("btn-help-section-data").onclick = function () { showChosenHelpSection('data') };
 }
 
 
@@ -251,6 +259,10 @@ function resetUi() {
 
   // reset guide text on the main pane
   document.getElementById("main-guide-1").classList.remove("pale");
+  document.getElementById("main-guide-1-fromSpira").style.display = "";
+  document.getElementById("main-guide-1-toSpira").style.display = "";
+  document.getElementById("main-heading-fromSpira").style.display = "";
+  document.getElementById("main-heading-toSpira").style.display = "";
   document.getElementById("main-guide-2").classList.add("pale");
 }
 
@@ -409,9 +421,11 @@ function showMainPanel(type) {
   if (type == "send") {
     document.getElementById("btn-fromSpira").style.display = "none";
     document.getElementById("main-guide-1-fromSpira").style.display = "none";
+    document.getElementById("main-heading-fromSpira").style.display = "none";
   } else {
     document.getElementById("btn-toSpira").style.display = "none";
     document.getElementById("main-guide-1-toSpira").style.display = "none";
+    document.getElementById("main-heading-toSpira").style.display = "none";
   }
 
   // opens the panel
@@ -757,14 +771,14 @@ function showChosenHelpSection(choice) {
   // does not use a dynamic list using queryselectorall and node list because Excel does not support this
   // hide all sections and then only show the one the user wants
   document.getElementById("help-section-login").classList.add("hidden");
-  document.getElementById("help-section-actions").classList.add("hidden");
-  document.getElementById("help-section-fields").classList.add("hidden");
+  document.getElementById("help-section-modes").classList.add("hidden");
+  document.getElementById("help-section-data").classList.add("hidden");
   document.getElementById("help-section-" + choice).classList.remove("hidden");
 
   // set all buttons back to normal, then highlight one just clicked
   document.getElementById("btn-help-section-login").classList.remove("create");
-  document.getElementById("btn-help-section-actions").classList.remove("create");
-  document.getElementById("btn-help-section-fields").classList.remove("create");
+  document.getElementById("btn-help-section-modes").classList.remove("create");
+  document.getElementById("btn-help-section-data").classList.remove("create");
   document.getElementById("btn-help-section-" + choice).classList.add("create");
 }
 

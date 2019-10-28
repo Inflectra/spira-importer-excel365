@@ -13,9 +13,11 @@
 .pb-lg { padding-bottom: 3rem; }
 .pt-md { padding-top: 1.5rem; }
 .pt-lg { padding-top: 3rem; }
+.mb-0 { margin-bottom: 0; }
 .mb-sm { margin-bottom: .75rem; }
 .mb-md { margin-bottom: 1.5rem; }
 .mb-lg { margin-bottom: 3rem; }
+.mt-0 { margin-top: 0; }
 .mt-sm { margin-top: .75rem; }
 .mt-md { margin-top: 1.5rem; }
 .mt-lg { margin-top: 3rem; }
@@ -47,7 +49,7 @@
 }
 .panel {
     background-color: white;
-    height: calc(100vh - 150px); /* 150 leaves space around header and footer */
+    height: calc(100vh - 100px); /* 150 leaves space around header and footer */
     left: 0;
     overflow-y: auto;
     padding: 1rem;
@@ -62,7 +64,7 @@
 }
 .footer {
     bottom: 0;
-    padding: 1rem;
+    padding: .25rem 1rem;
     position: fixed;
 }
 .footer-logo {
@@ -79,7 +81,7 @@
 }
 .form-pair {
     list-style-type: none;
-    margin-bottom: .5rem;
+    margin-bottom: 0;
 }
 .form-label, 
 .form-input {
@@ -100,6 +102,17 @@ pre {
     padding-left: 20px;
 }
 .pale { opacity: .5;}
+
+.well {
+    background-color: #f1f1f1;
+    padding: .5rem;
+    border-radius: .5rem;
+    border: 1px solid #ddd;
+    margin: 0;
+}
+.secondary {
+    color: #777;
+}
 
 /* excel specific */
 .ms-office .ms-Button.create {

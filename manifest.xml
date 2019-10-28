@@ -10,7 +10,7 @@
   <DefaultLocale>en-US</DefaultLocale>
   
   <!-- Used on the store and various places of the Office UI such as the add-ins dialog. -->
-  <DisplayName DefaultValue="SpiraPlan Import/Export Tool"/>
+  <DisplayName DefaultValue="SpiraPlan Import/Export"/>
   <Description DefaultValue="Get and send information with your SpiraTest/Team/Plan application"/>
   
   <!-- Used on installation screens and the add-ins dialog. -->
