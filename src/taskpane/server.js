@@ -1797,7 +1797,7 @@ function createEntryFromRow(row, model, fieldType, artifactIsHierarchical, lastI
         case fieldType.multi:
           idFromName = getIdFromName(row[index], fields[index].values);
           if (idFromName) {
-            value = idFromName;
+            value = [idFromName];
             customType = "IntegerListValue";
           }
           break;
