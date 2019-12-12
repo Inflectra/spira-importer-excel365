@@ -678,7 +678,11 @@ function templateLoader(model, fieldType) {
             newNameMatches.forEach(x => x.name = x.name + "_" + new Date().getTime());
           }
           sheet.name = newSheetName;
-          return sheetSetForTemplate(sheet, model, fieldType, context);
+
+          return context.sync()
+            .then(function () {
+              return sheetSetForTemplate(sheet, model, fieldType, context);
+            })
         })
         .catch(/*fail quietly*/);
     })
@@ -2013,6 +2017,11 @@ function processSendToSpiraResponse(i, sentToSpira, entriesForExport, artifact, 
 // @param: model: full model object from client
 // @param: enum of fieldTypes used
 function getFromSpiraGoogle(model, fieldType) {
+  var requiredSheetName = model.currentArtifact.name + ", PR-" + model.currentProject.id;
+  if (sheet.getName() != requiredSheetName) {
+    return operationComplete(STATUS_ENUM.wrongSheet);
+  }
+
   // 1. get from spira
   // note we don't do this by getting the count of each artifact first, because of a bug in getting the release count
   var currentPage = 0;
@@ -2116,9 +2125,23 @@ function getFromSpiraGoogle(model, fieldType) {
 // @param: model: full model object from client
 // @param: enum of fieldTypes used
 function getFromSpiraExcel(model, fieldType) {
-  return getDataFromSpiraExcel(model, fieldType).then((response) => {
-    return processDataFromSpiraExcel(response, model, fieldType)
-  });
+  return Excel.run(function (context) {
+    var sheet = context.workbook.worksheets.getActiveWorksheet();
+    sheet.load("name");
+    var requiredSheetName = model.currentArtifact.name + ", PR-" + model.currentProject.id;
+
+    return context.sync()
+      .then(function() {
+        // only get the data if we are on the right sheet - the one with the template loaded on it
+        if (sheet.name == requiredSheetName) {
+          return getDataFromSpiraExcel(model, fieldType).then((response) => {
+            return processDataFromSpiraExcel(response, model, fieldType)
+          });
+        } else {
+          return operationComplete(STATUS_ENUM.wrongSheet);
+        }
+      })
+  })
 }
 
 // EXCEL SPECIFIC VARIATION OF THIS FUNCTION handles getting paginated artifacts from Spira and saving them as a single array
