@@ -672,10 +672,15 @@ function templateLoader(model, fieldType) {
       return context.sync()
         .then(function () {
           // check that no other worksheet has the same name as the one we need to call this sheet
-          var newNameMatches = worksheets.items.filter(x => x.name == newSheetName && x.id !== sheet.id);
-          // if any sheet names (other than the active sheet) have a match we change them to something unique
-          if (newNameMatches.length) {
-            newNameMatches.forEach(x => x.name = x.name + "_" + new Date().getTime());
+          if (worksheets.items.length > 1) {
+            console.log('shb has more than one worksheet')
+            worksheets.items.forEach(x => {
+              console.log('shb worksheet name', x.name, newSheetName)
+              if (x.name == newSheetName && x.id !== sheet.id) {
+                x.name = x.name + "_" + new Date().getTime();
+                return context.sync();
+              }
+            });
           }
           sheet.name = newSheetName;
 
@@ -1153,7 +1158,7 @@ function createExportEntries(sheetData, model, fieldType, fields, artifact, arti
         // if error free determine what field filtering is required - needed to choose type/subtype fields if subtype is present
       } else {
         var fieldsToFilter = relevantFields(rowChecks);
-        entry = createEntryFromRow(sheetData[rowToPrep], model, fieldType, artifactIsHierarchical, lastIndentPosition, fieldsToFilter);
+        entry = createEntryFromRow(sheetData[rowToPrep], model, fieldType, artifactIsHierarchical, artifact.id, lastIndentPosition, fieldsToFilter);
 
         // FOR SUBTYPE ENTRIES add flag on entry if it is a subtype
         if (fieldsToFilter === FIELD_MANAGEMENT_ENUMS.subType) {
@@ -1710,9 +1715,10 @@ function relevantFields(rowChecks) {
 // @param: model - full model with info about fields, dropdowns, users, etc
 // @param: fieldType - object of all field types with enums
 // @param: artifactIsHierarchical - bool to tell function if this artifact has hierarchy (eg RQ and RL)
+// @param: artifactTypeId - int of the artifact type - used to determine some specific field types (eg TC component fields)
 // @param: lastIndentPosition - int used for calculating relative indents for hierarchical artifacts
 // @param: fieldsToFilter - enum used for selecting fields to not add to object - defaults to using all if omitted
-function createEntryFromRow(row, model, fieldType, artifactIsHierarchical, lastIndentPosition, fieldsToFilter) {
+function createEntryFromRow(row, model, fieldType, artifactIsHierarchical, artifactTypeId, lastIndentPosition, fieldsToFilter) {
   //create empty 'entry' object - include custom properties array here to avoid it being undefined later if needed
   var entry = {
     "CustomProperties": []
@@ -1820,7 +1826,8 @@ function createEntryFromRow(row, model, fieldType, artifactIsHierarchical, lastI
           idFromName = getIdFromName(row[index], model.projectComponents);
           if (idFromName) {
             value = idFromName;
-            customType = "IntegerValue";
+            // component is multi select for test cases but not for other artifacts
+            customType = artifactTypeId == ART_ENUMS.testCases ? "IntegerListValue" : "IntegerValue";
           }
           break;
 
@@ -1829,6 +1836,7 @@ function createEntryFromRow(row, model, fieldType, artifactIsHierarchical, lastI
           idFromName = getIdFromName(row[index], model.projectReleases);
           if (idFromName) {
             value = idFromName;
+            if ()
             customType = "IntegerValue";
           }
           break;
