@@ -1158,7 +1158,7 @@ function createExportEntries(sheetData, model, fieldType, fields, artifact, arti
         // if error free determine what field filtering is required - needed to choose type/subtype fields if subtype is present
       } else {
         var fieldsToFilter = relevantFields(rowChecks);
-        entry = createEntryFromRow(sheetData[rowToPrep], model, fieldType, artifactIsHierarchical, artifact.id, lastIndentPosition, fieldsToFilter);
+        entry = createEntryFromRow(sheetData[rowToPrep], model, fieldType, artifactIsHierarchical, artifact.componentIsMulti, lastIndentPosition, fieldsToFilter);
 
         // FOR SUBTYPE ENTRIES add flag on entry if it is a subtype
         if (fieldsToFilter === FIELD_MANAGEMENT_ENUMS.subType) {
@@ -1715,10 +1715,10 @@ function relevantFields(rowChecks) {
 // @param: model - full model with info about fields, dropdowns, users, etc
 // @param: fieldType - object of all field types with enums
 // @param: artifactIsHierarchical - bool to tell function if this artifact has hierarchy (eg RQ and RL)
-// @param: artifactTypeId - int of the artifact type - used to determine some specific field types (eg TC component fields)
+// @param: componentIsMulti - bool of true if component field for relevant artifact type is multi select - not the default single selected)
 // @param: lastIndentPosition - int used for calculating relative indents for hierarchical artifacts
 // @param: fieldsToFilter - enum used for selecting fields to not add to object - defaults to using all if omitted
-function createEntryFromRow(row, model, fieldType, artifactIsHierarchical, artifactTypeId, lastIndentPosition, fieldsToFilter) {
+function createEntryFromRow(row, model, fieldType, artifactIsHierarchical, componentIsMulti, lastIndentPosition, fieldsToFilter) {
   //create empty 'entry' object - include custom properties array here to avoid it being undefined later if needed
   var entry = {
     "CustomProperties": []
@@ -1827,7 +1827,7 @@ function createEntryFromRow(row, model, fieldType, artifactIsHierarchical, artif
           if (idFromName) {
             value = idFromName;
             // component is multi select for test cases but not for other artifacts
-            customType = artifactTypeId == ART_ENUMS.testCases ? "IntegerListValue" : "IntegerValue";
+            customType = componentIsMulti ? "IntegerListValue" : "IntegerValue";
           }
           break;
 
@@ -1836,7 +1836,6 @@ function createEntryFromRow(row, model, fieldType, artifactIsHierarchical, artif
           idFromName = getIdFromName(row[index], model.projectReleases);
           if (idFromName) {
             value = idFromName;
-            if ()
             customType = "IntegerValue";
           }
           break;

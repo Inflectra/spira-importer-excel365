@@ -54,8 +54,8 @@ var params = {
     // enums and various metadata for all artifacts potentially used by the system
     artifacts: [
         {field: 'requirements', name: 'Requirements', id: 1, hierarchical: true},
-        {field: 'testCases',    name: 'Test Cases',   id: 2, hasFolders: true, hasSubType: true, subTypeId: 7, subTypeName: "TestSteps"},
-        {field: 'incidents',    name: 'Incidents',    id: 3},
+        {field: 'testCases',    name: 'Test Cases',   id: 2, hasFolders: true, hasSubType: true, subTypeId: 7, subTypeName: "TestSteps", componentIsMulti: true},
+        {field: 'incidents',    name: 'Incidents',    id: 3, componentIsMulti: true},
         {field: 'releases',     name: 'Releases',     id: 4, hierarchical: true},
         {field: 'testRuns',     name: 'Test Runs',    id: 5, disabled: true, hidden: true},
         {field: 'tasks',        name: 'Tasks',        id: 6, hasFolders: true},
