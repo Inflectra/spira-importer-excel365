@@ -72,13 +72,13 @@ var API_PROJECT_BASE = '/services/v6_0/RestService.svc/projects/',
 		1: "All done! To send more data over, clear the sheet first.",
 		2: "Sorry, but there were some problems (these cells are marked in red). Check the notes on the relevant ID field for explanations.",
 		3: "We're really sorry, but we couldn't send anything to SpiraTeam - please check notes on the ID fields for more information.",
-		4: "You are not on the correct worksheet. Please go to the sheet that matches the one listed on the Spira taskpane."
+		4: "You are not on the correct worksheet. Please go to the sheet that matches the one listed on the Spira taskpane / the selection you made in the sidebar."
 	},
 	STATUS_MESSAGE_EXCEL = {
 		1: "All done! To send more data over, clear the sheet first.",
 		2: "Sorry, but there were some problems (these cells are marked in red). Check the notes on the relevant ID field for explanations.",
 		3: "We're really sorry, but we couldn't send anything to SpiraTeam - please check notes on the ID fields for more information.",
-		4: "You are not on the correct worksheet. Please go to the sheet that matches the one listed on the Spira taskpane."
+		4: "You are not on the correct worksheet. Please go to the sheet that matches the one listed on the Spira taskpane / the selection you made in the sidebar."
 	},
     CUSTOM_PROP_TYPE_ENUM = {
       1: "StringValue",
@@ -557,20 +557,25 @@ function postArtifactToSpira(entry, user, projectId, artifactTypeId, parentId) {
 // Error notification function
 // Assigns string value and routes error call from client.js.html
 // @param: type - string identifying the message to be displayed
-function error(type) {
-  var message = "";
+// @param: err - the detailed error object (differs between plugin)
+function error(type, err) {
+  var message = "",
+    details = "";
   if (type == 'impExp') {
     message = 'There was an input error. Please check that your entries are correct.';
+  } else if (type == "network") {
+    message = 'Network error. Please check your username, url, and password. If correct make sure you have the correct permissions.';
+    details = err ? `<br><br>STATUS: ${err.status ? err.status : "unknown"}<br>MESSAGE: ${err.response ? err.response.text : "unknown"}` : "";
   } else if (type == 'unknown') {
     message = 'Unkown error. Please try again later or contact your system administrator';
   } else {
-    message = 'Network error. Please check your username, url, and password. If correct make sure you have the correct permissions.';
+    message = 'Unkown error. Please try again later or contact your system administrator';
   }
 
   if (IS_GOOGLE) {
     okWarn(message);
   } else {
-    popupShow(message, "");
+    popupShow(message + details, "");
   }
 }
 
@@ -671,23 +676,30 @@ function templateLoader(model, fieldType) {
       
       return context.sync()
         .then(function () {
+          let onWrongSheet = false;
+
           // check that no other worksheet has the same name as the one we need to call this sheet
           if (worksheets.items.length > 1) {
-            console.log('shb has more than one worksheet')
             worksheets.items.forEach(x => {
-              console.log('shb worksheet name', x.name, newSheetName)
               if (x.name == newSheetName && x.id !== sheet.id) {
-                x.name = x.name + "_" + new Date().getTime();
-                return context.sync();
+                onWrongSheet = true;
               }
             });
           }
-          sheet.name = newSheetName;
 
-          return context.sync()
-            .then(function () {
-              return sheetSetForTemplate(sheet, model, fieldType, context);
-            })
+          if (onWrongSheet) {
+            return operationComplete(STATUS_ENUM.wrongSheet);
+          } else {
+            console.log('should never reach here')
+  
+            // otherwise set the sheet name, then create the template
+            sheet.name = newSheetName;
+  
+            return context.sync()
+              .then(function () {
+                return sheetSetForTemplate(sheet, model, fieldType, context);
+              })
+          }
         })
         .catch(/*fail quietly*/);
     })

@@ -364,8 +364,11 @@ function login() {
       .getProjects(model.user);
   } else {
     msOffice.getProjects(model.user)
-      .then((response) => populateProjects(response.body))
-      .catch((error) => errorNetwork(error));
+      .then(response => populateProjects(response.body))
+      .catch(err => {
+        return errorNetwork(err)
+      }
+      );
   }
 }
 
@@ -1222,21 +1225,22 @@ function templateLoaderSuccess(data) {
 * most args are the HTTPResponse objects from the `withFailureHandler` promise
 *
 */
-function errorPopUp(err, type) {
+function errorPopUp(type, err) {
   if (isGoogle) {
     google.script.run.error(type);
+    console.log(err);
   } else {
-    msOffice.error(err, type);
+    msOffice.error(type, err);
+    console.log(err.status, err.response && err.response.text)
   }
   hideLoadingSpinner();
-  console.log(err);
 }
 function errorNetwork(err) {
-  errorPopUp(err);
+  errorPopUp("network", err);
 }
 function errorImpExp(err) {
-  errorPopUp(err, 'impExp');
+  errorPopUp('impExp', err);
 }
 function errorUnknown(err) {
-  errorPopUp(err, 'unknown');
+  errorPopUp('unknown', err);
 }
