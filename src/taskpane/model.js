@@ -77,6 +77,11 @@ var templateFields = {
                 idField: "RequirementTypeId", 
                 nameField: "Name", 
                 isActive: "IsActive"
+            },
+            // these are used in cases where the field in the override can be a calculated field. In those cases, the ID for the field is incorrect - such as here.
+            displayOverride: {
+                field: "RequirementTypeName",
+                values: ['Epic']
             }
         },
         {field: "ImportanceId", name: "Importance", type: params.fieldType.drop, 
@@ -224,7 +229,7 @@ var templateFields = {
         {field: "TestStepId", name: "Step ID", type: params.fieldType.subId, isSubTypeField: true},
         {field: "Name", name: "Test Case Name", type: params.fieldType.text, required: true, blocksSubType: true},
         {field: "Description", name: "Test Case Description", type: params.fieldType.text, blocksSubType: true},
-        {field: "Description", name: "Test Step Description", type: params.fieldType.text, isSubTypeField: true, requiredForSubType: true},
+        {field: "Description", name: "Test Step Description", type: params.fieldType.text, isSubTypeField: true, requiredForSubType: true, extraDataField: "LinkedTestCaseId", extraDataPrefix: "TC"},
         {field: "ExpectedResult", name: "Test Step Expected Result", type: params.fieldType.text, isSubTypeField: true, requiredForSubType: true},
         {field: "SampleData", name: "Test Step Sample Data", type: params.fieldType.text, isSubTypeField: true},
         {field: "TestCasePriorityId", name: "Test Case Priority", type: params.fieldType.drop, 

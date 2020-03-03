@@ -1174,20 +1174,24 @@ function templateLoader() {
       .templateLoader(model, params.fieldType);
   } else {
     msOffice.templateLoader(model, params.fieldType)
-      .then((response) => templateLoaderSuccess())
-      .catch((error) => errorNetwork(error));
+      .then(response => templateLoaderSuccess(response)) 
+      .catch(error => errorNetwork(error));
   }
 }
 
 
 
 // once template is loaded, enable the "send to Spira" button
-function templateLoaderSuccess(data) {
-
+function templateLoaderSuccess(response) {
   model.isTemplateLoaded = true;
 
   //turn off ajax spinner if it's on
   hideLoadingSpinner();
+
+  // if we get a response string back from server then that means the template was not fully loaded 
+  if (response && response.isTemplateLoadFail) {
+    return;
+  }
 
   // if we are trying to get data from Spira (ie we clicked the button do so that kicked off loading the template before getting the data itself, get it now)
   if (model.isGettingDataAttempt) {

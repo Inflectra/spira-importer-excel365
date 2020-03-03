@@ -228,7 +228,8 @@ function clearAll() {
 // handles showing popup messages to user
 // @param: message - strng of the raw message to show user
 // @param: messageTitle - strng of the message title to use
-function popupShow(message, messageTitle) {
+// @param: isTemplateLoadFail - bool about whether this message means that the template load sequence has failed
+function popupShow(message, messageTitle, isTemplateLoadFail) {
   if (!message) return;
 
   if (IS_GOOGLE) {
@@ -240,6 +241,10 @@ function popupShow(message, messageTitle) {
     document.getElementById("btn-confirm-cancel").style.visibility = "hidden";
     document.getElementById("btn-confirm-ok").onclick = function () { popupHide() };
   }
+  return !isTemplateLoadFail ? null : {
+    isTemplateLoadFail: isTemplateLoadFail,
+    message: message
+  };
 }
 
 function popupHide() {
@@ -609,13 +614,14 @@ function warn(string) {
 
 // Alert pop up for export success
 // @param: message - string sent from the export function
-function operationComplete(messageEnum) {
+// @param: isTemplateLoadFail - bool about whether this message means that the template load sequence has failed
+function operationComplete(messageEnum, isTemplateLoadFail) {
   if (IS_GOOGLE) {
     var message = STATUS_MESSAGE_GOOGLE[messageEnum] || STATUS_MESSAGE_GOOGLE['1'];
     okWarn(message);
   } else {
     var message = STATUS_MESSAGE_EXCEL[messageEnum] || STATUS_MESSAGE_EXCEL['1'];
-    popupShow(message, "");
+    return popupShow(message, "", isTemplateLoadFail);
   }
 }
 
@@ -688,7 +694,7 @@ function templateLoader(model, fieldType) {
           }
 
           if (onWrongSheet) {
-            return operationComplete(STATUS_ENUM.wrongSheet);
+            return operationComplete(STATUS_ENUM.wrongSheet, true);
           } else { 
             // otherwise set the sheet name, then create the template
             sheet.name = newSheetName;
@@ -2044,7 +2050,7 @@ function processSendToSpiraResponse(i, sentToSpira, entriesForExport, artifact, 
 function getFromSpiraGoogle(model, fieldType) {
   var requiredSheetName = model.currentArtifact.name + ", PR-" + model.currentProject.id;
   if (sheet.getName() != requiredSheetName) {
-    return operationComplete(STATUS_ENUM.wrongSheet);
+    return operationComplete(STATUS_ENUM.wrongSheet, false);
   }
 
   // 1. get from spira
@@ -2163,7 +2169,7 @@ function getFromSpiraExcel(model, fieldType) {
             return processDataFromSpiraExcel(response, model, fieldType)
           });
         } else {
-          return operationComplete(STATUS_ENUM.wrongSheet);
+          return operationComplete(STATUS_ENUM.wrongSheet, false);
         }
       })
   })
