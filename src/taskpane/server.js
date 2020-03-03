@@ -689,12 +689,9 @@ function templateLoader(model, fieldType) {
 
           if (onWrongSheet) {
             return operationComplete(STATUS_ENUM.wrongSheet);
-          } else {
-            console.log('should never reach here')
-  
+          } else { 
             // otherwise set the sheet name, then create the template
             sheet.name = newSheetName;
-  
             return context.sync()
               .then(function () {
                 return sheetSetForTemplate(sheet, model, fieldType, context);
@@ -1865,12 +1862,12 @@ function createEntryFromRow(row, model, fieldType, artifactIsHierarchical, compo
       // handle hierarchy fields - if required: checks artifact type is hierarchical and if this field sets hierarchy
       if (artifactIsHierarchical && fields[index].setsHierarchy) {
         // first get the number of indent characters
-        var indentCount = countIndentCharacters(value, model.indentCharacter);
-        var indentPosition = setRelativePosition(indentCount, lastIndentPosition);
-
-        // make sure to slice off the indent characters from the front
-        // TODO should also trim white space at start
-        value = value.slice(indentCount, value.length);
+        var indentInfo = countIndentCharacters(value, model.indentCharacter),
+          indentCount = indentInfo.indentCount,
+          trimCount = indentInfo.trimCount,
+          indentPosition = setRelativePosition(indentCount, lastIndentPosition);
+        // make sure to slice off the indent and spacing characters from the front
+        value = value.slice(trimCount, value.length);
 
         // set the indent position for this row
         entry.indentPosition = indentPosition;
@@ -1937,21 +1934,30 @@ function getIdFieldName(fields, fieldType, getSubType) {
 // @param: field - a single field string - one already designated as containing hierarchy info
 // @param: indentCharacter - the character used to denote an indent - e.g. ">"
 function countIndentCharacters(field, indentCharacter) {
-  var indentCount = 0;
+  var indentCount = 0,
+    trimCount = 0;
   //check for field value and indent character
   if (field && field[0] === indentCharacter) {
     //increment indent counter while there are '>'s present
-    while (field[0] === indentCharacter) {
+    while (field[0] === indentCharacter || field[0] === " ") {
+      // in all cases as to the trim count
+      trimCount++;
+      // add to the indent count if we have an indent character
+      if (field[0] === indentCharacter) {
+        indentCount++;
+      }
+
       //get entry length for slice
       var len = field.length;
       //slice the first character off of the entry
       field = field.slice(1, len);
-      indentCount++;
     }
   }
-  return indentCount;
+  return {
+    indentCount: indentCount,
+    trimCount: trimCount
+  };
 }
-
 
 
 // returns the correct relative indent position - based on the previous relative indent and other logic (int neg, pos, or zero)

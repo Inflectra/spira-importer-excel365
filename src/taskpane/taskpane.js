@@ -1231,7 +1231,7 @@ function errorPopUp(type, err) {
     console.log(err);
   } else {
     msOffice.error(type, err);
-    console.log(err.status, err.response && err.response.text)
+    console.log(err, err.status && err.status, err.response && err.response.text)
   }
   hideLoadingSpinner();
 }
