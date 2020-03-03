@@ -2346,15 +2346,20 @@ function matchArtifactsToFields(artifacts, artifactMeta, fields, fieldType, user
         field.type == fieldType.component ||
         field.type == fieldType.release
       ) {
-        return getListValueFromId(
-          originalFieldValue,
-          field.type,
-          fieldType,
-          field.values,
-          users,
-          components,
-          releases
-        );
+        // a field can have display overrides - if one of these overrides is in the artifact field specified, then this is returned instead of the lookup - used specifically to make sure RQ Epics show as Epics 
+        if (field.displayOverride && field.displayOverride.field && field.displayOverride.values && field.displayOverride.values.includes(art[field.displayOverride.field])) {
+          return art[field.displayOverride.field]
+        } else {
+          return getListValueFromId(
+            originalFieldValue,
+            field.type,
+            fieldType,
+            field.values,
+            users,
+            components,
+            releases
+          );
+        }
         // handle date fields 
       } else if (field.type == fieldType.date) {
         return convertWcfDateToJs(originalFieldValue);
@@ -2364,6 +2369,9 @@ function matchArtifactsToFields(artifacts, artifactMeta, fields, fieldType, user
         // handle hierarchical artifacts
       } else if (field.setsHierarchy) {
         return makeHierarchical(originalFieldValue, art.IndentLevel);
+        // handle artifacts that have extra information we can display to the user - ie where there is a linked test step this will add the information about the link at the end of the field
+      } else if (field.extraDataField && art[field.extraDataField]) {
+        return `${originalFieldValue} ${field.extraDataPrefix ? field.extraDataPrefix + ":" : "" }${art[field.extraDataField]}`;
       } else {
         return originalFieldValue;
       }
