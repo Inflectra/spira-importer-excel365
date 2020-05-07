@@ -170,7 +170,7 @@ var templateFields = {
         {field: "OwnerId", name: "Owner", type: params.fieldType.user},
         {field: "ComponentId", name: "Component", type: params.fieldType.component},
         {field: "EstimatedEffort", name: "Effort (in mins)", type: params.fieldType.int}, 
-        {field: "Folder", name: "Folder", type: params.fieldType.drop, values: [],
+        {field: "TaskFolderId", name: "Folder", type: params.fieldType.drop, values: [],
             bespoke: {
                 url: "/task-folders", 
                 idField: "TaskFolderId", 
