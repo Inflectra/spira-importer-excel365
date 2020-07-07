@@ -993,21 +993,30 @@ function setNumberValidation(sheet, columnNumber, rowLength, allowInvalid) {
 }
 
 
-// format columns based on a potential rang of factors - eg hide unsupported columns
+// format columns based on a potential range of factors - eg hide unsupported columns
 // @param: sheet - the sheet object
 // @param: model - full model data set
 function contentFormattingSetter(sheet, model) {
   for (var i = 0; i < model.fields.length; i++) {
     var columnNumber = i + 1;
+    var nonHeaderRows = IS_GOOGLE ? sheet.getMaxRows() - 1 : 1048576 - 1;
 
-    // change bg color of unsupported fields
-    if (model.fields[i].unsupported) {
+    // protect column
+    // read only fields - ie ones you can get from Spira but not create in Spira (as with IDs - eg task component)
+    if (model.fields[i].unsupported || model.fields[i].isReadOnly) {
+      var warning = "";
+      if (model.fields[i].unsupported) {
+        warning = model.fields[i].name + "unsupported";
+      } else if (model.fields[i].isReadOnly) {
+        warning = model.fields[i].name + " is read only";
+      }
+      
       protectColumn(
         sheet,
         columnNumber,
-        (sheet.getMaxRows() - 1),
+        nonHeaderRows,
         model.colors.bgReadOnly,
-        model.fields[i].name + "unsupported",
+        warning,
         true
       );
     }

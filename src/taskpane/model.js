@@ -168,7 +168,7 @@ var templateFields = {
         },
         {field: "AuthorId", name: "Author", type: params.fieldType.user},
         {field: "OwnerId", name: "Owner", type: params.fieldType.user},
-        {field: "ComponentId", name: "Component", type: params.fieldType.component},
+        {field: "ComponentId", name: "Component", type: params.fieldType.component, isReadOnly: true},
         {field: "EstimatedEffort", name: "Effort (in mins)", type: params.fieldType.int}, 
         {field: "TaskFolderId", name: "Folder", type: params.fieldType.drop, values: [],
             bespoke: {
