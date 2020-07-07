@@ -660,8 +660,8 @@ function okWarn(dialog) {
 
 // function that manages template creation - creating the header row, formatting cells, setting validation
 // @param: model - full model object from client containing field data for specific artifact, list of project users, components, etc
-// @param: fieldType - list of fieldType enums from client params object
-function templateLoader(model, fieldType) {
+// @param: fieldTypeEnums - list of fieldType enums from client params object
+function templateLoader(model, fieldTypeEnums) {
   var fields = model.fields;
   var sheet;
   var newSheetName = model.currentArtifact.name + ", PR-" + model.currentProject.id;
@@ -671,7 +671,7 @@ function templateLoader(model, fieldType) {
     sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
     // set sheet (tab) name to model name
     sheet.setName(newSheetName);
-    sheetSetForTemplate(sheet, model, fieldType, null);
+    sheetSetForTemplate(sheet, model, fieldTypeEnums, null);
 
   } else {
     return Excel.run(function (context) {
@@ -700,7 +700,7 @@ function templateLoader(model, fieldType) {
             sheet.name = newSheetName;
             return context.sync()
               .then(function () {
-                return sheetSetForTemplate(sheet, model, fieldType, context);
+                return sheetSetForTemplate(sheet, model, fieldTypeEnums, context);
               })
           }
         })
@@ -780,8 +780,8 @@ function headerSetter(sheet, fields, colors, context) {
 // a switch statement checks for any type requiring validation and carries out necessary action
 // @param: sheet - the sheet object
 // @param: model - full data to acccess global params as well as all fields
-// @param: fieldType - enums for field types
-function contentValidationSetter(sheet, model, fieldType, context) {
+// @param: fieldTypeEnums - enums for field types
+function contentValidationSetter(sheet, model, fieldTypeEnums, context) {
   // we can't easily get the max rows for excel so use the number of rows it always seems to have
   var nonHeaderRows = IS_GOOGLE ? sheet.getMaxRows() - 1 : 1048576 - 1;
 
@@ -792,8 +792,8 @@ function contentValidationSetter(sheet, model, fieldType, context) {
     switch (model.fields[index].type) {
 
       // ID fields: restricted to numbers and protected
-      case fieldType.id:
-      case fieldType.subId:
+      case fieldTypeEnums.id:
+      case fieldTypeEnums.subId:
         setNumberValidation(sheet, columnNumber, nonHeaderRows, false);
         protectColumn(
           sheet,
@@ -806,26 +806,26 @@ function contentValidationSetter(sheet, model, fieldType, context) {
         break;
 
       // INT and NUM fields are both treated by Sheets as numbers
-      case fieldType.int:
-      case fieldType.num:
+      case fieldTypeEnums.int:
+      case fieldTypeEnums.num:
         setNumberValidation(sheet, columnNumber, nonHeaderRows, false);
         break;
 
       // BOOL as Sheets has no bool validation, a yes/no dropdown is used
-      case fieldType.bool:
+      case fieldTypeEnums.bool:
         // 'True' and 'False' don't work as dropdown choices
         list.push("Yes", "No");
         setDropdownValidation(sheet, columnNumber, nonHeaderRows, list, false);
         break;
 
       // DATE fields get date validation
-      case fieldType.date:
+      case fieldTypeEnums.date:
         setDateValidation(sheet, columnNumber, nonHeaderRows, false);
         break;
 
       // DROPDOWNS and MULTIDROPDOWNS are both treated as simple dropdowns (Sheets does not have multi selects)
-      case fieldType.drop:
-      case fieldType.multi:
+      case fieldTypeEnums.drop:
+      case fieldTypeEnums.multi:
         var fieldList = model.fields[index].values;
         for (var i = 0; i < fieldList.length; i++) {
           list.push(fieldList[i].name);
@@ -834,7 +834,7 @@ function contentValidationSetter(sheet, model, fieldType, context) {
         break;
 
       // USER fields are dropdowns with the values coming from a project wide set list
-      case fieldType.user:
+      case fieldTypeEnums.user:
         for (var j = 0; j < model.projectUsers.length; j++) {
           list.push(model.projectUsers[j].name);
         }
@@ -842,7 +842,7 @@ function contentValidationSetter(sheet, model, fieldType, context) {
         break;
 
       // COMPONENT fields are dropdowns with the values coming from a project wide set list
-      case fieldType.component:
+      case fieldTypeEnums.component:
         for (var k = 0; k < model.projectComponents.length; k++) {
           list.push(model.projectComponents[k].name);
         }
@@ -850,7 +850,7 @@ function contentValidationSetter(sheet, model, fieldType, context) {
         break;
 
       // RELEASE fields are dropdowns with the values coming from a project wide set list
-      case fieldType.release:
+      case fieldTypeEnums.release:
         for (var l = 0; l < model.projectReleases.length; l++) {
           list.push(model.projectReleases[l].name);
         }
@@ -1089,8 +1089,8 @@ function protectColumn(sheet, columnNumber, rowLength, bgColor, name, hide) {
 
 // function that manages exporting data from the sheet - creating an array of objects based on entered data, then sending to Spira
 // @param: model - full model object from client containing field data for specific artifact, list of project users, components, etc
-// @param: fieldType - list of fieldType enums from client params object
-function sendToSpira(model, fieldType) {
+// @param: fieldTypeEnums - list of fieldType enums from client params object
+function sendToSpira(model, fieldTypeEnums) {
   // 0. SETUP FUNCTION LEVEL VARS
   var fields = model.fields,
     artifact = model.currentArtifact,
@@ -1104,9 +1104,9 @@ function sendToSpira(model, fieldType) {
       lastRow = sheet.getLastRow() - 1 || 10, // hack to make sure we pass in some rows to the sheetRange, otherwise it causes an error
       sheetRange = sheet.getRange(2, 1, lastRow, fields.length),
       sheetData = sheetRange.getValues(),
-      entriesForExport = createExportEntries(sheetData, model, fieldType, fields, artifact, artifactIsHierarchical);
+      entriesForExport = createExportEntries(sheetData, model, fieldTypeEnums, fields, artifact, artifactIsHierarchical);
     if (sheet.getName() == requiredSheetName) {
-      return sendExportEntriesGoogle(entriesForExport, sheetData, sheet, sheetRange, model, fieldType, fields, artifact);
+      return sendExportEntriesGoogle(entriesForExport, sheetData, sheet, sheetRange, model, fieldTypeEnums, fields, artifact);
     } else {
       var log = {
         status: STATUS_ENUM.wrongSheet
@@ -1123,8 +1123,8 @@ function sendToSpira(model, fieldType) {
         .then(function () {
           if (sheet.name == requiredSheetName) {
             var sheetData = sheetRange.values,
-              entriesForExport = createExportEntries(sheetData, model, fieldType, fields, artifact, artifactIsHierarchical);
-            return sendExportEntriesExcel(entriesForExport, sheetData, sheet, sheetRange, model, fieldType, fields, artifact, context);
+              entriesForExport = createExportEntries(sheetData, model, fieldTypeEnums, fields, artifact, artifactIsHierarchical);
+            return sendExportEntriesExcel(entriesForExport, sheetData, sheet, sheetRange, model, fieldTypeEnums, fields, artifact, context);
           } else {
             var log = {
               status: STATUS_ENUM.wrongSheet
@@ -1173,7 +1173,7 @@ function createExportEntries(sheetData, model, fieldType, fields, artifact, arti
         // if error free determine what field filtering is required - needed to choose type/subtype fields if subtype is present
       } else {
         var fieldsToFilter = relevantFields(rowChecks);
-        entry = createEntryFromRow(sheetData[rowToPrep], model, fieldType, artifactIsHierarchical, artifact.componentIsMulti, lastIndentPosition, fieldsToFilter);
+        entry = createEntryFromRow(sheetData[rowToPrep], model, fieldType, artifactIsHierarchical, lastIndentPosition, fieldsToFilter);
 
         // FOR SUBTYPE ENTRIES add flag on entry if it is a subtype
         if (fieldsToFilter === FIELD_MANAGEMENT_ENUMS.subType) {
@@ -1431,10 +1431,10 @@ function checkSingleEntryForErrors(singleEntry, log, artifact) {
 // @param: cell - value contained in specific cell beinq queried
 // @param: error - bool flag as to whether the entire row the cell is in contains an error
 // @param: field - the field specific to the cell
-// @param: fieldType - enum information about field types
+// @param: fieldTypeEnums - enum information about field types
 // @param: artifact - the currently selected artifact
 // @param: colors - object of colors to use based on different conditions
-function setFeedbackBgColor(cell, error, field, fieldType, artifact, colors) {
+function setFeedbackBgColor(cell, error, field, fieldTypeEnums, artifact, colors) {
   if (error) {
     // if we have a validation error, we can highlight the relevant cells if the art has no sub type
     if (!artifact.hasSubType) {
@@ -1442,7 +1442,7 @@ function setFeedbackBgColor(cell, error, field, fieldType, artifact, colors) {
         return colors.warning;
       } else {
         // keep original formatting
-        if (field.type == fieldType.subId || field.type == fieldType.id || field.unsupported) {
+        if (field.type == fieldTypeEnums.subId || field.type == fieldTypeEnums.id || field.unsupported) {
           return colors.bgReadOnly;
         } else {
           return null;
@@ -1457,7 +1457,7 @@ function setFeedbackBgColor(cell, error, field, fieldType, artifact, colors) {
     // no errors
   } else {
     // keep original formatting
-    if (field.type == fieldType.subId || field.type == fieldType.id || field.unsupported) {
+    if (field.type == fieldTypeEnums.subId || field.type == fieldTypeEnums.id || field.unsupported) {
       return colors.bgReadOnly;
     } else {
       return null;
@@ -1472,11 +1472,11 @@ function setFeedbackBgColor(cell, error, field, fieldType, artifact, colors) {
 // @param: cell - value contained in specific cell beinq queried
 // @param: error - bool flag as to whether the entire row the cell is in contains an error
 // @param: field - the field specific to the cell
-// @param: fieldType - enum information about field types
+// @param: fieldTypeEnums - enum information about field types
 // @param: message - relevant error message from the entry for this row
-function setFeedbackNote(cell, error, field, fieldType, message) {
+function setFeedbackNote(cell, error, field, fieldTypeEnums, message) {
   // handle entries with errors - add error notes into ID field
-  if (error && field.type == fieldType.id) {
+  if (error && field.type == fieldTypeEnums.id) {
     return message;
   } else {
     return null;
@@ -1489,10 +1489,10 @@ function setFeedbackNote(cell, error, field, fieldType, message) {
 // @param: cell - value contained in specific cell beinq queried
 // @param: error - bool flag as to whether the entire row the cell is in contains an error
 // @param: field - the field specific to the cell
-// @param: fieldType - enum information about field types
+// @param: fieldTypeEnums - enum information about field types
 // @param: newId - int that is the newly created Id for this row
 // @param: isSubType - bool if row is subtype or not - false on error as there will be no id to add anyway
-function setFeedbackValue(cell, error, field, fieldType, newId, isSubType) {
+function setFeedbackValue(cell, error, field, fieldTypeEnums, newId, isSubType) {
   // when there is an error we don't change any of the cell data
   if (error) {
     return cell;
@@ -1500,9 +1500,9 @@ function setFeedbackValue(cell, error, field, fieldType, newId, isSubType) {
     // handle successful entries - ie add ids into right place
   } else {
     var newIdToEnter = newId || "";
-    if (!isSubType && field.type == fieldType.id) {
+    if (!isSubType && field.type == fieldTypeEnums.id) {
       return newIdToEnter;
-    } else if (isSubType && field.type == fieldType.subId) {
+    } else if (isSubType && field.type == fieldTypeEnums.subId) {
       return newIdToEnter;
     } else {
       return cell;
@@ -1519,8 +1519,8 @@ function setFeedbackValue(cell, error, field, fieldType, newId, isSubType) {
 // @param: user - user object for API call authentication
 // @param: projectId - int of project id for API call
 // @param: fields - object of the relevant fields for specific artifact, along with all metadata about each
-// @param: fieldType - object of all field types with enums
-function manageSendingToSpira(entry, user, projectId, artifact, fields, fieldType, parentId) {
+// @param: fieldTypeEnums - object of all field types with enums
+function manageSendingToSpira(entry, user, projectId, artifact, fields, fieldTypeEnums, parentId) {
   var data,
     // make sure correct artifact ID is sent to handler (ie type vs subtype)
     artifactTypeIdToSend = entry.isSubType ? artifact.subTypeId : artifact.id,
@@ -1547,7 +1547,7 @@ function manageSendingToSpira(entry, user, projectId, artifact, fields, fieldTyp
       output.fromSpira = JSON.parse(data.getContentText());
 
       // get the id/subType id of the newly created artifact
-      var artifactIdField = getIdFieldName(fields, fieldType, entry.isSubType);
+      var artifactIdField = getIdFieldName(fields, fieldTypeEnums, entry.isSubType);
       output.newId = output.fromSpira[artifactIdField];
 
       // update the output parent ID to the new id only if the artifact has a subtype and this entry is NOT a subtype
@@ -1577,7 +1577,7 @@ function manageSendingToSpira(entry, user, projectId, artifact, fields, fieldTyp
         output.fromSpira = response.body;
 
         // get the id/subType id of the newly created artifact
-        var artifactIdField = getIdFieldName(fields, fieldType, entry.isSubType);
+        var artifactIdField = getIdFieldName(fields, fieldTypeEnums, entry.isSubType);
         output.newId = output.fromSpira[artifactIdField];
 
         // update the output parent ID to the new id only if the artifact has a subtype and this entry is NOT a subtype
@@ -1728,12 +1728,11 @@ function relevantFields(rowChecks) {
 // any field that does not pass validation receives a null value
 // @param: row - a 'row' of data that contains a single object representing all fields
 // @param: model - full model with info about fields, dropdowns, users, etc
-// @param: fieldType - object of all field types with enums
+// @param: fieldTypeEnums - object of all field types with enums
 // @param: artifactIsHierarchical - bool to tell function if this artifact has hierarchy (eg RQ and RL)
-// @param: componentIsMulti - bool of true if component field for relevant artifact type is multi select - not the default single selected)
 // @param: lastIndentPosition - int used for calculating relative indents for hierarchical artifacts
 // @param: fieldsToFilter - enum used for selecting fields to not add to object - defaults to using all if omitted
-function createEntryFromRow(row, model, fieldType, artifactIsHierarchical, componentIsMulti, lastIndentPosition, fieldsToFilter) {
+function createEntryFromRow(row, model, fieldTypeEnums, artifactIsHierarchical, lastIndentPosition, fieldsToFilter) {
   //create empty 'entry' object - include custom properties array here to avoid it being undefined later if needed
   var entry = {
     "CustomProperties": []
@@ -1760,15 +1759,15 @@ function createEntryFromRow(row, model, fieldType, artifactIsHierarchical, compo
       switch (fields[index].type) {
 
         // ID fields: restricted to numbers and blank on push, otherwise put
-        case fieldType.id:
-        case fieldType.subId:
+        case fieldTypeEnums.id:
+        case fieldTypeEnums.subId:
 
           customType = "IntegerValue";
           break;
 
         // INT and NUM fields are both treated by Sheets as numbers
-        case fieldType.int:
-        case fieldType.num:
+        case fieldTypeEnums.int:
+        case fieldTypeEnums.num:
           // only set the value if a number has been returned
           if (!isNaN(row[index])) {
             value = row[index];
@@ -1777,7 +1776,7 @@ function createEntryFromRow(row, model, fieldType, artifactIsHierarchical, compo
           break;
 
         // BOOL as Sheets has no bool validation, a yes/no dropdown is used
-        case fieldType.bool:
+        case fieldTypeEnums.bool:
           // 'True' and 'False' don't work as dropdown choices, so have to convert back
           if (row[index] == "Yes") {
             value = true;
@@ -1789,7 +1788,7 @@ function createEntryFromRow(row, model, fieldType, artifactIsHierarchical, compo
           break;
 
         // DATES - parse the data and add prefix/suffix for WCF
-        case fieldType.date:
+        case fieldTypeEnums.date:
           if (row[index]) {
             if (IS_GOOGLE) {
               value = row[index];
@@ -1802,7 +1801,7 @@ function createEntryFromRow(row, model, fieldType, artifactIsHierarchical, compo
           break;
 
         // ARRAY fields are for multiselect lists - currently not supported so just push value into an array to make sure server handles it correctly
-        case fieldType.arr:
+        case fieldTypeEnums.arr:
           if (row[index]) {
             value = [row[index]];
             customType = ""; // array fields not used for custom properties here
@@ -1810,7 +1809,7 @@ function createEntryFromRow(row, model, fieldType, artifactIsHierarchical, compo
           break;
 
         // DROPDOWNS - get id from relevant name, if one is present
-        case fieldType.drop:
+        case fieldTypeEnums.drop:
           idFromName = getIdFromName(row[index], fields[index].values);
           if (idFromName) {
             value = idFromName;
@@ -1819,7 +1818,7 @@ function createEntryFromRow(row, model, fieldType, artifactIsHierarchical, compo
           break;
 
         // MULTIDROPDOWNS - get id from relevant name, if one is present, set customtype to list value
-        case fieldType.multi:
+        case fieldTypeEnums.multi:
           idFromName = getIdFromName(row[index], fields[index].values);
           if (idFromName) {
             value = [idFromName];
@@ -1828,7 +1827,7 @@ function createEntryFromRow(row, model, fieldType, artifactIsHierarchical, compo
           break;
 
         // USER fields - get id from relevant name, if one is present
-        case fieldType.user:
+        case fieldTypeEnums.user:
           idFromName = getIdFromName(row[index], model.projectUsers);
           if (idFromName) {
             value = idFromName;
@@ -1837,17 +1836,17 @@ function createEntryFromRow(row, model, fieldType, artifactIsHierarchical, compo
           break;
 
         // COMPONENT fields - get id from relevant name, if one is present
-        case fieldType.component:
+        case fieldTypeEnums.component:
           idFromName = getIdFromName(row[index], model.projectComponents);
           if (idFromName) {
             value = idFromName;
             // component is multi select for test cases but not for other artifacts
-            customType = componentIsMulti ? "IntegerListValue" : "IntegerValue";
+            customType = fields[index].isMulti ? "IntegerListValue" : "IntegerValue";
           }
           break;
 
         // RELEASE fields - get id from relevant name, if one is present
-        case fieldType.release:
+        case fieldTypeEnums.release:
           idFromName = getIdFromName(row[index], model.projectReleases);
           if (idFromName) {
             value = idFromName;
@@ -1924,12 +1923,12 @@ function getIdFromName(string, list) {
 
 // finds and returns the field name for the specific artifiact's ID field
 // @param: fields - object of the relevant fields for specific artifact, along with all metadata about each
-// @param: fieldType - object of all field types with enums
+// @param: fieldTypeEnums - object of all field types with enums
 // @param: getSubType - optioanl bool to specify to return the subtype Id field, not the normal field (where two exist)
-function getIdFieldName(fields, fieldType, getSubType) {
+function getIdFieldName(fields, fieldTypeEnums, getSubType) {
   for (var i = 0; i < fields.length; i++) {
     var fieldToLookup = getSubType ? "subId" : "id";
-    if (fields[i].type == fieldType[fieldToLookup]) {
+    if (fields[i].type == fieldTypeEnums[fieldToLookup]) {
       return fields[i].field;
     }
   }
@@ -2046,9 +2045,9 @@ function processSendToSpiraResponse(i, sentToSpira, entriesForExport, artifact, 
  */
 
 // GOOGLE SPECIFIC VARIATION OF THIS FUNCTION handles getting paginated artifacts from Spira and saving them as a single array
-// @param: model: full model object from client
-// @param: enum of fieldTypes used
-function getFromSpiraGoogle(model, fieldType) {
+// @param: model - full model object from client
+// @param: fieldTypeEnums - enum of fieldTypes used
+function getFromSpiraGoogle(model, fieldTypeEnums) {
   var requiredSheetName = model.currentArtifact.name + ", PR-" + model.currentProject.id;
   if (sheet.getName() != requiredSheetName) {
     return operationComplete(STATUS_ENUM.wrongSheet, false);
@@ -2101,7 +2100,7 @@ function getFromSpiraGoogle(model, fieldType) {
   if (model.currentArtifact.hasSubType) {
     // find the id field
     var idFieldNameArray = model.fields.filter(function (field) {
-      return field.type === fieldType.id;
+      return field.type === fieldTypeEnums.id;
     });
     // if we have an id field, then we can find the id number for each artifact in the array
     if (idFieldNameArray && idFieldNameArray[0].field) {
@@ -2138,7 +2137,7 @@ function getFromSpiraGoogle(model, fieldType) {
     artifacts,
     model.currentArtifact,
     model.fields,
-    fieldType,
+    fieldTypeEnums,
     model.projectUsers,
     model.projectComponents,
     model.projectReleases
@@ -2177,9 +2176,9 @@ function getFromSpiraExcel(model, fieldType) {
 }
 
 // EXCEL SPECIFIC VARIATION OF THIS FUNCTION handles getting paginated artifacts from Spira and saving them as a single array
-// @param: model: full model object from client
-// @param: enum of fieldTypes used
-async function getDataFromSpiraExcel(model, fieldType) {
+// @param: model - full model object from client
+// @param: fieldTypeEnums - enum of fieldTypes used
+async function getDataFromSpiraExcel(model, fieldTypeEnums) {
   // 1. get from spira
   // note we don't do this by getting the count of each artifact first, because of a bug in getting the release count
   var currentPage = 0;
@@ -2231,7 +2230,7 @@ async function getDataFromSpiraExcel(model, fieldType) {
   if (model.currentArtifact.hasSubType) {
     // find the id field
     var idFieldNameArray = model.fields.filter(function (field) {
-      return field.type === fieldType.id;
+      return field.type === fieldTypeEnums.id;
     });
 
     // if we have an id field, then we can find the id number for each artifact in the array
@@ -2302,14 +2301,14 @@ function processDataFromSpiraExcel(artifacts, model, fieldType) {
 }
 
 // matches data against the fields to be shown in the spreadsheet - not all data fields are shown
-// @param: array of the artifact objects we GOT from Spira
-// @param: object of the meta information about the artifact
-// @param: array of the fields that make up the sheet display
-// @param: enum object of the different fieldTypes
-// @param: array of the user objects
-// @param: array of the component objects
-// @param: array of the release objects
-function matchArtifactsToFields(artifacts, artifactMeta, fields, fieldType, users, components, releases) {
+// @param: artifacts - array of the artifact objects we GOT from Spira
+// @param: artifactMeta - object of the meta information about the artifact
+// @param: fields - array of the fields that make up the sheet display
+// @param: fieldTypeEnums - enum object of the different fieldTypes
+// @param: users - array of the user objects
+// @param: components - array of the component objects
+// @param: releases - array of the release objects
+function matchArtifactsToFields(artifacts, artifactMeta, fields, fieldTypeEnums, users, components, releases) {
   return artifacts.map(function (art) {
     return fields.map(function (field) {
       var originalFieldValue = "";
@@ -2347,11 +2346,11 @@ function matchArtifactsToFields(artifacts, artifactMeta, fields, fieldType, user
 
       // handle list values - turn from the id to the actual string so the string can be displayed
       if (
-        field.type == fieldType.drop ||
-        field.type == fieldType.multi ||
-        field.type == fieldType.user ||
-        field.type == fieldType.component ||
-        field.type == fieldType.release
+        field.type == fieldTypeEnums.drop ||
+        field.type == fieldTypeEnums.multi ||
+        field.type == fieldTypeEnums.user ||
+        field.type == fieldTypeEnums.component ||
+        field.type == fieldTypeEnums.release
       ) {
         // a field can have display overrides - if one of these overrides is in the artifact field specified, then this is returned instead of the lookup - used specifically to make sure RQ Epics show as Epics 
         if (field.displayOverride && field.displayOverride.field && field.displayOverride.values && field.displayOverride.values.includes(art[field.displayOverride.field])) {
@@ -2362,7 +2361,7 @@ function matchArtifactsToFields(artifacts, artifactMeta, fields, fieldType, user
           return getListValueFromId(
             fieldValueForLookup,
             field.type,
-            fieldType,
+            fieldTypeEnums,
             field.values,
             users,
             components,
@@ -2370,10 +2369,10 @@ function matchArtifactsToFields(artifacts, artifactMeta, fields, fieldType, user
           );
         }
         // handle date fields 
-      } else if (field.type == fieldType.date) {
+      } else if (field.type == fieldTypeEnums.date) {
         return convertWcfDateToJs(originalFieldValue);
         // handle booleans - need to make sure null values are ignored ie treated differently to false
-      } else if (field.type == fieldType.bool) {
+      } else if (field.type == fieldTypeEnums.bool) {
         return originalFieldValue ? "Yes" : originalFieldValue === false ? "No" : "";
         // handle hierarchical artifacts
       } else if (field.setsHierarchy) {
@@ -2389,27 +2388,27 @@ function matchArtifactsToFields(artifacts, artifactMeta, fields, fieldType, user
 }
 
 // takes an id for a lookup field and returns the string to display
-// @param: int of the id to lookup
-// @param: enum of the type of filed we need to look up
-// @param: enum object of the different fieldTypes
-// @param: array of the value objects for bespoke lookups
-// @param: array of the user objects
-// @param: array of the component objects
-// @param: array of the release objects
-function getListValueFromId(id, type, fieldType, fieldValues, users, components, releases) {
+// @param: id - int of the id to lookup
+// @param: type - enum of the type of filed we need to look up
+// @param: fieldTypeEnums - enum object of the different fieldTypes
+// @param: fieldValues - array of the value objects for bespoke lookups
+// @param: users - array of the user objects
+// @param: components - array of the component objects
+// @param: releases - array of the release objects
+function getListValueFromId(id, type, fieldTypeEnums, fieldValues, users, components, releases) {
   var match = null;
   switch (type) {
-    case fieldType.drop:
-    case fieldType.multi:
+    case fieldTypeEnums.drop:
+    case fieldTypeEnums.multi:
       match = fieldValues.filter(function (val) { return val.id == id; });
       break;
-    case fieldType.user:
+    case fieldTypeEnums.user:
       match = users.filter(function (val) { return val.id == id; });
       break;
-    case fieldType.component:
+    case fieldTypeEnums.component:
       match = components.filter(function (val) { return val.id == id; });
       break;
-    case fieldType.release:
+    case fieldTypeEnums.release:
       match = releases.filter(function (val) { return val.id == id; });
       break;
   }

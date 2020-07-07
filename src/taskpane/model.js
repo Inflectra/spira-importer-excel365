@@ -54,8 +54,8 @@ var params = {
     // enums and various metadata for all artifacts potentially used by the system
     artifacts: [
         {field: 'requirements', name: 'Requirements', id: 1, hierarchical: true},
-        {field: 'testCases',    name: 'Test Cases',   id: 2, hasFolders: true, hasSubType: true, subTypeId: 7, subTypeName: "TestSteps", componentIsMulti: true},
-        {field: 'incidents',    name: 'Incidents',    id: 3, componentIsMulti: true},
+        {field: 'testCases',    name: 'Test Cases',   id: 2, hasFolders: true, hasSubType: true, subTypeId: 7, subTypeName: "TestSteps"},
+        {field: 'incidents',    name: 'Incidents',    id: 3},
         {field: 'releases',     name: 'Releases',     id: 4, hierarchical: true},
         {field: 'testRuns',     name: 'Test Runs',    id: 5, disabled: true, hidden: true},
         {field: 'tasks',        name: 'Tasks',        id: 6, hasFolders: true},
@@ -221,7 +221,7 @@ var templateFields = {
         {field: "EstimatedEffort", name: "Estimated Effort (mins)", type: params.fieldType.num},
         {field: "ActualEffort", name: "Actual Effort (mins)", type: params.fieldType.num},
         {field: "RemainingEffort", name: "Remaining Effort (mins)", type: params.fieldType.num},
-        {field: "ComponentIds", name: "Component", type: params.fieldType.component}
+        {field: "ComponentIds", name: "Component", type: params.fieldType.component, isMulti: true}
         
     ],
     
@@ -267,7 +267,7 @@ var templateFields = {
               isProjectBased: true
             }
         },
-        {field: "ComponentIds", name: "Test Case Component", type: params.fieldType.component}
+        {field: "ComponentIds", name: "Test Case Component", type: params.fieldType.component, isMulti: true}
      ]
 };
 
