@@ -794,7 +794,7 @@ function contentValidationSetter(sheet, model, fieldTypeEnums, context) {
       // ID fields: restricted to numbers and protected
       case fieldTypeEnums.id:
       case fieldTypeEnums.subId:
-        setNumberValidation(sheet, columnNumber, nonHeaderRows, false);
+        setPositiveIntValidation(sheet, columnNumber, nonHeaderRows, false);
         protectColumn(
           sheet,
           columnNumber,
@@ -807,6 +807,10 @@ function contentValidationSetter(sheet, model, fieldTypeEnums, context) {
 
       // INT and NUM fields are both treated by Sheets as numbers
       case fieldTypeEnums.int:
+        setIntegerValidation(sheet, columnNumber, nonHeaderRows, false);
+        break;
+
+      // NUM fields are handled as decimals by Excel though
       case fieldTypeEnums.num:
         setNumberValidation(sheet, columnNumber, nonHeaderRows, false);
         break;
@@ -947,12 +951,12 @@ function setDateValidation(sheet, columnNumber, rowLength, allowInvalid) {
 
 
 
-// create number validation on set column based on specified values
+// create positive integer validation on set column based on specified values
 // @param: sheet - the sheet object
 // @param: columnNumber - int of the column to validate
 // @param: rowLength - int of the number of rows for range (global param)
 // @param: allowInvalid - bool to state whether to restrict any values to those in validation or not
-function setNumberValidation(sheet, columnNumber, rowLength, allowInvalid) {
+function setPositiveIntValidation(sheet, columnNumber, rowLength, allowInvalid) {
   // create range
   if (IS_GOOGLE) {
     var range = sheet.getRange(2, columnNumber, rowLength);
@@ -988,6 +992,96 @@ function setNumberValidation(sheet, columnNumber, rowLength, allowInvalid) {
       showAlert: true,
       style: "Stop",
       title: "Negative Number Entered"
+    };
+  }
+}
+
+// create number validation on set column based on specified values
+// @param: sheet - the sheet object
+// @param: columnNumber - int of the column to validate
+// @param: rowLength - int of the number of rows for range (global param)
+// @param: allowInvalid - bool to state whether to restrict any values to those in validation or not
+function setIntegerValidation(sheet, columnNumber, rowLength, allowInvalid) {
+  // create range
+  if (IS_GOOGLE) {
+    var range = sheet.getRange(2, columnNumber, rowLength);
+
+    // create the validation rule
+    //must be a valid number greater than -1 (also excludes 1.1.0 style numbers)
+    var rule = SpreadsheetApp.newDataValidation()
+      .requireNumberGreaterThan(0)
+      .setAllowInvalid(allowInvalid)
+      .setHelpText('Must be a whole number')
+      .build();
+    range.setDataValidation(rule);
+
+  } else {
+    var range = sheet.getRangeByIndexes(1, columnNumber - 1, rowLength, 1);
+    range.dataValidation.clear();
+
+    var greaterThanZeroRule = {
+      wholeNumber: {
+        formula1: 0,
+        operator: Excel.DataValidationOperator.greaterThan
+      }
+    };
+    range.dataValidation.rule = greaterThanZeroRule;
+
+    range.dataValidation.prompt = {
+      message: "Please enter a valid number.",
+      showPrompt: true,
+      title: "Whole Numbers only"
+    };
+    range.dataValidation.errorAlert = {
+      message: "Sorry, only whole numbers are allowed.",
+      showAlert: true,
+      style: "Stop",
+      title: "Invalid entry"
+    };
+  }
+}
+
+// create decimal validation on set column based on specified values - identical to integer validation for Google Sheets as of 2020-07
+// @param: sheet - the sheet object
+// @param: columnNumber - int of the column to validate
+// @param: rowLength - int of the number of rows for range (global param)
+// @param: allowInvalid - bool to state whether to restrict any values to those in validation or not
+function setNumberValidation(sheet, columnNumber, rowLength, allowInvalid) {
+  // create range
+  if (IS_GOOGLE) {
+    var range = sheet.getRange(2, columnNumber, rowLength);
+
+    // create the validation rule
+    //must be a valid number greater than -1 (also excludes 1.1.0 style numbers)
+    var rule = SpreadsheetApp.newDataValidation()
+      .requireNumberGreaterThan(0)
+      .setAllowInvalid(allowInvalid)
+      .setHelpText('Must be a number')
+      .build();
+    range.setDataValidation(rule);
+
+  } else {
+    var range = sheet.getRangeByIndexes(1, columnNumber - 1, rowLength, 1);
+    range.dataValidation.clear();
+
+    var greaterThanZeroRule = {
+      decimal: {
+        formula1: 0,
+        operator: Excel.DataValidationOperator.greaterThan
+      }
+    };
+    range.dataValidation.rule = greaterThanZeroRule;
+
+    range.dataValidation.prompt = {
+      message: "Please enter a valid number.",
+      showPrompt: true,
+      title: "Numbers only"
+    };
+    range.dataValidation.errorAlert = {
+      message: "Sorry, only numbers are allowed.",
+      showAlert: true,
+      style: "Stop",
+      title: "Invalid entry"
     };
   }
 }
@@ -1774,13 +1868,21 @@ function createEntryFromRow(row, model, fieldTypeEnums, artifactIsHierarchical, 
           customType = "IntegerValue";
           break;
 
-        // INT and NUM fields are both treated by Sheets as numbers
+        // INT fields
         case fieldTypeEnums.int:
-        case fieldTypeEnums.num:
           // only set the value if a number has been returned
           if (!isNaN(row[index])) {
             value = row[index];
             customType = "IntegerValue";
+          }
+          break;
+
+        // DECIMAL fields
+        case fieldTypeEnums.num:
+          // only set the value if a number has been returned
+          if (!isNaN(row[index])) {
+            value = row[index];
+            customType = "DecimalValue";
           }
           break;
 

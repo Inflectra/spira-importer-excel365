@@ -218,11 +218,10 @@ var templateFields = {
         {field: "CreationDate", name: "Date Detected", type: params.fieldType.date},
         {field: "DetectedReleaseId", name: "Detected Release", type: params.fieldType.release},
         {field: "ResolvedReleaseId", name: "Resolved Release", type: params.fieldType.release},
-        {field: "EstimatedEffort", name: "Estimated Effort (mins)", type: params.fieldType.num},
-        {field: "ActualEffort", name: "Actual Effort (mins)", type: params.fieldType.num},
-        {field: "RemainingEffort", name: "Remaining Effort (mins)", type: params.fieldType.num},
-        {field: "ComponentIds", name: "Component", type: params.fieldType.component, isMulti: true}
-        
+        {field: "ComponentIds", name: "Component", type: params.fieldType.component, isMulti: true},   
+        {field: "EstimatedEffort", name: "Estimated Effort (mins)", type: params.fieldType.int},
+        {field: "ActualEffort", name: "Actual Effort (mins)", type: params.fieldType.int},
+        {field: "RemainingEffort", name: "Remaining Effort (mins)", type: params.fieldType.int}
     ],
     
     testCases: [
