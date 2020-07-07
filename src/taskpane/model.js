@@ -70,7 +70,7 @@ var templateFields = {
         {field: "RequirementId", name: "ID", type: params.fieldType.id},
         {field: "Name", name: "Name", type: params.fieldType.text, required: true, setsHierarchy: true},
         {field: "Description", name: "Description", type: params.fieldType.text},
-        {field: "ReleaseVersionNumber", name: "Release Version", type: params.fieldType.release},
+        {field: "ReleaseId", name: "Release Version", type: params.fieldType.release},
         {field: "RequirementTypeId", name: "Type", type: params.fieldType.drop, required: true, 
             bespoke: {
                 url: "/requirements/types", 
