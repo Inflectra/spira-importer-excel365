@@ -221,6 +221,7 @@ var templateFields = {
         {field: "EstimatedEffort", name: "Estimated Effort (mins)", type: params.fieldType.num},
         {field: "ActualEffort", name: "Actual Effort (mins)", type: params.fieldType.num},
         {field: "RemainingEffort", name: "Remaining Effort (mins)", type: params.fieldType.num},
+        {field: "ComponentIds", name: "Component", type: params.fieldType.component}
         
     ],
     

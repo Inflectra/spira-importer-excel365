@@ -5,19 +5,19 @@
  * ==============================
  *
  */
-export { 
-  clearAll, 
+export {
+  clearAll,
   error,
   getBespoke,
   getComponents,
   getCustoms,
-  getFromSpiraExcel, 
-  getProjects, 
+  getFromSpiraExcel,
+  getProjects,
   getReleases,
   getUsers,
-	getTemplateFromProjectId,
+  getTemplateFromProjectId,
   operationComplete,
-  sendToSpira, 
+  sendToSpira,
   templateLoader,
   warn
 };
@@ -42,55 +42,55 @@ import { showPanel, hidePanel } from './taskpane.js';
 
 // globals
 var API_PROJECT_BASE = '/services/v6_0/RestService.svc/projects/',
-	API_PROJECT_BASE_NO_SLASH = '/services/v6_0/RestService.svc/projects',
-	API_TEMPLATE_BASE = '/services/v6_0/RestService.svc/project-templates/',
-	ART_ENUMS = {
-		requirements: 1,
-		testCases: 2,
-		incidents: 3,
-		releases: 4,
-		testRuns: 5,
-		tasks: 6,
-		testSteps: 7,
-		testSets: 8
-	},
-	INITIAL_HIERARCHY_OUTDENT = -20,
-	GET_PAGINATION_SIZE = 100,
-	EXCEL_MAX_ROWS = 1000,
-	FIELD_MANAGEMENT_ENUMS = {
-		all: 1,
-		standard: 2,
-		subType: 3
-	},
-	STATUS_ENUM = {
-		allSuccess: 1,
-		someError: 2,
-		allError: 3,
-		wrongSheet: 4
-	},
-	STATUS_MESSAGE_GOOGLE = {
-		1: "All done! To send more data over, clear the sheet first.",
-		2: "Sorry, but there were some problems (these cells are marked in red). Check the notes on the relevant ID field for explanations.",
-		3: "We're really sorry, but we couldn't send anything to SpiraTeam - please check notes on the ID fields for more information.",
-		4: "You are not on the correct worksheet. Please go to the sheet that matches the one listed on the Spira taskpane / the selection you made in the sidebar."
-	},
-	STATUS_MESSAGE_EXCEL = {
-		1: "All done! To send more data over, clear the sheet first.",
-		2: "Sorry, but there were some problems (these cells are marked in red). Check the notes on the relevant ID field for explanations.",
-		3: "We're really sorry, but we couldn't send anything to SpiraTeam - please check notes on the ID fields for more information.",
-		4: "You are not on the correct worksheet. Please go to the sheet that matches the one listed on the Spira taskpane / the selection you made in the sidebar."
-	},
-    CUSTOM_PROP_TYPE_ENUM = {
-      1: "StringValue",
-      2: "IntegerValue",
-      3: "DecimalValue",
-      4: "BooleanValue",
-      5: "DateTimeValue",
-      6: "IntegerValue",
-      7: "IntegerListValue",
-      8: "IntegerValue"
-      
-    },
+  API_PROJECT_BASE_NO_SLASH = '/services/v6_0/RestService.svc/projects',
+  API_TEMPLATE_BASE = '/services/v6_0/RestService.svc/project-templates/',
+  ART_ENUMS = {
+    requirements: 1,
+    testCases: 2,
+    incidents: 3,
+    releases: 4,
+    testRuns: 5,
+    tasks: 6,
+    testSteps: 7,
+    testSets: 8
+  },
+  INITIAL_HIERARCHY_OUTDENT = -20,
+  GET_PAGINATION_SIZE = 100,
+  EXCEL_MAX_ROWS = 1000,
+  FIELD_MANAGEMENT_ENUMS = {
+    all: 1,
+    standard: 2,
+    subType: 3
+  },
+  STATUS_ENUM = {
+    allSuccess: 1,
+    someError: 2,
+    allError: 3,
+    wrongSheet: 4
+  },
+  STATUS_MESSAGE_GOOGLE = {
+    1: "All done! To send more data over, clear the sheet first.",
+    2: "Sorry, but there were some problems (these cells are marked in red). Check the notes on the relevant ID field for explanations.",
+    3: "We're really sorry, but we couldn't send anything to SpiraTeam - please check notes on the ID fields for more information.",
+    4: "You are not on the correct worksheet. Please go to the sheet that matches the one listed on the Spira taskpane / the selection you made in the sidebar."
+  },
+  STATUS_MESSAGE_EXCEL = {
+    1: "All done! To send more data over, clear the sheet first.",
+    2: "Sorry, but there were some problems (these cells are marked in red). Check the notes on the relevant ID field for explanations.",
+    3: "We're really sorry, but we couldn't send anything to SpiraTeam - please check notes on the ID fields for more information.",
+    4: "You are not on the correct worksheet. Please go to the sheet that matches the one listed on the Spira taskpane / the selection you made in the sidebar."
+  },
+  CUSTOM_PROP_TYPE_ENUM = {
+    1: "StringValue",
+    2: "IntegerValue",
+    3: "DecimalValue",
+    4: "BooleanValue",
+    5: "DateTimeValue",
+    6: "IntegerValue",
+    7: "IntegerListValue",
+    8: "IntegerValue"
+
+  },
   INLINE_STYLING = "style='font-family: sans-serif'",
   IS_GOOGLE = typeof UrlFetchApp != "undefined";
 
@@ -277,10 +277,10 @@ function fetcher(currentUser, fetcherURL) {
   var decoded = typeof Utilities != "undefined" ? Utilities.base64Decode(currentUser.api_key) : atob(currentUser.api_key);
   var APIKEY = typeof Utilities != "undefined" ? Utilities.newBlob(decoded).getDataAsString() : decoded;
 
-	//build URL from args
-	var fullUrl = currentUser.url + fetcherURL + "username=" + currentUser.userName + APIKEY;
-	//set MIME type
-	var params = { "Content-Type": "application/json" };
+  //build URL from args
+  var fullUrl = currentUser.url + fetcherURL + "username=" + currentUser.userName + APIKEY;
+  //set MIME type
+  var params = { "Content-Type": "application/json", "accepts": "application/json" };
 
   //call Google fetch function (UrlFetchApp) if using google
   if (IS_GOOGLE) {
@@ -289,12 +289,12 @@ function fetcher(currentUser, fetcherURL) {
     //unparsed response contains error codes if needed
     return JSON.parse(response);
 
-	//for v6 API in Spira you HAVE to send a Content-Type header
-	} else {
-		return superagent
-			.get(fullUrl)
-			.set("Content-Type", "application/json", "accepts", "application/json")
-	}
+    //for v6 API in Spira you HAVE to send a Content-Type header
+  } else {
+    return superagent
+      .get(fullUrl)
+      .set("Content-Type", "application/json", "accepts", "application/json")
+  }
 
 }
 
@@ -305,7 +305,7 @@ function fetcher(currentUser, fetcherURL) {
 // @param: currentUser - object with details about the current user
 function getProjects(currentUser) {
   var fetcherURL = API_PROJECT_BASE_NO_SLASH + '?';
-	return fetcher(currentUser, fetcherURL);
+  return fetcher(currentUser, fetcherURL);
 }
 
 
@@ -315,8 +315,8 @@ function getProjects(currentUser) {
 // @param: currentUser - object with details about the current user
 // @param: projectId - int id for current project
 function getTemplateFromProjectId(currentUser, projectId) {
-	var fetcherURL = API_PROJECT_BASE + projectId + '?';
-	return fetcher(currentUser, fetcherURL);
+  var fetcherURL = API_PROJECT_BASE + projectId + '?';
+  return fetcher(currentUser, fetcherURL);
 }
 
 
@@ -325,8 +325,8 @@ function getTemplateFromProjectId(currentUser, projectId) {
 // @param: currentUser - object with details about the current user
 // @param: projectId - int id for current project
 function getComponents(currentUser, projectId) {
-	var fetcherURL = API_PROJECT_BASE + projectId + '/components?active_only=true&include_deleted=false&';
-	return fetcher(currentUser, fetcherURL);
+  var fetcherURL = API_PROJECT_BASE + projectId + '/components?active_only=true&include_deleted=false&';
+  return fetcher(currentUser, fetcherURL);
 }
 
 
@@ -336,8 +336,8 @@ function getComponents(currentUser, projectId) {
 // @param: projectId - int id for current project
 // @param: artifactName - int of the current artifact - API refers to this as the artifactTypeName but the ID is required
 function getCustoms(currentUser, templateId, artifactName) {
-	var fetcherURL = API_TEMPLATE_BASE + templateId + '/custom-properties/' + artifactName + '?';
-	return fetcher(currentUser, fetcherURL);
+  var fetcherURL = API_TEMPLATE_BASE + templateId + '/custom-properties/' + artifactName + '?';
+  return fetcher(currentUser, fetcherURL);
 }
 
 
@@ -356,17 +356,17 @@ function getBespoke(currentUser, templateId, projectId, artifactName, field) {
   } else {
     fetcherURL = API_TEMPLATE_BASE + templateId + field.bespoke.url + '?';
   }
-	var results = fetcher(currentUser, fetcherURL);
-	
-	if (IS_GOOGLE) {
-		return {
-			artifactName: artifactName,
-			field: field,
-			values: results
-		}
-	} else {
-		return results;
-	}
+  var results = fetcher(currentUser, fetcherURL);
+
+  if (IS_GOOGLE) {
+    return {
+      artifactName: artifactName,
+      field: field,
+      values: results
+    }
+  } else {
+    return results;
+  }
 }
 
 
@@ -469,7 +469,7 @@ function poster(body, currentUser, postUrl) {
     return superagent
       .post(fullUrl)
       .send(body)
-			.set("Content-Type", "application/json", "accepts", "application/json")
+      .set("Content-Type", "application/json", "accepts", "application/json")
 
   }
 }
@@ -500,45 +500,45 @@ function postArtifactToSpira(entry, user, projectId, artifactTypeId, parentId) {
 				postUrl = API_PROJECT_BASE + projectId + '/requirements/indent/' + INITIAL_HIERARCHY_OUTDENT + '?';
 			// if no parentId then post as a regular RQ 
 			} else if (parentId === -1) {
-				postUrl = API_PROJECT_BASE + projectId + '/requirements?';
-			// we should have a parent Id set so add this RQ as its child
-			} else {
-				postUrl = API_PROJECT_BASE + projectId + '/requirements/parent/' + parentId + '?';
-			}
-			break;
+        postUrl = API_PROJECT_BASE + projectId + '/requirements?';
+        // we should have a parent Id set so add this RQ as its child
+      } else {
+        postUrl = API_PROJECT_BASE + projectId + '/requirements/parent/' + parentId + '?';
+      }
+      break;
 
-		// TEST CASES
-		case ART_ENUMS.testCases:
-			postUrl = API_PROJECT_BASE + projectId + '/test-cases?';
-			break;
+    // TEST CASES
+    case ART_ENUMS.testCases:
+      postUrl = API_PROJECT_BASE + projectId + '/test-cases?';
+      break;
 
-		// INCIDENTS
-		case ART_ENUMS.incidents:
-			postUrl = API_PROJECT_BASE + projectId + '/incidents?';
-			break;
-		
-		// RELEASES
-		case ART_ENUMS.releases:
-			// if no parentId then post as a regular release
-			if (parentId === -1) {
-				postUrl = API_PROJECT_BASE + projectId + '/releases?';
-			// we should have a parent Id set so add this RQ as its child
-			} else {
-				postUrl = API_PROJECT_BASE + projectId + '/releases/' + parentId + '?';
-			}
-			break;
+    // INCIDENTS
+    case ART_ENUMS.incidents:
+      postUrl = API_PROJECT_BASE + projectId + '/incidents?';
+      break;
 
-		// TASKS
-		case ART_ENUMS.tasks:
-			postUrl = API_PROJECT_BASE + projectId + '/tasks?';
-			break;
+    // RELEASES
+    case ART_ENUMS.releases:
+      // if no parentId then post as a regular release
+      if (parentId === -1) {
+        postUrl = API_PROJECT_BASE + projectId + '/releases?';
+        // we should have a parent Id set so add this RQ as its child
+      } else {
+        postUrl = API_PROJECT_BASE + projectId + '/releases/' + parentId + '?';
+      }
+      break;
 
-		// TEST STEPS
-		case ART_ENUMS.testSteps:
-			postUrl = parentId !== -1 ? API_PROJECT_BASE + projectId + '/test-cases/' + parentId + '/test-steps?' : null;
-			// only post the test step if we have a parent id
-			break;
-	}
+    // TASKS
+    case ART_ENUMS.tasks:
+      postUrl = API_PROJECT_BASE + projectId + '/tasks?';
+      break;
+
+    // TEST STEPS
+    case ART_ENUMS.testSteps:
+      postUrl = parentId !== -1 ? API_PROJECT_BASE + projectId + '/test-cases/' + parentId + '/test-steps?' : null;
+      // only post the test step if we have a parent id
+      break;
+  }
 
   return postUrl ? poster(JSON_body, user, postUrl) : null;
 }
@@ -679,7 +679,7 @@ function templateLoader(model, fieldType) {
       sheet = context.workbook.worksheets.getActiveWorksheet();
       var worksheets = context.workbook.worksheets;
       worksheets.load('items');
-      
+
       return context.sync()
         .then(function () {
           let onWrongSheet = false;
@@ -695,7 +695,7 @@ function templateLoader(model, fieldType) {
 
           if (onWrongSheet) {
             return operationComplete(STATUS_ENUM.wrongSheet, true);
-          } else { 
+          } else {
             // otherwise set the sheet name, then create the template
             sheet.name = newSheetName;
             return context.sync()
@@ -1895,7 +1895,8 @@ function createEntryFromRow(row, model, fieldType, artifactIsHierarchical, compo
         // STANDARD FIELDS:
         // add standard fields in standard way - only add if field contains data
       } else if (value) {
-        entry[fields[index].field] = value;
+        // if the standard field is a multi select type as set in the switch above, pass the value through in an array
+        entry[fields[index].field] = (customType == "IntegerListValue") ? [value] : value;
       }
     }
 
@@ -2260,7 +2261,7 @@ async function getDataFromSpiraExcel(model, fieldType) {
 
       var idFieldName = idFieldNameArray[0].field;
       var artifactsWithSubTypes = [];
-      
+
       for (var i = 0; i < artifacts.length; i++) {
         artifactsWithSubTypes.push(artifacts[i]);
         await getArtifactSubs(artifacts[i]);
@@ -2327,7 +2328,7 @@ function matchArtifactsToFields(artifacts, artifactMeta, fields, fieldType, user
           }
         }
 
-        // handle subtype fields
+      // handle subtype fields
       } else if (field.isSubTypeField) {
         if (artifactMeta.hasSubType && art.isSubType) {
           // first check to make sure the field exists in the artifact data
@@ -2336,7 +2337,7 @@ function matchArtifactsToFields(artifacts, artifactMeta, fields, fieldType, user
           }
         }
 
-        // handle standard fields
+      // handle standard fields
       } else if (!art.isSubType) {
         // first check to make sure the field exists in the artifact data
         if (typeof art[field.field] != "undefined" && art[field.field]) {
@@ -2356,8 +2357,10 @@ function matchArtifactsToFields(artifacts, artifactMeta, fields, fieldType, user
         if (field.displayOverride && field.displayOverride.field && field.displayOverride.values && field.displayOverride.values.includes(art[field.displayOverride.field])) {
           return art[field.displayOverride.field]
         } else {
+          // handle multilist fields (custom props or components for some artifacts) - we can only display one in Excel so pick the first in the array to match
+          var fieldValueForLookup = Array.isArray(originalFieldValue) ? originalFieldValue[0] : originalFieldValue; 
           return getListValueFromId(
-            originalFieldValue,
+            fieldValueForLookup,
             field.type,
             fieldType,
             field.values,
