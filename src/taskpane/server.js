@@ -564,6 +564,7 @@ function postArtifactToSpira(entry, user, projectId, artifactTypeId, parentId) {
 // @param: type - string identifying the message to be displayed
 // @param: err - the detailed error object (differs between plugin)
 function error(type, err) {
+  console.trace();
   var message = "",
     details = "";
   if (type == 'impExp') {
@@ -571,6 +572,9 @@ function error(type, err) {
   } else if (type == "network") {
     message = 'Network error. Please check your username, url, and password. If correct make sure you have the correct permissions.';
     details = err ? `<br><br>STATUS: ${err.status ? err.status : "unknown"}<br>MESSAGE: ${err.response ? err.response.text : "unknown"}` : "";
+  } else if (type == 'excel') {
+    message = 'Excel reported an error!';
+    details = err ? `<br><br>Description: ${err.description}` : "";
   } else if (type == 'unknown') {
     message = 'Unkown error. Please try again later or contact your system administrator';
   } else {

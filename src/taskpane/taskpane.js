@@ -211,7 +211,7 @@ function clearSheet(shouldClear) {
     } else {
       msOffice.clearAll()
         .then((response) => document.getElementById("panel-confirm").classList.add("offscreen"))
-        .catch((error) => errorNetwork(error));
+        .catch((error) => errorExcel(error));
     }
   }
 }
@@ -1175,7 +1175,7 @@ function templateLoader() {
   } else {
     msOffice.templateLoader(model, params.fieldType)
       .then(response => templateLoaderSuccess(response)) 
-      .catch(error => errorNetwork(error));
+      .catch(error => error.description ? errorExcel(error) : errorNetwork(error));
   }
 }
 
@@ -1235,7 +1235,8 @@ function errorPopUp(type, err) {
     console.log(err);
   } else {
     msOffice.error(type, err);
-    console.log(err, err.status && err.status, err.response && err.response.text)
+    console.error("SpiraPlan Import/Export Plugin encountered an error:", err.status ? err.status : "", err.response ? err.response.text : "", err.description ? err.description : "")
+    console.info("SpiraPlan Import/Export Plugin: full error is... ", err)
   }
   hideLoadingSpinner();
 }
@@ -1247,4 +1248,7 @@ function errorImpExp(err) {
 }
 function errorUnknown(err) {
   errorPopUp('unknown', err);
+}
+function errorExcel(err) {
+  errorPopUp('excel', err);
 }
