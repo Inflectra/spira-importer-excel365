@@ -66,19 +66,22 @@ var API_PROJECT_BASE = '/services/v6_0/RestService.svc/projects/',
     allSuccess: 1,
     someError: 2,
     allError: 3,
-    wrongSheet: 4
+    wrongSheet: 4,
+    existingEntries: 5
   },
   STATUS_MESSAGE_GOOGLE = {
     1: "All done! To send more data over, clear the sheet first.",
-    2: "Sorry, but there were some problems (these cells are marked in red). Check the notes on the relevant ID field for explanations.",
-    3: "We're really sorry, but we couldn't send anything to SpiraTeam - please check notes on the ID fields for more information.",
-    4: "You are not on the correct worksheet. Please go to the sheet that matches the one listed on the Spira taskpane / the selection you made in the sidebar."
+    2: "Sorry, but there were some problems (see the cells marked in red). Check any notes on the relevant ID field for explanations.",
+    3: "We're really sorry, but we couldn't send anything to SpiraPlan - please check notes on the ID fields for more information.",
+    4: "You are not on the correct worksheet. Please go to the sheet that matches the one listed on the Spira taskpane / the selection you made in the sidebar.",
+    5: "Some/all of the rows already exist in SpiraPlan. These rows have not been re-added."
   },
   STATUS_MESSAGE_EXCEL = {
     1: "All done! To send more data over, clear the sheet first.",
-    2: "Sorry, but there were some problems (these cells are marked in red). Check the notes on the relevant ID field for explanations.",
-    3: "We're really sorry, but we couldn't send anything to SpiraTeam - please check notes on the ID fields for more information.",
-    4: "You are not on the correct worksheet. Please go to the sheet that matches the one listed on the Spira taskpane / the selection you made in the sidebar."
+    2: "Sorry, but there were some problems (see the cells marked in red). Check any notes on the relevant ID field for explanations.",
+    3: "We're really sorry, but we couldn't send anything to SpiraPlan - please check notes on the ID fields for more information.",
+    4: "You are not on the correct worksheet. Please go to the sheet that matches the one listed on the Spira taskpane / the selection you made in the sidebar.",
+    5: "Some/all of the rows already exist in SpiraPlan. These rows have not been re-added."
   },
   CUSTOM_PROP_TYPE_ENUM = {
     1: "StringValue",
@@ -127,7 +130,7 @@ function showSidebar() {
   var ui = HtmlService.createTemplateFromFile('index')
     .evaluate()
     .setSandboxMode(HtmlService.SandboxMode.IFRAME)
-    .setTitle('SpiraTeam by Inflectra');
+    .setTitle('SpiraPlan by Inflectra');
 
   SpreadsheetApp.getUi().showSidebar(ui);
 }
@@ -714,11 +717,11 @@ function templateLoader(model, fieldTypeEnums) {
 }
 
 // wrapper function to set the header row, validation rules, and any extra formatting
-function sheetSetForTemplate(sheet, model, fieldType, context) {
+function sheetSetForTemplate(sheet, model, fieldTypeEnums, context) {
   // heading row - sets names and formatting
   headerSetter(sheet, model.fields, model.colors, context);
   // set validation rules on the columns
-  contentValidationSetter(sheet, model, fieldType, context);
+  contentValidationSetter(sheet, model, fieldTypeEnums, context);
   // set any extra formatting options
   contentFormattingSetter(sheet, model, context);
 }
@@ -1193,7 +1196,7 @@ function protectColumn(sheet, columnNumber, rowLength, bgColor, name, hide) {
  *
  * The main function takes the entire data model and the artifact type
  * and calls the child function to set various object values before
- * sending the finished objects to SpiraTeam
+ * sending the finished objects to SpiraPlan
  *
  */
 
@@ -1244,7 +1247,7 @@ function sendToSpira(model, fieldTypeEnums) {
         })
         .catch();
     })
-      .catch();
+    .catch();
   }
 }
 
@@ -1252,8 +1255,8 @@ function sendToSpira(model, fieldTypeEnums) {
 
 // 2. CREATE ARRAY OF ENTRIES
 // loop to create artifact objects from each row taken from the spreadsheet
-// vars needed: sheetData, artifact, fields, model, fieldType, artifactIsHierarchical,
-function createExportEntries(sheetData, model, fieldType, fields, artifact, artifactIsHierarchical) {
+// vars needed: sheetData, artifact, fields, model, fieldTypeEnums, artifactIsHierarchical,
+function createExportEntries(sheetData, model, fieldTypeEnums, fields, artifact, artifactIsHierarchical) {
   var lastIndentPosition = null,
     entriesForExport = [];
 
@@ -1269,21 +1272,21 @@ function createExportEntries(sheetData, model, fieldType, fields, artifact, arti
         totalSubTypeFieldsRequired: artifact.hasSubType ? countRequiredFieldsByType(fields, true) : 0,
         countRequiredFields: rowCountRequiredFieldsByType(sheetData[rowToPrep], fields, false),
         countSubTypeRequiredFields: artifact.hasSubType ? rowCountRequiredFieldsByType(sheetData[rowToPrep], fields, true) : 0,
-        subTypeIsBlocked: !artifact.hasSubType ? true : rowBlocksSubType(sheetData[rowToPrep], fields)
+        subTypeIsBlocked: !artifact.hasSubType ? true : rowBlocksSubType(sheetData[rowToPrep], fields),
+        spiraId: rowIdFieldInt(sheetData[rowToPrep], fields, fieldTypeEnums)
       },
 
-        // create entry used to populate all relevant data for this row
-        entry = {};
+      // create entry used to populate all relevant data for this row
+      entry = {};
 
       // first check for errors
       var hasProblems = rowHasProblems(rowChecks);
       if (hasProblems) {
         entry.validationMessage = hasProblems;
-
-        // if error free determine what field filtering is required - needed to choose type/subtype fields if subtype is present
+      // if error free determine what field filtering is required - needed to choose type/subtype fields if subtype is present
       } else {
         var fieldsToFilter = relevantFields(rowChecks);
-        entry = createEntryFromRow(sheetData[rowToPrep], model, fieldType, artifactIsHierarchical, lastIndentPosition, fieldsToFilter);
+        entry = createEntryFromRow(sheetData[rowToPrep], model, fieldTypeEnums, artifactIsHierarchical, lastIndentPosition, fieldsToFilter);
 
         // FOR SUBTYPE ENTRIES add flag on entry if it is a subtype
         if (fieldsToFilter === FIELD_MANAGEMENT_ENUMS.subType) {
@@ -1304,14 +1307,14 @@ function createExportEntries(sheetData, model, fieldType, fields, artifact, arti
 // 3. FOR GOOGLE ONLY: GET READY TO SEND DATA TO SPIRA + 4. ACTUALLY SEND THE DATA
 // check we have some entries and with no errors
 // Create and show a message to tell the user what is going on
-function sendExportEntriesGoogle(entriesForExport, sheetData, sheet, sheetRange, model, fieldType, fields, artifact) {
+function sendExportEntriesGoogle(entriesForExport, sheetData, sheet, sheetRange, model, fieldTypeEnums, fields, artifact) {
   if (!entriesForExport.length) {
     popupShow('There are no entries to send to Spira', 'Check Sheet')
     return "nothing to send";
   } else {
     popupShow('Preparing to send...', 'Progress');
 
-    // create required variables for managing responses for sending data to spirateam
+    // create required variables for managing responses for sending data to spiraplan
     var log = {
       errorCount: 0,
       successCount: 0,
@@ -1330,7 +1333,7 @@ function sendExportEntriesGoogle(entriesForExport, sheetData, sheet, sheetRange,
       if (artifact.hierarchical) {
         log.parentId = getHierarchicalParentId(entriesForExport[i].indentPosition, log.entries);
       }
-      var sentToSpira = manageSendingToSpira(entriesForExport[i], model.user, model.currentProject.id, artifact, fields, fieldType, log.parentId);
+      var sentToSpira = manageSendingToSpira(entriesForExport[i], model.user, model.currentProject.id, artifact, fields, fieldTypeEnums, log.parentId);
 
       // update the parent ID for a subtypes based on the successful API call
       if (artifact.hasSubType) {
@@ -1360,10 +1363,10 @@ function sendExportEntriesGoogle(entriesForExport, sheetData, sheet, sheetRange,
     }
 
     // review all activity and set final status
-    log.status = log.errorCount ? (log.errorCount == log.entriesLength ? STATUS_ENUM.allError : STATUS_ENUM.someError) : STATUS_ENUM.allSuccess;
-
+    log.status = setFinalStatus(log);
+    
     // call the final function here - so we know that it is only called after the recursive function above (ie all posting) has ended
-    return updateSheetWithExportResults(log, entriesForExport, sheetData, sheet, sheetRange, model, fieldType, fields, artifact, null);
+    return updateSheetWithExportResults(log, entriesForExport, sheetData, sheet, sheetRange, model, fieldTypeEnums, fields, artifact, null);
   }
 }
 
@@ -1372,14 +1375,14 @@ function sendExportEntriesGoogle(entriesForExport, sheetData, sheet, sheetRange,
 // DIFFERENT TO GOOGLE: this uses js ES6 a-sync and a-wait for its function and subfunction
 // check we have some entries and with no errors
 // Create and show a message to tell the user what is going on
-async function sendExportEntriesExcel(entriesForExport, sheetData, sheet, sheetRange, model, fieldType, fields, artifact, context) {
+async function sendExportEntriesExcel(entriesForExport, sheetData, sheet, sheetRange, model, fieldTypeEnums, fields, artifact, context) {
   if (!entriesForExport.length) {
     popupShow('There are no entries to send to Spira', 'Check Sheet')
     return "nothing to send";
   } else {
     popupShow('Starting to send...', 'Progress');
 
-    // create required variables for managing responses for sending data to spirateam
+    // create required variables for managing responses for sending data to spiraplan
     var log = {
       errorCount: 0,
       successCount: 0,
@@ -1399,7 +1402,7 @@ async function sendExportEntriesExcel(entriesForExport, sheetData, sheet, sheetR
         log.parentId = getHierarchicalParentId(entriesForExport[i].indentPosition, log.entries);
       }
 
-      await manageSendingToSpira(entriesForExport[i], model.user, model.currentProject.id, artifact, fields, fieldType, log.parentId)
+      await manageSendingToSpira(entriesForExport[i], model.user, model.currentProject.id, artifact, fields, fieldTypeEnums, log.parentId)
         .then(function (response) {
           // update the parent ID for a subtypes based on the successful API call
           if (artifact.hasSubType) {
@@ -1432,16 +1435,16 @@ async function sendExportEntriesExcel(entriesForExport, sheetData, sheet, sheetR
     }
 
     // review all activity and set final status
-    log.status = log.errorCount ? (log.errorCount == log.entriesLength ? STATUS_ENUM.allError : STATUS_ENUM.someError) : STATUS_ENUM.allSuccess;
+    log.status = setFinalStatus(log);
 
     // call the final function here - so we know that it is only called after the recursive function above (ie all posting) has ended
-    return updateSheetWithExportResults(log, entriesForExport, sheetData, sheet, sheetRange, model, fieldType, fields, artifact, context);
+    return updateSheetWithExportResults(log, entriesForExport, sheetData, sheet, sheetRange, model, fieldTypeEnums, fields, artifact, context);
   }
 }
 
 
 // 5. SET MESSAGES AND FORMATTING ON SHEET
-function updateSheetWithExportResults(log, entriesForExport, sheetData, sheet, sheetRange, model, fieldType, fields, artifact, context) {
+function updateSheetWithExportResults(log, entriesForExport, sheetData, sheet, sheetRange, model, fieldTypeEnums, fields, artifact, context) {
   var bgColors = [],
     notes = [],
     values = [];
@@ -1461,9 +1464,9 @@ function updateSheetWithExportResults(log, entriesForExport, sheetData, sheet, s
         // first handle when we are dealing with data that has been sent to Spira
         var isSubType = (log.entries[row].details && log.entries[row].details.entry && log.entries[row].details.entry.isSubType) ? log.entries[row].details.entry.isSubType : false;
 
-        bgColor = setFeedbackBgColor(sheetData[row][col], log.entries[row].error, fields[col], fieldType, artifact, model.colors);
-        note = setFeedbackNote(sheetData[row][col], log.entries[row].error, fields[col], fieldType, log.entries[row].message);
-        value = setFeedbackValue(sheetData[row][col], log.entries[row].error, fields[col], fieldType, log.entries[row].newId || "", isSubType);
+        bgColor = setFeedbackBgColor(sheetData[row][col], log.entries[row].error, fields[col], fieldTypeEnums, artifact, model.colors);
+        note = setFeedbackNote(sheetData[row][col], log.entries[row].error, fields[col], fieldTypeEnums, log.entries[row].message);
+        value = setFeedbackValue(sheetData[row][col], log.entries[row].error, fields[col], fieldTypeEnums, log.entries[row].newId || "", isSubType);
       }
 
       if (IS_GOOGLE) {
@@ -1533,6 +1536,35 @@ function checkSingleEntryForErrors(singleEntry, log, artifact) {
     log.entries.push(response);
   }
   return log;
+}
+
+// utility function to set final status of the log
+// @param: log - log object
+// returns enum for the final status
+function setFinalStatus(log) {
+  if (log.errorCount) {
+    //check if any error message is about data validation etc - if not then all the message are about the entry already existing in Spira (where the message is the INT of the id)
+    let logEntriesOnlyAboutIds = true;
+    const logMessages = log.entries.filter(x => x.message);
+    if (logMessages.length) {
+      for (let index = 0; index < logMessages.length; index++) {
+        if (!Number.isInteger(parseInt(logMessages[index].message))) {
+          logEntriesOnlyAboutIds = false;
+          break;
+        }
+      }
+    }
+    
+    if (logEntriesOnlyAboutIds) {
+      return STATUS_ENUM.existingEntries;
+    } else if (log.errorCount == log.entriesLength) {
+      return STATUS_ENUM.allError;
+    } else {
+      return STATUS_ENUM.someError;
+    }
+  } else {
+    return STATUS_ENUM.allSuccess;
+  }
 }
 
 
@@ -1794,26 +1826,48 @@ function rowBlocksSubType(row, fields) {
 
 
 
+// check to see if a row for an artifact has any id field filled in with an int (not a string - a string could mean a different error message was previously added with Excel)
+// returns false if id field is not an int, returns the ID in the cell if one is present as an INT (ie send back the Spira ID)
+// @param: row - a 'row' of data that contains a single object representing all fields
+// @param: fields - object of the relevant fields for specific artifact, along with all metadata about each
+// @param: fieldTypeEnums - object of all field types with enums
+function rowIdFieldInt(row, fields, fieldTypeEnums) {
+  var result = false;
+  for (var column = 0; column < row.length; column++) {
+    const cellIsIdField = fields[column].type === fieldTypeEnums.id || fields[column].type === fieldTypeEnums.subId;
+    if (cellIsIdField && Number.isInteger(parseInt(row[column]))) {
+      //set the result to the value of the ID so that the row is skipped but in the UI it looks the same - ie has the correct ID etc
+      result = row[column];
+      break;
+    }
+  }
+  return result;
+}
+
+
+
 // checks to see if the row is valid - ie required fields present and correct as expected
 // returns a string - empty if no errors present (to evaluate to false), or an error message object otherwise
 // @ param: rowChecks - object with different properties for different checks required
 function rowHasProblems(rowChecks) {
-  var problems = null;
-  if (!rowChecks.hasSubType && rowChecks.countRequiredFields < rowChecks.totalFieldsRequired) {
-    problems = "Fill in all required fields";
+  var problem = null;
+  // if the row already exists in Spira then do not carry out any other problem analysis
+  if (rowChecks.spiraId) {
+    problem = rowChecks.spiraId;
+  // if a new entry, carry out problem analysis
+  } else if (!rowChecks.hasSubType && rowChecks.countRequiredFields < rowChecks.totalFieldsRequired) {
+    problem = "Fill in all required fields";
   } else if (rowChecks.hasSubType) {
     if (rowChecks.countSubTypeRequiredFields < rowChecks.totalSubTypeFieldsRequired && !rowChecks.countRequiredFields) {
-      problems = "Fill in all required fields";
+      problem = "Fill in all required fields";
     } else if (rowChecks.countRequiredFields < rowChecks.totalFieldsRequired && !rowChecks.countSubTypeRequiredFields) {
-      problems = "Fill in all required fields";
+      problem = "Fill in all required fields";
     } else if (rowChecks.countSubTypeRequiredFields == rowChecks.totalSubTypeFieldsRequired && (rowChecks.countRequiredFields == rowChecks.totalFieldsRequired || rowChecks.subTypeIsBlocked)) {
-      problems = "It is unclear what artifact this is intended to be";
+      problem = "It is unclear what artifact this is intended to be";
     }
   }
-  return problems;
+  return problem;
 }
-
-
 
 // based on field type and conditions, determines what fields are required for a given row
 // e.g. all fields is default and standard, if a subtype is present (eg test step) - should it send only the main type or the sub type fields
@@ -2275,8 +2329,8 @@ function getFromSpiraGoogle(model, fieldTypeEnums) {
 
 // EXCEL SPECIFIC VARIATION OF THIS FUNCTION handles getting paginated artifacts from Spira and displaying them in the UI
 // @param: model: full model object from client
-// @param: enum of fieldTypes used
-function getFromSpiraExcel(model, fieldType) {
+// @param: enum of fieldTypeEnums used
+function getFromSpiraExcel(model, fieldTypeEnums) {
   return Excel.run(function (context) {
     var sheet = context.workbook.worksheets.getActiveWorksheet();
     sheet.load("name");
@@ -2286,8 +2340,8 @@ function getFromSpiraExcel(model, fieldType) {
       .then(function() {
         // only get the data if we are on the right sheet - the one with the template loaded on it
         if (sheet.name == requiredSheetName) {
-          return getDataFromSpiraExcel(model, fieldType).then((response) => {
-            return processDataFromSpiraExcel(response, model, fieldType)
+          return getDataFromSpiraExcel(model, fieldTypeEnums).then((response) => {
+            return processDataFromSpiraExcel(response, model, fieldTypeEnums)
           });
         } else {
           return operationComplete(STATUS_ENUM.wrongSheet, false);
@@ -2397,14 +2451,14 @@ async function getDataFromSpiraExcel(model, fieldTypeEnums) {
 // EXCEL SPECIFIC to process all the data retrieved from Spira and then display it
 // @param: artifacts: array of raw data from Spira (with subtypes already present if needed)
 // @param: model: full model object from client
-// @param: enum object of the different fieldTypes
-function processDataFromSpiraExcel(artifacts, model, fieldType) {
+// @param: enum object of the different fieldTypeEnums
+function processDataFromSpiraExcel(artifacts, model, fieldTypeEnums) {
   // 5. create 2d array from data to put into sheet
   var artifactsAsCells = matchArtifactsToFields(
     artifacts,
     model.currentArtifact,
     model.fields,
-    fieldType,
+    fieldTypeEnums,
     model.projectUsers,
     model.projectComponents,
     model.projectReleases
