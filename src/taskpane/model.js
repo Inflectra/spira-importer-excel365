@@ -70,7 +70,7 @@ var templateFields = {
         {field: "RequirementId", name: "ID", type: params.fieldType.id},
         {field: "Name", name: "Name", type: params.fieldType.text, required: true, setsHierarchy: true},
         {field: "Description", name: "Description", type: params.fieldType.text},
-        {field: "ReleaseId", name: "Release Version", type: params.fieldType.release},
+        {field: "ReleaseId", name: "Release", type: params.fieldType.release},
         {field: "RequirementTypeId", name: "Type", type: params.fieldType.drop, required: true, 
             bespoke: {
                 url: "/requirements/types", 
@@ -103,7 +103,8 @@ var templateFields = {
         {field: "EstimatePoints", name: "Estimate", type: params.fieldType.num},
         {field: "AuthorId", name: "Author", type: params.fieldType.user},
         {field: "OwnerId", name: "Owner", type: params.fieldType.user},
-        {field: "ComponentId", name: "Component", type: params.fieldType.component},      
+        {field: "ComponentId", name: "Component", type: params.fieldType.component},
+        {field: "CreationDate", name: "Creation Date", type: params.fieldType.date},
     ],
 
     releases: [
@@ -130,10 +131,12 @@ var templateFields = {
             ]
         },
         {field: "CreatorId", name: "Creator", type: params.fieldType.user},
+        {field: "OwnerId", name: "Owner", type: params.fieldType.user},
         {field: "StartDate", name: "Start Date", type: params.fieldType.date, required: true},
         {field: "EndDate", name: "End Date", type: params.fieldType.date, required: true},
         {field: "ResourceCount", name: "Resources", type: params.fieldType.num},
         {field: "DaysNonWorking", name: "Non Working Days", type: params.fieldType.int},
+        {field: "CreationDate", name: "Creation Date", type: params.fieldType.date},
         // unsupported {field: "Comment", name: "Comment", type: params.fieldType.text, unsuppored: true}
     ],
 
@@ -141,7 +144,7 @@ var templateFields = {
         {field: "TaskId", name: "ID", type: params.fieldType.id},
         {field: "Name", name: "Name", type: params.fieldType.text, required: true},
         {field: "Description", name: "Task Description", type: params.fieldType.text},
-        {field: "ReleaseId", name: "Release/Iteration", type: params.fieldType.release},
+        {field: "ReleaseId", name: "Release", type: params.fieldType.release},
         {field: "TaskTypeId", name: "Type", type: params.fieldType.drop, required: true, 
             bespoke: {
                 url: "/tasks/types", 
@@ -169,7 +172,6 @@ var templateFields = {
         {field: "CreatorId", name: "Creator", type: params.fieldType.user},
         {field: "OwnerId", name: "Owner", type: params.fieldType.user},
         {field: "ComponentId", name: "Component", type: params.fieldType.component, isReadOnly: true},
-        {field: "EstimatedEffort", name: "Effort (in mins)", type: params.fieldType.int}, 
         {field: "TaskFolderId", name: "Folder", type: params.fieldType.drop, values: [],
             bespoke: {
                 url: "/task-folders", 
@@ -178,7 +180,13 @@ var templateFields = {
                 indent: "IndentLevel",
                 isProjectBased: true
             }
-        },              
+        },  
+        {field: "CreationDate", name: "Creation Date", type: params.fieldType.date},            
+        {field: "StartDate", name: "Start Date", type: params.fieldType.date},
+        {field: "EndDate", name: "End Date", type: params.fieldType.date},
+        {field: "EstimatedEffort", name: "Estimated Effort (in mins)", type: params.fieldType.int},
+        {field: "ActualEffort", name: "Actual Effort (in mins)", type: params.fieldType.int}, 
+        {field: "RemainingEffort", name: "Remaining Effort (in mins)", type: params.fieldType.int}, 
     ],
 
     incidents: [
@@ -213,12 +221,15 @@ var templateFields = {
                 nameField: "Name", 
             }
         },
-        {field: "OpenerId", name: "Opener", type: params.fieldType.user},
+        {field: "OpenerId", name: "Detected By", type: params.fieldType.user},
         {field: "OwnerId", name: "Owner", type: params.fieldType.user},
-        {field: "CreationDate", name: "Date Detected", type: params.fieldType.date},
         {field: "DetectedReleaseId", name: "Detected Release", type: params.fieldType.release},
-        {field: "ResolvedReleaseId", name: "Resolved Release", type: params.fieldType.release},
+        {field: "ResolvedReleaseId", name: "Planned Release", type: params.fieldType.release},
+        {field: "VerifiedReleaseId", name: "Verified Release", type: params.fieldType.release},
         {field: "ComponentIds", name: "Component", type: params.fieldType.component, isMulti: true},   
+        {field: "CreationDate", name: "Date Detected", type: params.fieldType.date},
+        {field: "StartDate", name: "Start Date", type: params.fieldType.date},
+        {field: "ClosedDate", name: "Closed On", type: params.fieldType.date},
         {field: "EstimatedEffort", name: "Estimated Effort (mins)", type: params.fieldType.int},
         {field: "ActualEffort", name: "Actual Effort (mins)", type: params.fieldType.int},
         {field: "RemainingEffort", name: "Remaining Effort (mins)", type: params.fieldType.int}
