@@ -927,13 +927,13 @@ function setDateValidation(sheet, columnNumber, rowLength, allowInvalid) {
     var range = sheet.getRangeByIndexes(1, columnNumber - 1, rowLength, 1);
     range.dataValidation.clear();
 
-    var greaterThan1970Rule = {
+    var greaterThan2000Rule = {
       date: {
         formula1: "2000-01-01",
         operator: Excel.DataValidationOperator.greaterThan
       }
     };
-    range.dataValidation.rule = greaterThan1970Rule;
+    range.dataValidation.rule = greaterThan2000Rule;
 
     range.dataValidation.prompt = {
       message: "Please enter a date.",
@@ -947,6 +947,9 @@ function setDateValidation(sheet, columnNumber, rowLength, allowInvalid) {
       title: "Invalid date entered"
     };
   }
+
+  //now set the cell format to dates
+  range.numberFormatLocal = "dd-mmm-yyyy";
 }
 
 
@@ -1905,7 +1908,10 @@ function createEntryFromRow(row, model, fieldTypeEnums, artifactIsHierarchical, 
               value = row[index];
             } else {
               // for Excel, dates are returned as days since 1900 - so we need to adjust this for JS date formats
-              value = new Date((row[index] - (25567+1 )) * 86400 * 1000);
+              const DAYS_BETWEEN_1900_1970 = 25567 + 2;
+              const dateInMs = (row[index] - DAYS_BETWEEN_1900_1970) * 86400 * 1000;
+              const msToMidday = 1000 * 60 * 60 * 12; // we use midday so it will show as the correct date for users no matter their time zone as this is saved in Spira as UTC
+              value = new Date(dateInMs + msToMidday);
             }
             customType = "DateTimeValue";
           }
@@ -2479,10 +2485,17 @@ function matchArtifactsToFields(artifacts, artifactMeta, fields, fieldTypeEnums,
             releases
           );
         }
-        // handle date fields 
+      
+      // handle date fields 
       } else if (field.type == fieldTypeEnums.date) {
-        return convertWcfDateToJs(originalFieldValue);
-        // handle booleans - need to make sure null values are ignored ie treated differently to false
+        if (originalFieldValue) {
+          var jsObj = new Date(originalFieldValue);
+          return JSDateToExcelDate(jsObj);
+        } else {
+          return "";
+        }
+
+      // handle booleans - need to make sure null values are ignored ie treated differently to false
       } else if (field.type == fieldTypeEnums.bool) {
         return originalFieldValue ? "Yes" : originalFieldValue === false ? "No" : "";
         // handle hierarchical artifacts
@@ -2536,25 +2549,9 @@ function makeHierarchical(value, indent) {
   return indentText;
 }
 
-// Parses a WCF JSON date in format /Date(1245398693390[-0500])/ to a JS date object without any timezone - to keep it in UTC
-function convertWcfDateToJs(wcfDate) {
-  var reDate = /^\/Date\((\d+)([+-]\d*)\)\//;
-  if (reDate.test(wcfDate)) {
-    var m = reDate.exec(wcfDate);
-    var d = new Date();
-    //We need to adjust the date to factor out the browser timezone
-    var serverTicks = parseInt(m[1], 10);
-    var serverOffset = 0;
-    if (m.length >= 3) {
-      var offset = Number(m[2]);
-      var hoursOffset = Math.floor(offset / 100);
-      var minsOffset = offset % 100;
-      serverOffset = ((hoursOffset * 60) + minsOffset) * 60000;
-    }
-    d = new Date(serverTicks + serverOffset);
-    return d;
-  } else {
-    //WCF bug where UTC dates come back already parsed!
-    return wcfDate;
-  }
+//Convert JS date object to excel format - Excel dates start at 1900 not 1970
+//@param: inDate - js date object
+function JSDateToExcelDate(inDate) {
+  var returnDateTime = 25569.0 + ((inDate.getTime() - (inDate.getTimezoneOffset() * 60 * 1000)) / (1000 * 60 * 60 * 24));
+  return returnDateTime.toString().substr(0,20);
 }
