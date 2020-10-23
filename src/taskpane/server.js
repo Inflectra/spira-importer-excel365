@@ -567,7 +567,6 @@ function postArtifactToSpira(entry, user, projectId, artifactTypeId, parentId) {
 // @param: type - string identifying the message to be displayed
 // @param: err - the detailed error object (differs between plugin)
 function error(type, err) {
-  console.trace();
   var message = "",
     details = "";
   if (type == 'impExp') {
@@ -839,7 +838,7 @@ function contentValidationSetter(sheet, model, fieldTypeEnums, context) {
       case fieldTypeEnums.multi:
         var fieldList = model.fields[index].values;
         for (var i = 0; i < fieldList.length; i++) {
-          list.push(fieldList[i].name);
+          list.push(setListItemDisplayName(fieldList[i]));
         }
         setDropdownValidation(sheet, columnNumber, nonHeaderRows, list, false);
         break;
@@ -847,7 +846,7 @@ function contentValidationSetter(sheet, model, fieldTypeEnums, context) {
       // USER fields are dropdowns with the values coming from a project wide set list
       case fieldTypeEnums.user:
         for (var j = 0; j < model.projectUsers.length; j++) {
-          list.push(model.projectUsers[j].name);
+          list.push(setListItemDisplayName(model.projectUsers[j]));
         }
         setDropdownValidation(sheet, columnNumber, nonHeaderRows, list, false);
         break;
@@ -855,7 +854,7 @@ function contentValidationSetter(sheet, model, fieldTypeEnums, context) {
       // COMPONENT fields are dropdowns with the values coming from a project wide set list
       case fieldTypeEnums.component:
         for (var k = 0; k < model.projectComponents.length; k++) {
-          list.push(model.projectComponents[k].name);
+          list.push(setListItemDisplayName(model.projectComponents[k]));
         }
         setDropdownValidation(sheet, columnNumber, nonHeaderRows, list, false);
         break;
@@ -863,7 +862,7 @@ function contentValidationSetter(sheet, model, fieldTypeEnums, context) {
       // RELEASE fields are dropdowns with the values coming from a project wide set list
       case fieldTypeEnums.release:
         for (var l = 0; l < model.projectReleases.length; l++) {
-          list.push(model.projectReleases[l].name);
+          list.push(setListItemDisplayName(model.projectReleases[l]));
         }
         setDropdownValidation(sheet, columnNumber, nonHeaderRows, list, false);
         break;
@@ -2087,12 +2086,19 @@ function createEntryFromRow(row, model, fieldTypeEnums, artifactIsHierarchical, 
 // @param: list - the array of items with keys for id and name values
 function getIdFromName(string, list) {
   for (var i = 0; i < list.length; i++) {
-    if (list[i].name == string) {
+    if (setListItemDisplayName(list[i]) == string) {
       return list[i].id;
     }
   }
   // return 0 if there's no match
   return 0;
+}
+
+// for dropdown items we need to use the id as well as the name to make sure the entries are unique - so return a standard format here
+// @param: item - object of the list item - contains a name and id
+// returns the correctly formatted string - so that it is always set consistently
+function setListItemDisplayName(item) {
+  return item.name + " (#" + item.id + ")";
 }
 
 

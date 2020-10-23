@@ -39,8 +39,8 @@
   </Requirements>
 
   <DefaultSettings>
-    <!-- <SourceLocation DefaultValue="https://localhost:3000/taskpane.html"/> -->
-    <SourceLocation DefaultValue="https://files.inflectra.com/office365/excel2/taskpane.html"/>
+    <SourceLocation DefaultValue="https://localhost:3000/taskpane.html"/>
+    <!-- <SourceLocation DefaultValue="https://files.inflectra.com/office365/excel2/taskpane.html"/> -->
   </DefaultSettings>
   <!-- End TaskPane Mode integration.  -->
 
@@ -99,10 +99,10 @@
       </bt:Images>
       <bt:Urls>
         <bt:Url id="GetStarted.LearnMoreUrl" DefaultValue="https://go.microsoft.com/fwlink/?LinkId=276812"/>
-        <!-- <bt:Url id="Commands.Url" DefaultValue="https://localhost:3000/commands.html"/>
-        <bt:Url id="Taskpane.Url" DefaultValue="https://localhost:3000/taskpane.html"/> -->
-        <bt:Url id="Commands.Url" DefaultValue="https://files.inflectra.com/office365/excel2/commands.html"/>
-        <bt:Url id="Taskpane.Url" DefaultValue="https://files.inflectra.com/office365/excel2/taskpane.html"/>
+        <bt:Url id="Commands.Url" DefaultValue="https://localhost:3000/commands.html"/>
+        <bt:Url id="Taskpane.Url" DefaultValue="https://localhost:3000/taskpane.html"/>
+        <!-- <bt:Url id="Commands.Url" DefaultValue="https://files.inflectra.com/office365/excel2/commands.html"/>
+        <bt:Url id="Taskpane.Url" DefaultValue="https://files.inflectra.com/office365/excel2/taskpane.html"/> -->
       </bt:Urls>
       <bt:ShortStrings>
         <bt:String id="GetStarted.Title" DefaultValue="Get started with the SpiraPlan add-in!"/>

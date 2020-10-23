@@ -99,13 +99,15 @@ Office.onReady(info => {
 function setDevStuff(devMode) {
   if (devMode) {
     document.getElementById("btn-dev").classList.remove("hidden");
-
-    model.user.url = "http://localhost/spira";
-    model.user.userName = "administrator";
-    model.user.api_key = btoa("&api-key=" + encodeURIComponent("{B9050F75-C5E6-4244-8712-FBF20061A976}"));
-    // model.user.url = "https://staging.spiraservice.net";
-    // model.user.userName = "administrator";
-    // model.user.api_key = btoa("&api-key=" + encodeURIComponent("{FF7212BA-8EDB-4B98-9C47-631B46308786}"));
+    if (isGoogle) {
+      model.user.url = "https://staging.spiraservice.net";
+      model.user.userName = "administrator";
+      model.user.api_key = btoa("&api-key=" + encodeURIComponent("{10E5D4F2-2188-40F5-8707-252B99B0606A}"));
+    } else {
+      model.user.url = "http://localhost/spira";
+      model.user.userName = "administrator";
+      model.user.api_key = btoa("&api-key=" + encodeURIComponent("{B9050F75-C5E6-4244-8712-FBF20061A976}"));
+    }
     loginAttempt();
   }
 }
@@ -452,16 +454,10 @@ function hideMainPanel() {
 function logoutAttempt() {
   var message = 'All data on the active sheet will be deleted. Continue?'
   //warn user that all data on the first sheet will be lost. Returns true or false
-  if (isGoogle) {
-    google.script.run
-      .withSuccessHandler(logout)
-      .warn(message);
-  } else {
-    showPanel("confirm");
-    document.getElementById("message-confirm").innerHTML = message;
-    document.getElementById("btn-confirm-ok").onclick = () => logout(true);
-    document.getElementById("btn-confirm-cancel").onclick = () => hidePanel("confirm");
-  }
+  showPanel("confirm");
+  document.getElementById("message-confirm").innerHTML = message;
+  document.getElementById("btn-confirm-ok").onclick = () => logout(true);
+  document.getElementById("btn-confirm-cancel").onclick = () => hidePanel("confirm");
 }
 
 
@@ -609,16 +605,10 @@ function manageTemplateBtnState() {
 function createTemplateAttempt() {
   var message = 'The active sheet will be replaced. Continue?'
   //warn the user data will be erased
-  if (isGoogle) {
-    google.script.run
-      .withSuccessHandler(createTemplate)
-      .warn(message);
-  } else {
-    showPanel("confirm");
-    document.getElementById("message-confirm").innerHTML = message;
-    document.getElementById("btn-confirm-ok").onclick = () => createTemplate(true);
-    document.getElementById("btn-confirm-cancel").onclick = () => hidePanel("confirm");
-  }
+  showPanel("confirm");
+  document.getElementById("message-confirm").innerHTML = message;
+  document.getElementById("btn-confirm-ok").onclick = () => createTemplate(true);
+  document.getElementById("btn-confirm-cancel").onclick = () => hidePanel("confirm");
 }
 
 
