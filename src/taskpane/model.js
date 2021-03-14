@@ -60,7 +60,8 @@ var params = {
         {field: 'testRuns',     name: 'Test Runs',    id: 5, disabled: true, hidden: true},
         {field: 'tasks',        name: 'Tasks',        id: 6, hasFolders: true},
         {field: 'testSteps',    name: 'Test Steps',   id: 7, disabled: true, hidden: true},
-        {field: 'testSets',     name: 'Test Sets',    id: 8, hasFolders: true, disabled: true, hidden: true}
+        {field: 'testSets',     name: 'Test Sets',    id: 8, hasFolders: true, disabled: true, hidden: true},
+        {field: 'risks',        name: 'Risks',        id: 14}
     ]
 };
 
@@ -278,7 +279,52 @@ var templateFields = {
             }
         },
         {field: "ComponentIds", name: "Test Case Component", type: params.fieldType.component, isMulti: true}
-     ]
+    ],
+
+    risks: [
+        {field: "RiskId", name: "ID", type: params.fieldType.id},
+        {field: "Name", name: "Name", type: params.fieldType.text, required: true},
+        {field: "Description", name: "Description", type: params.fieldType.text},
+        {field: "ReleaseId", name: "Release", type: params.fieldType.release},
+        {field: "RiskTypeId", name: "Type", type: params.fieldType.drop, required: true, 
+            bespoke: {
+                url: "/risks/types", 
+                idField: "RiskTypeId", 
+                nameField: "Name", 
+                isActive: "IsActive"
+            }
+        },
+        {field: "RiskImpactId", name: "Impact", type: params.fieldType.drop,
+            bespoke: {
+                url: "/risks/impacts", 
+                idField: "RiskImpactId", 
+                nameField: "Name", 
+                isActive: "Active"
+            }
+        },
+        {field: "RiskProbabilityId", name: "Probability", type: params.fieldType.drop,
+            bespoke: {
+                url: "/risks/probabilities", 
+                idField: "RiskProbabilityId", 
+                nameField: "Name", 
+                isActive: "Active"
+            }
+        },
+        {field: "RiskStatusId", name: "Status", type: params.fieldType.drop, required: true,
+            bespoke: {
+                url: "/risks/statuses", 
+                idField: "RiskStatusId", 
+                nameField: "Name", 
+                isActive: "Active"
+            }
+        },
+        {field: "CreatorId", name: "Creator", type: params.fieldType.user},
+        {field: "OwnerId", name: "Owner", type: params.fieldType.user},
+        {field: "ComponentId", name: "Component", type: params.fieldType.component}, 
+        {field: "CreationDate", name: "Creation Date", type: params.fieldType.date},            
+        {field: "ClosedDate", name: "Closed Date", type: params.fieldType.date},
+        {field: "ReviewDate", name: "Review Date", type: params.fieldType.date},
+    ],
 };
 
 function Data() {

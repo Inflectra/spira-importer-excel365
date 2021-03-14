@@ -2088,9 +2088,15 @@ function getIdFromName(string, list) {
   for (var i = 0; i < list.length; i++) {
     if (setListItemDisplayName(list[i]) == string) {
       return list[i].id;
+    
+    // if there's no match with the item, let's try and match on just the name part of the list item  - this is the old way
+    // this code is included to accomodate users who create their spreadsheets elsewhere and then dump the data in here without knowing the ids
+    } else if (list[i] == unsetListItemDisplayName(string)) {
+      return list[i].id;
     }
   }
-  // return 0 if there's no match
+
+  // return 0 if there's no match from either method
   return 0;
 }
 
@@ -2098,7 +2104,16 @@ function getIdFromName(string, list) {
 // @param: item - object of the list item - contains a name and id
 // returns the correctly formatted string - so that it is always set consistently
 function setListItemDisplayName(item) {
+
   return item.name + " (#" + item.id + ")";
+}
+
+// removes the id from the end of a string to get the initial value, pre setting the display name
+// @param: string - of the list item with the id added at the end as in setListItemDisplayName
+// returns a new string with the regex match removed
+function unsetListItemDisplayName(string) {
+  var regex = / \(\#\d+\)$/gi;
+  return string.replace(regex, "");
 }
 
 
