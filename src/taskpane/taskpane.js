@@ -104,9 +104,9 @@ function setDevStuff(devMode) {
       model.user.userName = "administrator";
       model.user.api_key = btoa("&api-key=" + encodeURIComponent("{10E5D4F2-2188-40F5-8707-252B99B0606A}"));
     } else {
-      model.user.url = "http://localhost/spira";
+      model.user.url = "https://internal-bruno.spiraservice.net/";
       model.user.userName = "administrator";
-      model.user.api_key = btoa("&api-key=" + encodeURIComponent("{B9050F75-C5E6-4244-8712-FBF20061A976}"));
+      model.user.api_key = btoa("&api-key=" + encodeURIComponent("{C544F400-1E87-4753-968D-BF2F4E740579}"));
     }
     loginAttempt();
   }
@@ -164,7 +164,6 @@ function panelToggle(panel) {
   var panelElement = document.getElementById("panel-" + panel);
   panelElement.classList.toggle("offscreen");
 }
-
 
 
 function hidePanel(panel) {
@@ -724,7 +723,7 @@ function sendToSpiraComplete(log) {
     var errorMessages = log.entries
         .filter(function (entry) { return entry.error; })
         .map(function (entry) { return entry.message; });
-    console.log("Error log: ", errorMessages);
+
   }
   //runs the export success function, passes a boolean flag, if there are errors the flag is true.
   if (log && log.status) {
