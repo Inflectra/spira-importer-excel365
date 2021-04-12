@@ -559,9 +559,6 @@ function postArtifactToSpira(entry, user, projectId, artifactTypeId, parentId) {
     case ART_ENUMS.risks:
       postUrl = API_PROJECT_BASE + projectId + '/risks?';
 
-      // only post the test step if we have a parent id
-      break;
-
     // TEST SETS
     case ART_ENUMS.testSets:
     postUrl = API_PROJECT_BASE + projectId + '/test-sets?';

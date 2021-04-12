@@ -58,7 +58,7 @@ var params = {
         { field: 'testCases', name: 'Test Cases', id: 2, hasFolders: true, hasSubType: true, subTypeId: 7, subTypeName: "TestSteps" },
         { field: 'incidents', name: 'Incidents', id: 3 },
         { field: 'releases', name: 'Releases', id: 4, hierarchical: true },
-        { field: 'testRuns', name: 'Test Runs', id: 5},
+        { field: 'testRuns', name: 'Test Runs', id: 5, disabled: true, hidden: true},
         { field: 'tasks', name: 'Tasks', id: 6, hasFolders: true },
         { field: 'testSteps', name: 'Test Steps', id: 7, disabled: true, hidden: true },
         { field: 'testSets', name: 'Test Sets', id: 8, hasFolders: true },
