@@ -52,7 +52,8 @@ var API_PROJECT_BASE = '/services/v6_0/RestService.svc/projects/',
     testRuns: 5,
     tasks: 6,
     testSteps: 7,
-    testSets: 8
+    testSets: 8,
+    risks: 14
   },
   INITIAL_HIERARCHY_OUTDENT = -20,
   GET_PAGINATION_SIZE = 100,
@@ -282,6 +283,7 @@ function fetcher(currentUser, fetcherURL) {
 
   //build URL from args
   var fullUrl = currentUser.url + fetcherURL + "username=" + currentUser.userName + APIKEY;
+
   //set MIME type
   var params = { "Content-Type": "application/json", "accepts": "application/json" };
 
@@ -426,6 +428,16 @@ function getArtifacts(user, projectId, artifactTypeId, startRow, numberOfRows, a
       var rawResponse = poster("", user, fullURL);
       response = IS_GOOGLE ? JSON.parse(rawResponse) : rawResponse; // this particular return needs to be parsed here
       break;
+    case ART_ENUMS.risks:
+      fullURL += "/risks?starting_row=" + startRow + "&number_of_rows=" + numberOfRows + "&sort_field=RiskId&sort_direction=ASC&";
+      var rawResponse = poster("", user, fullURL);
+      response = IS_GOOGLE ? JSON.parse(rawResponse) : rawResponse; // this particular return needs to be parsed here
+      break;
+    case ART_ENUMS.testSets:
+      fullURL += "/test-sets?starting_row=" + startRow + "&number_of_rows=" + numberOfRows + "&sort_field=TestSetId&sort_direction=ASC&";
+      var rawResponse = fetcher(user, fullURL);
+      response = IS_GOOGLE ? JSON.parse(rawResponse) : rawResponse; // this particular return needs to be parsed here
+      break;
   }
   return response;
 }
@@ -449,6 +461,7 @@ function getArtifacts(user, projectId, artifactTypeId, startRow, numberOfRows, a
 // @param: currentUser - user object storing login data from client
 // @param: postUrl - url string passed in to connect with Spira
 function poster(body, currentUser, postUrl) {
+  
   //use google's Utilities to base64 decode if present, otherwise use standard JS (ie for MS Excel)
   var decoded = typeof Utilities != "undefined" ? Utilities.base64Decode(currentUser.api_key) : atob(currentUser.api_key);
   var APIKEY = typeof Utilities != "undefined" ? Utilities.newBlob(decoded).getDataAsString() : decoded;
@@ -541,6 +554,15 @@ function postArtifactToSpira(entry, user, projectId, artifactTypeId, parentId) {
       postUrl = parentId !== -1 ? API_PROJECT_BASE + projectId + '/test-cases/' + parentId + '/test-steps?' : null;
       // only post the test step if we have a parent id
       break;
+
+    // RISKS
+    case ART_ENUMS.risks:
+      postUrl = API_PROJECT_BASE + projectId + '/risks?';
+
+    // TEST SETS
+    case ART_ENUMS.testSets:
+    postUrl = API_PROJECT_BASE + projectId + '/test-sets?';
+    break;
   }
 
   return postUrl ? poster(JSON_body, user, postUrl) : null;
@@ -2352,6 +2374,7 @@ function getFromSpiraGoogle(model, fieldTypeEnums) {
 // @param: model: full model object from client
 // @param: enum of fieldTypeEnums used
 function getFromSpiraExcel(model, fieldTypeEnums) {
+
   return Excel.run(function (context) {
     var sheet = context.workbook.worksheets.getActiveWorksheet();
     sheet.load("name");
