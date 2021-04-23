@@ -138,10 +138,15 @@
         <p class="mt-md">The Spira Import/Export Tool helps you:</p>
         <ul>
             <li>
-                get (export) data from Spira 
+                get (export) data from Spira
+                <ul>
+                    <li>
+                        optionally, update the data and send it back to Spira
+                    </li>
+                </ul>
             </li>
             <li>
-                send (import) data to Spira</p>
+                send (import) new data to Spira</p>
             </li>
         </ul> 
         <p></p>
@@ -278,6 +283,21 @@
                 title="Get data for the specified artifact from SpiraPlan"
                 >
                 Get from Spira
+            </button>
+        </div>
+
+        <div>
+            <p id="main-guide-3" class="pale">
+                <b>c. Send the updated data to Spira</b>
+            </p>
+            <button
+                class="action ms-Button ms-Button--primary"
+                disabled="true"
+                id="btn-updateToSpira" 
+                type="button"
+                title="Send data back to Spira, reflecting the changes from the spreadsheet"
+                >
+                Update Spira
             </button>
         </div>
 

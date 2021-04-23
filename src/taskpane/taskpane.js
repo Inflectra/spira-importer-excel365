@@ -11,9 +11,11 @@ var model = new Data();
 var uiSelection = new tempDataStore();
 
 // if devmode enabled, set the required fields and show the dev button
-var devMode = false;
+var devMode = true;
 var isGoogle = false;
 
+//used to decide when allow user to update data
+ //artifactUpdateUI(false);
 
 
 
@@ -106,7 +108,7 @@ function setDevStuff(devMode) {
     } else {
       model.user.url = "https://internal-bruno.spiraservice.net/";
       model.user.userName = "administrator";
-      model.user.api_key = btoa("&api-key=" + encodeURIComponent("{C544F400-1E87-4753-968D-BF2F4E740579}"));
+      model.user.api_key = btoa("&api-key=" + encodeURIComponent("{D0D25647-F6C9-4355-8B83-F21666B84BD1}"));
     }
     loginAttempt();
   }
@@ -149,6 +151,7 @@ function setEventListeners() {
   document.getElementById("btn-toSpira").onclick = sendToSpiraAttempt;
   document.getElementById("btn-fromSpira").onclick = getFromSpiraAttempt;
   document.getElementById("btn-template").onclick = updateTemplateAttempt;
+  document.getElementById("btn-updateToSpira").onclick = updateSpiraAttempt;
 
   document.getElementById("btn-help-back").onclick = function () { panelToggle("help") };
   document.getElementById("btn-help-section-login").onclick = function () { showChosenHelpSection('login') };
@@ -245,6 +248,7 @@ function resetUi() {
   document.getElementById("select-artifact").disabled = true;
   document.getElementById("btn-fromSpira").disabled = true;
   document.getElementById("btn-toSpira").disabled = true;
+  document.getElementById("btn-updateToSpira").disabled = true;
   document.getElementById("btn-toSpira").innerHTML = "Prepare Template";
 
   // reset artifact dropdown to 'Select an Artifact'
@@ -256,6 +260,7 @@ function resetUi() {
   // reset action buttons
   document.getElementById("btn-fromSpira").style.display = "";
   document.getElementById("btn-toSpira").style.display = "";
+  document.getElementById("btn-updateToSpira").style.display = "";
 
 
   // reset guide text on the main pane
@@ -265,6 +270,7 @@ function resetUi() {
   document.getElementById("main-heading-fromSpira").style.display = "";
   document.getElementById("main-heading-toSpira").style.display = "";
   document.getElementById("main-guide-2").classList.add("pale");
+  document.getElementById("main-guide-3").classList.add("pale");
 }
 
 
@@ -418,18 +424,24 @@ function populateProjects(projects) {
 
 // manage the switching of the UI off the login screen on succesful login and retrieval of projects
 function showMainPanel(type) {
+  //artifactUpdateUI(false);
   setDropdown("select-product", model.projects, "Select a product");
   setDropdown("select-artifact", params.artifacts, "Select an artifact");
+  model.projects
 
   // set the buttons to the correct mode
   if (type == "send") {
     document.getElementById("btn-fromSpira").style.display = "none";
     document.getElementById("main-guide-1-fromSpira").style.display = "none";
     document.getElementById("main-heading-fromSpira").style.display = "none";
+    document.getElementById("btn-updateToSpira").style.visibility = "hidden";
+    document.getElementById("main-guide-3").style.visibility = "hidden";
   } else {
     document.getElementById("btn-toSpira").style.display = "none";
     document.getElementById("main-guide-1-toSpira").style.display = "none";
     document.getElementById("main-heading-toSpira").style.display = "none";
+    document.getElementById("main-guide-3").style.visibility = "visible";
+    document.getElementById("btn-updateToSpira").style.visibility = "visible";
   }
 
   // opens the panel
@@ -472,6 +484,8 @@ function logout(shouldLogout) {
 
 
 function changeProjectSelect(e) {
+  artifactUpdateUI(1);
+
   // if the project field has not been selected all other selected buttons are disabled
   if (e.target.value == 0) {
     document.getElementById("select-artifact").disabled = true;
@@ -528,7 +542,48 @@ function getTemplateFromProjectId(user, projectId, artifact) {
 }
 
 
+function artifactUpdateUI(mode) {
+  if (mode == 1) 
+  { //when selecting a new project
+    document.getElementById("main-guide-1").classList.remove("pale");
+    document.getElementById("main-guide-2").classList.add("pale");
+    document.getElementById("main-guide-3").classList.add("pale");
+    document.getElementById("btn-fromSpira").disabled = true;
+    document.getElementById("btn-updateToSpira").disabled = true;
+    //document.getElementById("select-artifact").selectedIndex = "0";
+  }
+
+  if (mode == 2) 
+  { //when selecting a new artifact
+    
+    document.getElementById("main-guide-3").classList.add("pale");
+    document.getElementById("btn-updateToSpira").disabled = true;
+    
+    /*if(document.getElementById("select-artifact").selectedIndex == 0)
+    {
+      document.getElementById("main-guide-1").classList.remove("pale");
+      document.getElementById("main-guide-2").classList.add("pale");
+      document.getElementById("btn-fromSpira").disabled = true;
+    }*/
+  }
+
+  if (mode == 3) 
+  { //when clicking from-Spira button
+    document.getElementById("btn-updateToSpira").disabled = false;
+  }
+
+  if (mode == 4) 
+  { //in case of any error
+    document.getElementById("main-guide-2").classList.remove("pale");
+    document.getElementById("btn-fromSpira").disabled = false;
+    document.getElementById("main-guide-3").classList.add("pale");
+    document.getElementById("btn-updateToSpira").disabled = true;
+  }
+}
+
+
 function changeArtifactSelect(e) {
+  artifactUpdateUI(2);
   if (e.target.value == 0) {
     document.getElementById("btn-toSpira").disabled = true;
     document.getElementById("btn-fromSpira").disabled = true;
@@ -549,8 +604,6 @@ function changeArtifactSelect(e) {
       if (uiSelection.currentProject.templateId && uiSelection.currentProject.id) {
         getArtifactSpecificInformation(model.user, uiSelection.currentProject.templateId, uiSelection.currentProject.id, uiSelection.currentArtifact);
       }
-
-
     }
   }
 }
@@ -562,6 +615,7 @@ function manageTemplateBtnState() {
   // initially disable the button, because required API calls not completed
   document.getElementById("btn-toSpira").disabled = true;
   document.getElementById("btn-fromSpira").disabled = true;
+  //document.getElementById("btn-updateToSpira").disabled = true;
   document.getElementById("btn-template").disabled = true;
 
   // only try to enable the button when both a project and artifact have been chosen
@@ -575,11 +629,24 @@ function manageTemplateBtnState() {
 
     function updateButtonStatus() {
       if (allGetsSucceeded()) {
+
+        if (!document.getElementById("btn-updateToSpira").disabled) {
+        //sets the UI to allow update
+        document.getElementById("btn-fromSpira").disabled = false;
+        document.getElementById("main-guide-2").classList.add("pale");
+        document.getElementById("main-guide-3").classList.remove("pale");
+        document.getElementById("message-fetching-data").style.visibility = "hidden";
+        }
+        else
+        {
         document.getElementById("btn-toSpira").disabled = false;
         document.getElementById("btn-fromSpira").disabled = false;
+
         document.getElementById("message-fetching-data").style.visibility = "hidden";
         document.getElementById("main-guide-1").classList.add("pale");
         document.getElementById("main-guide-2").classList.remove("pale");
+        }
+
         clearInterval(checkGetsSuccess);
 
         // if there is a discrepancy between the dropdown and the currently active template
@@ -593,6 +660,10 @@ function manageTemplateBtnState() {
             document.getElementById("btn-template").disabled = true;
           }
         }
+      }
+      else
+      {
+       // console.log('CHEGUEI AQUI hora da verdade 2FM ');
       }
     }
   }
@@ -653,17 +724,18 @@ function getFromSpiraAttempt() {
         .withSuccessHandler(getFromSpiraComplete)
         .getFromSpiraGoogle(model, params.fieldType);
     } else {
+     // console.log('CHEGUEI AQUI 4 ');
       msOffice.getFromSpiraExcel(model, params.fieldType)
         .then((response) => getFromSpiraComplete(response))
         .catch((error) => errorImpExp(error));
+       // console.log('CHEGUEI AQUI 5 ');
     }
   } else {
     //if no template - then get the template
     createTemplateAttempt();
   }
+  artifactUpdateUI(3);
 }
-
-
 
 function getFromSpiraComplete(log) {
   if (devMode) console.log(log);
@@ -672,6 +744,12 @@ function getFromSpiraComplete(log) {
     errorMessages = log.entries
       .filter(function (entry) { return entry.error; })
       .map(function (entry) { return entry.message; });
+      //artifactUpdateUI(false);
+  }
+  else
+  {
+    //artifactUpdateUI(true);
+    manageTemplateBtnState();
   }
   hideLoadingSpinner();
 
@@ -700,9 +778,9 @@ function sendToSpiraAttempt() {
       google.script.run
         .withFailureHandler(errorImpExp)
         .withSuccessHandler(sendToSpiraComplete)
-        .sendToSpira(model, params.fieldType);
+        .sendToSpira(model, params.fieldType,false);
     } else {
-      msOffice.sendToSpira(model, params.fieldType)
+      msOffice.sendToSpira(model, params.fieldType,false)
         .then((response) => sendToSpiraComplete(response))
         .catch((error) => errorImpExp(error));
     }
@@ -710,6 +788,34 @@ function sendToSpiraAttempt() {
     //if no template - then get the template
     createTemplateAttempt();
   }
+}
+
+function updateSpiraAttempt() {
+
+  // first update state to reflect user intent
+  model.isGettingDataAttempt = false;
+  console.log('MAOE 1');
+  //check that template is loaded
+  if (model.isTemplateLoaded) {
+    showLoadingSpinner();
+
+    //call export function
+    if (isGoogle) {
+      google.script.run
+        .withFailureHandler(errorImpExp)
+        .withSuccessHandler(sendToSpiraComplete)
+        .sendToSpira(model, params.fieldType, true);
+    } else {
+      msOffice.sendToSpira(model, params.fieldType, true)
+        .then((response) => sendToSpiraComplete(response))
+        .catch((error) => errorImpExp(error));
+        console.log('MAOE 99');
+    }
+  } else {
+    //if no template - throw an error
+     errorExcel("The spreadsheet does not match the selected artifact. Please check your data.")
+    }
+  
 }
 
 
@@ -1196,7 +1302,7 @@ function templateLoaderSuccess(response) {
 
   // de-emphasise the explanatory message - we have to put it in a set timeout because there is already a delay set for other checks that affect the view state of this element
   setTimeout(function() {
-    document.getElementById("main-guide-2").classList.add("pale");
+    //document.getElementById("main-guide-2").classList.add("pale");
   }, 750);
 }
 
@@ -1224,11 +1330,13 @@ function errorPopUp(type, err) {
     console.log(err);
   } else {
     msOffice.error(type, err);
+    artifactUpdateUI(4);
     console.error("SpiraPlan Import/Export Plugin encountered an error:", err.status ? err.status : "", err.response ? err.response.text : "", err.description ? err.description : "")
     console.info("SpiraPlan Import/Export Plugin: full error is... ", err)
   }
   hideLoadingSpinner();
 }
+artifactUpdateUI(4);
 function errorNetwork(err) {
   errorPopUp("network", err);
 }

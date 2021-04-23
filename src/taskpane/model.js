@@ -192,12 +192,18 @@ var templateFields = {
                 isProjectBased: true
             }
         },
-        { field: "CreationDate", name: "Creation Date", type: params.fieldType.date },
+        { field: "CreationDate", name: "Creation Date", type: params.fieldType.date, required: true },
         { field: "StartDate", name: "Start Date", type: params.fieldType.date },
-        { field: "EndDate", name: "End Date", type: params.fieldType.date },
+        { field: "EndDate", name: "End Date", type: params.fieldType.date},
         { field: "EstimatedEffort", name: "Estimated Effort (in mins)", type: params.fieldType.int },
         { field: "ActualEffort", name: "Actual Effort (in mins)", type: params.fieldType.int },
+        { field: "ProjectedEffort", name: "Projected Effort (in mins)", type: params.fieldType.int },
         { field: "RemainingEffort", name: "Remaining Effort (in mins)", type: params.fieldType.int },
+        { field: "RequirementId", name: "RequirementId", type: params.fieldType.int },
+        { field: "ComponentId", name: "ComponentId", type: params.fieldType.int },
+        { field: "CompletionPercent", name: "Completion Percent", type: params.fieldType.int },
+
+        { field: "ConcurrencyDate", name: "Concurrency Date", type: params.fieldType.text ,isReadOnly: true },
     ],
     testSets: [
         { field: "TestSetId", name: "ID", type: params.fieldType.id },
