@@ -144,6 +144,7 @@ var templateFields = {
         { field: "ResourceCount", name: "Resources", type: params.fieldType.num },
         { field: "DaysNonWorking", name: "Non Working Days", type: params.fieldType.int },
         { field: "CreationDate", name: "Creation Date", type: params.fieldType.date },
+        { field: "ConcurrencyDate", name: "Concurrency Date", type: params.fieldType.text ,isReadOnly: true },
         // unsupported {field: "Comment", name: "Comment", type: params.fieldType.text, unsuppored: true}
     ],
 
@@ -200,10 +201,10 @@ var templateFields = {
         { field: "ProjectedEffort", name: "Projected Effort (in mins)", type: params.fieldType.int },
         { field: "RemainingEffort", name: "Remaining Effort (in mins)", type: params.fieldType.int },
         { field: "RequirementId", name: "RequirementId", type: params.fieldType.int },
-        { field: "ComponentId", name: "ComponentId", type: params.fieldType.int },
         { field: "CompletionPercent", name: "Completion Percent", type: params.fieldType.int },
-
+        { field: "ProjectId", name: "Project ID", type: params.fieldType.int ,isReadOnly: true },
         { field: "ConcurrencyDate", name: "Concurrency Date", type: params.fieldType.text ,isReadOnly: true },
+
     ],
     testSets: [
         { field: "TestSetId", name: "ID", type: params.fieldType.id },
@@ -298,7 +299,9 @@ var templateFields = {
         { field: "ClosedDate", name: "Closed On", type: params.fieldType.date },
         { field: "EstimatedEffort", name: "Estimated Effort (mins)", type: params.fieldType.int },
         { field: "ActualEffort", name: "Actual Effort (mins)", type: params.fieldType.int },
-        { field: "RemainingEffort", name: "Remaining Effort (mins)", type: params.fieldType.int }
+        { field: "RemainingEffort", name: "Remaining Effort (mins)", type: params.fieldType.int },
+        { field: "CompletionPercent", name: "Completion Percent", type: params.fieldType.int },
+        { field: "ConcurrencyDate", name: "Concurrency Date", type: params.fieldType.text ,isReadOnly: true },
     ],
 
     testCases: [
@@ -397,6 +400,8 @@ var templateFields = {
         { field: "CreationDate", name: "Creation Date", type: params.fieldType.date },
         { field: "ClosedDate", name: "Closed Date", type: params.fieldType.date },
         { field: "ReviewDate", name: "Review Date", type: params.fieldType.date },
+        { field: "RiskExposure", name: "Risk Exposure", type: params.fieldType.int, isReadOnly: true },
+        { field: "ConcurrencyDate", name: "Concurrency Date", type: params.fieldType.text ,isReadOnly: true },
     ],
 };
 

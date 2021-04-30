@@ -1,5 +1,24 @@
-### Get Task WORKING
-https://internal-bruno.spiraservice.net/services/v6_0/RestService.svc/projects/1/requirements/8?username=administrator&api-key=%7BD0D25647-F6C9-4355-8B83-F21666B84BD1%7D
+### MAOE
+https://internal-bruno.spiraservice.net//services/v6_0/RestService.svc/projects/1/releases?username=administrator&api-key=%7BD0D25647-F6C9-4355-8B83-F21666B84BD1%7D
+
+
+### Retrieve Task WORKING
+POST https://internal-bruno.spiraservice.net/services/v6_0/RestService.svc/projects/1/releases?starting_row=1&number_of_rows=100&sort_field=ReleaseId&sort_direction=ASC&username=administrator&api-key=%7BD0D25647-F6C9-4355-8B83-F21666B84BD1%7D
+Content-Type: application/json
+
+[
+  {
+  }
+]
+
+### Retrieve Risks
+POST https://internal-bruno.spiraservice.net/services/v6_0/RestService.svc/projects/1/risks?starting_row=1&number_of_rows=100&sort_field=RiskId&sort_direction=ASC&username=administrator&api-key=%7BD0D25647-F6C9-4355-8B83-F21666B84BD1%7D
+Content-Type: application/json
+
+[
+  {
+  }
+]
 
 ### Put Task WORKING
 PUT https://internal-bruno.spiraservice.net/services/v6_0/RestService.svc/projects/1/tasks?username=administrator&api-key=%7BD0D25647-F6C9-4355-8B83-F21666B84BD1%7D
@@ -37,12 +56,11 @@ Accept: application/json
  "EndDate": "2020-12-31T01:00:28.533Z"
 }
 
-
 ### Put REQ ?
 PUT https://internal-bruno.spiraservice.net/services/v6_0/RestService.svc/projects/1/requirements/8?username=administrator&api-key=%7BD0D25647-F6C9-4355-8B83-F21666B84BD1%7D
 content-type: application/json
 Accept: application/json
-
+[
 {
   "RequirementId": 8,
   "IndentLevel": "AAAAAAAAAAAE",
@@ -88,5 +106,19 @@ Accept: application/json
   "IsAttachments": false,
   "Tags": null
 }
+]
+
+##POST w FILTERS
+POST https://internal-bruno.spiraservice.net/services/v6_0/RestService.svc/projects/1/incidents/search?start_row=1&number_rows=500&sort_by=IncidentId&username=administrator&api-key=%7BD0D25647-F6C9-4355-8B83-F21666B84BD1%7D
+Content-Type: application/json
+
+[{
+    "PropertyName": "IncidentStatusId",
+    "IntValue": 1
+}]
+
+
+
+
 
 

@@ -16,9 +16,8 @@ Run the command Get-AppxPackage Microsoft.Win32WebViewHost
 Copy the PackageFullName value
 Run the command setx JS_DEBUG <PackageFullName> with the full name you just got
 
-* Close everything, stop the dev server
-* Re-open your files. Run the add-in. Locate a small arrow at top right of the add-in (<). Click on it and select 'Attach Debugger'. This will open a console browser-style windows, where you can check the add-in running.
 * If that not works, you can try to install the Microsoft Edge Dev Tools
+* To DEBUG in Visual Studio Code, install and follow the instructions of this extension: https://marketplace.visualstudio.com/items?itemName=msoffice.microsoft-office-add-in-debugger
 
 ## Troubleshooting
 

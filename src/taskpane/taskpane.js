@@ -663,7 +663,6 @@ function manageTemplateBtnState() {
       }
       else
       {
-       // console.log('CHEGUEI AQUI hora da verdade 2FM ');
       }
     }
   }
@@ -724,11 +723,9 @@ function getFromSpiraAttempt() {
         .withSuccessHandler(getFromSpiraComplete)
         .getFromSpiraGoogle(model, params.fieldType);
     } else {
-     // console.log('CHEGUEI AQUI 4 ');
       msOffice.getFromSpiraExcel(model, params.fieldType)
         .then((response) => getFromSpiraComplete(response))
         .catch((error) => errorImpExp(error));
-       // console.log('CHEGUEI AQUI 5 ');
     }
   } else {
     //if no template - then get the template
@@ -794,7 +791,6 @@ function updateSpiraAttempt() {
 
   // first update state to reflect user intent
   model.isGettingDataAttempt = false;
-  console.log('MAOE 1');
   //check that template is loaded
   if (model.isTemplateLoaded) {
     showLoadingSpinner();
@@ -809,7 +805,6 @@ function updateSpiraAttempt() {
       msOffice.sendToSpira(model, params.fieldType, true)
         .then((response) => sendToSpiraComplete(response))
         .catch((error) => errorImpExp(error));
-        console.log('MAOE 99');
     }
   } else {
     //if no template - throw an error

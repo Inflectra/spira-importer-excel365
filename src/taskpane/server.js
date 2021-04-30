@@ -53,7 +53,7 @@ var API_PROJECT_BASE = '/services/v6_0/RestService.svc/projects/',
     tasks: 6,
     testSteps: 7,
     testSets: 8,
-    risks: 14
+    risks: 14,
   },
   INITIAL_HIERARCHY_OUTDENT = -20,
   GET_PAGINATION_SIZE = 100,
@@ -283,7 +283,6 @@ function fetcher(currentUser, fetcherURL) {
 
   //build URL from args
   var fullUrl = currentUser.url + fetcherURL + "username=" + currentUser.userName + APIKEY;
-  console.log('FETCHER ' + fullUrl);
   //set MIME type
   var params = { "Content-Type": "application/json", "accepts": "application/json" };
 
@@ -415,7 +414,7 @@ function getArtifacts(user, projectId, artifactTypeId, startRow, numberOfRows, a
       }
       break;
     case ART_ENUMS.incidents:
-      fullURL += "/incidents/search?start_row=" + startRow + "&number_rows=" + numberOfRows + "&";
+      fullURL += "/incidents/search?start_row=" + startRow + "&number_rows=" + numberOfRows + "&sort_field=Name&sort_direction=ASC&";
       response = fetcher(user, fullURL);
       break;
     case ART_ENUMS.releases:
@@ -461,15 +460,14 @@ function getArtifacts(user, projectId, artifactTypeId, startRow, numberOfRows, a
 // @param: currentUser - user object storing login data from client
 // @param: postUrl - url string passed in to connect with Spira
 function poster(body, currentUser, postUrl) {
-  
+
   //use google's Utilities to base64 decode if present, otherwise use standard JS (ie for MS Excel)
   var decoded = typeof Utilities != "undefined" ? Utilities.base64Decode(currentUser.api_key) : atob(currentUser.api_key);
   var APIKEY = typeof Utilities != "undefined" ? Utilities.newBlob(decoded).getDataAsString() : decoded;
 
   //build URL from args
   var fullUrl = currentUser.url + postUrl + "username=" + currentUser.userName + APIKEY;
-  console.log(fullUrl);
-  console.log(JSON.stringify(body));
+
   //POST headers
   var params = {};
   params.method = 'post';
@@ -502,8 +500,7 @@ function putUpdater(body, currentUser, PUTUrl) {
 
   //build URL from args
   var fullUrl = currentUser.url + PUTUrl + "username=" + currentUser.userName + APIKEY;
-console.log('fullUrl ' + fullUrl);
-console.log('put body ' + JSON.stringify(body));
+
   //PUT headers
   var params = {};
   params.method = 'put';
@@ -517,10 +514,14 @@ console.log('put body ' + JSON.stringify(body));
     return response;
   } else {
     //for MS Excel, use superagent to return a promise to the taskpane
-    return superagent
-      .put(fullUrl)
-      .send(body)
-      .set("Content-Type", "application/json", "accepts", "application/json")
+
+    var putResult =
+      superagent
+        .put(fullUrl)
+        .send(body)
+        .set("Content-Type", "application/json", "accepts", "application/json");
+    console.log('putResult*: ', JSON.stringify(putResult));
+    return putResult;
 
   }
 }
@@ -543,13 +544,13 @@ function postArtifactToSpira(entry, user, projectId, artifactTypeId, parentId) {
   //send JSON object of new item to artifact specific export function
   switch (artifactTypeId) {
 
-		// REQUIREMENTS
-		case ART_ENUMS.requirements:
-			// url to post initial RQ to ensure it is fully outdented
-			if (entry.indentPosition === 0 ) { 
-				postUrl = API_PROJECT_BASE + projectId + '/requirements/indent/' + INITIAL_HIERARCHY_OUTDENT + '?';
-			// if no parentId then post as a regular RQ 
-			} else if (parentId === -1) {
+    // REQUIREMENTS
+    case ART_ENUMS.requirements:
+      // url to post initial RQ to ensure it is fully outdented
+      if (entry.indentPosition === 0) {
+        postUrl = API_PROJECT_BASE + projectId + '/requirements/indent/' + INITIAL_HIERARCHY_OUTDENT + '?';
+        // if no parentId then post as a regular RQ 
+      } else if (parentId === -1) {
         postUrl = API_PROJECT_BASE + projectId + '/requirements?';
         // we should have a parent Id set so add this RQ as its child
       } else {
@@ -595,8 +596,8 @@ function postArtifactToSpira(entry, user, projectId, artifactTypeId, parentId) {
 
     // TEST SETS
     case ART_ENUMS.testSets:
-    postUrl = API_PROJECT_BASE + projectId + '/test-sets?';
-    break;
+      postUrl = API_PROJECT_BASE + projectId + '/test-sets?';
+      break;
   }
 
   return postUrl ? poster(JSON_body, user, postUrl) : null;
@@ -610,8 +611,8 @@ function postArtifactToSpira(entry, user, projectId, artifactTypeId, parentId) {
 // @param: artifactId - int of the current artifact
 // @param: parentId - optional int of the relevant parent to attach the artifact too
 function putArtifactToSpira(entry, user, projectId, artifactTypeId, parentId) {
-
   //stringify
+
   var JSON_body = JSON.stringify(entry),
     response = "",
     putUrl = "";
@@ -619,13 +620,13 @@ function putArtifactToSpira(entry, user, projectId, artifactTypeId, parentId) {
   //send JSON object of new item to artifact specific export function
   switch (artifactTypeId) {
 
-		// REQUIREMENTS
-		case ART_ENUMS.requirements:
-			// url to post initial RQ to ensure it is fully outdented
-			if (entry.indentPosition === 0 ) { 
-				putUrl = API_PROJECT_BASE + projectId + '/requirements/indent/' + INITIAL_HIERARCHY_OUTDENT + '?';
-			// if no parentId then post as a regular RQ 
-			} else if (parentId === -1) {
+    // REQUIREMENTS
+    case ART_ENUMS.requirements:
+      // url to post initial RQ to ensure it is fully outdented
+      if (entry.indentPosition === 0) {
+        putUrl = API_PROJECT_BASE + projectId + '/requirements/indent/' + INITIAL_HIERARCHY_OUTDENT + '?';
+        // if no parentId then post as a regular RQ 
+      } else if (parentId === -1) {
         putUrl = API_PROJECT_BASE + projectId + '/requirements?';
         // we should have a parent Id set so add this RQ as its child
       } else {
@@ -640,7 +641,7 @@ function putArtifactToSpira(entry, user, projectId, artifactTypeId, parentId) {
 
     // INCIDENTS
     case ART_ENUMS.incidents:
-      putUrl = API_PROJECT_BASE + projectId + '/incidents?';
+      putUrl = API_PROJECT_BASE + projectId + '/incidents/' + entry.IncidentId + '?';
       break;
 
     // RELEASES
@@ -668,13 +669,14 @@ function putArtifactToSpira(entry, user, projectId, artifactTypeId, parentId) {
     // RISKS
     case ART_ENUMS.risks:
       putUrl = API_PROJECT_BASE + projectId + '/risks?';
-
+      break;
     // TEST SETS
     case ART_ENUMS.testSets:
       putUrl = API_PROJECT_BASE + projectId + '/test-sets?';
-    break;
+      break;
   }
-  console.log('putUrl ' + putUrl);
+console.log('JSON_body', JSON.stringify(JSON_body));
+console.log('putUrl', JSON.stringify(putUrl));
   return putUrl ? putUpdater(JSON_body, user, putUrl) : null;
 }
 
@@ -1243,7 +1245,7 @@ function contentFormattingSetter(sheet, model) {
       } else if (model.fields[i].isReadOnly) {
         warning = model.fields[i].name + " is read only";
       }
-      
+
       protectColumn(
         sheet,
         columnNumber,
@@ -1348,7 +1350,7 @@ function sendToSpira(model, fieldTypeEnums, isUpdate) {
       sheetData = sheetRange.getValues(),
       entriesForExport = createExportEntries(sheetData, model, fieldTypeEnums, fields, artifact, artifactIsHierarchical, isUpdate);
     if (sheet.getName() == requiredSheetName) {
-      return sendExportEntriesGoogle(entriesForExport, sheetData, sheet, sheetRange, model, fieldTypeEnums, fields, artifact,isUpdate);
+      return sendExportEntriesGoogle(entriesForExport, sheetData, sheet, sheetRange, model, fieldTypeEnums, fields, artifact, isUpdate);
     } else {
       var log = {
         status: STATUS_ENUM.wrongSheet
@@ -1377,7 +1379,7 @@ function sendToSpira(model, fieldTypeEnums, isUpdate) {
         })
         .catch();
     })
-    .catch();
+      .catch();
   }
 }
 
@@ -1406,17 +1408,17 @@ function createExportEntries(sheetData, model, fieldTypeEnums, fields, artifact,
         spiraId: rowIdFieldInt(sheetData[rowToPrep], fields, fieldTypeEnums)
       },
 
-      // create entry used to populate all relevant data for this row
-      entry = {};
+        // create entry used to populate all relevant data for this row
+        entry = {};
 
       // first check for errors
-      var hasProblems = rowHasProblems(rowChecks,isUpdate);
+      var hasProblems = rowHasProblems(rowChecks, isUpdate);
       if (hasProblems) {
         entry.validationMessage = hasProblems;
-      // if error free determine what field filtering is required - needed to choose type/subtype fields if subtype is present
+        // if error free determine what field filtering is required - needed to choose type/subtype fields if subtype is present
       } else {
         var fieldsToFilter = relevantFields(rowChecks);
-        entry = createEntryFromRow(sheetData[rowToPrep], model, fieldTypeEnums, artifactIsHierarchical, lastIndentPosition, fieldsToFilter,isUpdate);
+        entry = createEntryFromRow(sheetData[rowToPrep], model, fieldTypeEnums, artifactIsHierarchical, lastIndentPosition, fieldsToFilter, isUpdate);
         // FOR SUBTYPE ENTRIES add flag on entry if it is a subtype
         if (fieldsToFilter === FIELD_MANAGEMENT_ENUMS.subType) {
           entry.isSubType = true;
@@ -1436,7 +1438,7 @@ function createExportEntries(sheetData, model, fieldTypeEnums, fields, artifact,
 // 3. FOR GOOGLE ONLY: GET READY TO SEND DATA TO SPIRA + 4. ACTUALLY SEND THE DATA
 // check we have some entries and with no errors
 // Create and show a message to tell the user what is going on
-function sendExportEntriesGoogle(entriesForExport, sheetData, sheet, sheetRange, model, fieldTypeEnums, fields, artifact,isUpdate) {
+function sendExportEntriesGoogle(entriesForExport, sheetData, sheet, sheetRange, model, fieldTypeEnums, fields, artifact, isUpdate) {
   if (!entriesForExport.length) {
     popupShow('There are no entries to send to Spira', 'Check Sheet')
     return "nothing to send";
@@ -1462,7 +1464,7 @@ function sendExportEntriesGoogle(entriesForExport, sheetData, sheet, sheetRange,
       if (artifact.hierarchical) {
         log.parentId = getHierarchicalParentId(entriesForExport[i].indentPosition, log.entries);
       }
-      
+
       var sentToSpira = manageSendingToSpira(entriesForExport[i], model.user, model.currentProject.id, artifact, fields, fieldTypeEnums, log.parentId, isUpdate);
 
       // update the parent ID for a subtypes based on the successful API call
@@ -1493,7 +1495,7 @@ function sendExportEntriesGoogle(entriesForExport, sheetData, sheet, sheetRange,
 
     // review all activity and set final status
     log.status = setFinalStatus(log);
-    
+
     // call the final function here - so we know that it is only called after the recursive function above (ie all posting) has ended
     return updateSheetWithExportResults(log, entriesForExport, sheetData, sheet, sheetRange, model, fieldTypeEnums, fields, artifact, null);
   }
@@ -1679,7 +1681,7 @@ function setFinalStatus(log) {
         }
       }
     }
-    
+
     if (logEntriesOnlyAboutIds) {
       return STATUS_ENUM.existingEntries;
     } else if (log.errorCount == log.entriesLength) {
@@ -1806,21 +1808,17 @@ function manageSendingToSpira(entry, user, projectId, artifact, fields, fieldTyp
   // send object to relevant artifact post service
   if (IS_GOOGLE) {
 
-if(!isUpdate)
-{
-    data = postArtifactToSpira(entry, user, projectId, artifactTypeIdToSend, parentId);
-}
-else
-{
-  data = putArtifactToSpira(entry, user, projectId, artifactTypeIdToSend, parentId);
-}
+    if (!isUpdate) {
+      data = postArtifactToSpira(entry, user, projectId, artifactTypeIdToSend, parentId);
+    }
+    else {
+      data = putArtifactToSpira(entry, user, projectId, artifactTypeIdToSend, parentId);
+    }
     // save data for logging to client
     output.httpCode = (data && data.getResponseCode()) ? data.getResponseCode() : "notSent";
-
     // parse the data if we have a success
     if (output.httpCode == 200) {
       output.fromSpira = JSON.parse(data.getContentText());
-
       // get the id/subType id of the newly created artifact
       var artifactIdField = getIdFieldName(fields, fieldTypeEnums, entry.isSubType);
       output.newId = output.fromSpira[artifactIdField];
@@ -1848,975 +1846,996 @@ else
 
   } else {
 
-if(!isUpdate){
-    return postArtifactToSpira(entry, user, projectId, artifactTypeIdToSend, parentId)
-      .then(function (response) {
-        output.fromSpira = response.body;
+    if (!isUpdate) {
+      return postArtifactToSpira(entry, user, projectId, artifactTypeIdToSend, parentId)
+        .then(function (response) {
+          output.fromSpira = response.body;
 
-        // get the id/subType id of the newly created artifact
-        var artifactIdField = getIdFieldName(fields, fieldTypeEnums, entry.isSubType);
-        output.newId = output.fromSpira[artifactIdField];
+          // get the id/subType id of the newly created artifact
+          var artifactIdField = getIdFieldName(fields, fieldTypeEnums, entry.isSubType);
+          output.newId = output.fromSpira[artifactIdField];
 
-        // update the output parent ID to the new id only if the artifact has a subtype and this entry is NOT a subtype
-        if (artifact.hasSubType && !entry.isSubType) {
-          output.parentId = output.newId;
-        }
-        return output;
-      })
-      .catch(function (error) {
-        //we have an error - so set the flag and the message
-        output.error = true;
-        if (error) {
-          output.errorMessage = error;
-        } else {
-          output.errorMessage = "send attempt failed";
-        }
-
-        // reset the parentId if we are not on a subType - to make sure subTypes are not added to the wrong parent
-        if (artifact.hasSubType && !entry.isSubType) {
-          output.parentId = 0;
-        }
-        return output;
-      });
-
-    }
-    else{
-    return putArtifactToSpira(entry, user, projectId, artifactTypeIdToSend, parentId)
-      .then(function (response) {
-        output.fromSpira = response.body;
-
-        // get the id/subType id of the newly created artifact
-        var artifactIdField = getIdFieldName(fields, fieldTypeEnums, entry.isSubType);
-        output.newId = output.fromSpira[artifactIdField];
-
-        // update the output parent ID to the new id only if the artifact has a subtype and this entry is NOT a subtype
-        if (artifact.hasSubType && !entry.isSubType) {
-          output.parentId = output.newId;
-        }
-        return output;
-      })
-      .catch(function (error) {
-        //we have an error - so set the flag and the message
-        output.error = true;
-        if (error) {
-          output.errorMessage = error;
-        } else {
-          output.errorMessage = "send attempt failed";
-        }
-
-        // reset the parentId if we are not on a subType - to make sure subTypes are not added to the wrong parent
-        if (artifact.hasSubType && !entry.isSubType) {
-          output.parentId = 0;
-        }
-        return output;
-      });
-
-  }
-}
-
-}
-
-// returns the correct parentId for the relevant indent position by looping back through the list of entries
-// returns -1 if no match found
-// @param: indent - int of the indent position to retrieve the parent for
-// @param: previousEntries - object containing all successfully sent entries - with, if a hierarchical artifact, a hierarchy info object
-function getHierarchicalParentId(indent, previousEntries) {
-  // if there is no indent/ set to initial indent we return out immediately 
-  if (indent === 0 || !previousEntries.length) {
-    return -1;
-  }
-  for (var i = previousEntries.length - 1; i >= 0; i--) {
-    // when the indent is greater - means we are indenting, so take the last array item and return out
-    // check for presence of correct objects in item - should exist, as otherwise error should be thrown
-    if (previousEntries[i].details && previousEntries[i].details.hierarchyInfo && previousEntries[i].details.hierarchyInfo.indent < indent) {
-      return previousEntries[i].details.hierarchyInfo.id;
-      break;
-    }
-  }
-  return -1;
-}
-
-
-// returns an int of the total number of required fields for the passed in artifact
-// @param: fields - the relevant fields for specific artifact, along with all metadata about each
-// @param: forSubType - bool to determine whether to check for sub type required fields (true), or not - defaults to false
-function countRequiredFieldsByType(fields, forSubType) {
-  var count = 0;
-  for (var i = 0; i < fields.length; i++) {
-    if (forSubType != "undefined" && forSubType) {
-      if (fields[i].requiredForSubType) {
-        count++;
-      }
-    } else if (fields[i].required) {
-      count++;
-    }
-  }
-  return count;
-}
-
-
-
-// check to see if a row of data has entries for all required fields
-// returns true if all required fields have (any) values, otherwise returns false
-// @param: row - a 'row' of data that contains a single object representing all fields
-// @param: fields - the relevant fields for specific artifact, along with all metadata about each
-function rowCountRequiredFieldsByType(row, fields, forSubType) {
-  var count = 0;
-  for (var i = 0; i < row.length; i++) {
-    if (forSubType != "undefined" && forSubType) {
-      if (fields[i].requiredForSubType && row[i]) {
-        count++;
-      }
-    } else if (fields[i].required && row[i]) {
-      count++;
-    }
-
-  }
-  return count;
-}
-
-
-
-// check to see if a row for an artifact with a subtype has a field that can't be present if subtype fields are filled in
-// this can be useful to make sure that one field - eg Test Case Name would make sure a test step is not created to avoid any confusion
-// returns true if all required fields have (any) values, otherwise returns false
-// @param: row - a 'row' of data that contains a single object representing all fields
-// @param: fields - object of the relevant fields for specific artifact, along with all metadata about each
-function rowBlocksSubType(row, fields) {
-  var result = false;
-  for (var column = 0; column < row.length; column++) {
-    if (fields[column].forbidOnSubType && row[column]) {
-      result = true;
-    }
-  }
-  return result;
-}
-
-
-
-// check to see if a row for an artifact has any id field filled in with an int (not a string - a string could mean a different error message was previously added with Excel)
-// returns false if id field is not an int, returns the ID in the cell if one is present as an INT (ie send back the Spira ID)
-// @param: row - a 'row' of data that contains a single object representing all fields
-// @param: fields - object of the relevant fields for specific artifact, along with all metadata about each
-// @param: fieldTypeEnums - object of all field types with enums
-function rowIdFieldInt(row, fields, fieldTypeEnums) {
-  var result = false;
-  for (var column = 0; column < row.length; column++) {
-    const cellIsIdField = fields[column].type === fieldTypeEnums.id || fields[column].type === fieldTypeEnums.subId;
-    if (cellIsIdField && Number.isInteger(parseInt(row[column]))) {
-      //set the result to the value of the ID so that the row is skipped but in the UI it looks the same - ie has the correct ID etc
-      result = row[column];
-      break;
-    }
-  }
-  return result;
-}
-
-
-
-// checks to see if the row is valid - ie required fields present and correct as expected
-// returns a string - empty if no errors present (to evaluate to false), or an error message object otherwise
-// @ param: rowChecks - object with different properties for different checks required
-function rowHasProblems(rowChecks, isUpdate) {
-  var problem = null;
-  // if the row already exists in Spira then do not carry out any other problem analysis
-  if (rowChecks.spiraId && !isUpdate) {
-    problem = rowChecks.spiraId;
-  // if a new entry, carry out problem analysis
-  } else if (!rowChecks.hasSubType && rowChecks.countRequiredFields < rowChecks.totalFieldsRequired) {
-    problem = "Fill in all required fields";
-  } else if (rowChecks.hasSubType) {
-    if (rowChecks.countSubTypeRequiredFields < rowChecks.totalSubTypeFieldsRequired && !rowChecks.countRequiredFields) {
-      problem = "Fill in all required fields";
-    } else if (rowChecks.countRequiredFields < rowChecks.totalFieldsRequired && !rowChecks.countSubTypeRequiredFields) {
-      problem = "Fill in all required fields";
-    } else if (rowChecks.countSubTypeRequiredFields == rowChecks.totalSubTypeFieldsRequired && (rowChecks.countRequiredFields == rowChecks.totalFieldsRequired || rowChecks.subTypeIsBlocked)) {
-      problem = "It is unclear what artifact this is intended to be";
-    }
-  }
-  return problem;
-}
-
-// based on field type and conditions, determines what fields are required for a given row
-// e.g. all fields is default and standard, if a subtype is present (eg test step) - should it send only the main type or the sub type fields
-// returns a int representing the relevant enum value
-// @ param: rowChecks - object with different properties for different checks required
-function relevantFields(rowChecks) {
-  var fields = FIELD_MANAGEMENT_ENUMS.all;
-  if (rowChecks.hasSubType) {
-    if (rowChecks.countRequiredFieldsFilled == rowChecks.totalFieldsRequired && !rowChecks.countSubTypeRequiredFields) {
-      fields = FIELD_MANAGEMENT_ENUMS.standard;
-    } else if (rowChecks.countSubTypeRequiredFields == rowChecks.totalSubTypeFieldsRequired && !(rowChecks.countRequiredFields == rowChecks.totalFieldsRequired || rowChecks.subTypeIsBlocked)) {
-      fields = FIELD_MANAGEMENT_ENUMS.subType;
-    }
-  }
-  return fields;
-}
-
-
-
-// function creates a correctly formatted artifact object ready to send to Spira
-// it works through each field type to validate and parse the values so object is in correct form
-// any field that does not pass validation receives a null value
-// @param: row - a 'row' of data that contains a single object representing all fields
-// @param: model - full model with info about fields, dropdowns, users, etc
-// @param: fieldTypeEnums - object of all field types with enums
-// @param: artifactIsHierarchical - bool to tell function if this artifact has hierarchy (eg RQ and RL)
-// @param: lastIndentPosition - int used for calculating relative indents for hierarchical artifacts
-// @param: fieldsToFilter - enum used for selecting fields to not add to object - defaults to using all if omitted
-function createEntryFromRow(row, model, fieldTypeEnums, artifactIsHierarchical, lastIndentPosition, fieldsToFilter, isUpdate) {
-  //create empty 'entry' object - include custom properties array here to avoid it being undefined later if needed
-  var entry = {
-    "CustomProperties": []
-  },
-    fields = model.fields;
-
-  //we need to turn an array of values in the row into a validated object
-  for (var index = 0; index < row.length; index++) {
-    var skipField = false;
-    if((isUpdate && fields[index].type == fieldTypeEnums.id) || (isUpdate && fields[index].type == fieldTypeEnums.subId)){
-      var skipField = false;
-    }
-    // first ignore entry that does not match the requirement specified in the fieldsToFilter
-    else if (fieldsToFilter == FIELD_MANAGEMENT_ENUMS.standard && fields[index].isSubTypeField) {
-      // skip the field
-      skipField = true;
-
-    } else if (fieldsToFilter == FIELD_MANAGEMENT_ENUMS.subType && !(fields[index].isSubTypeField || fields[index].isTypeAndSubTypeField)) {
-      // skip the field
-      skipField = true;
-      // in all other cases add the field
-    }    
-    if(!skipField) {
-      var value = null,
-        customType = "",
-        idFromName = 0;
-
-      // double check data validation, convert dropdowns to required int values
-      // sets both the value, and custom types - so that custom fields are handled correctly
-      switch (fields[index].type) {
-
-        // ID fields: restricted to numbers and blank on push, otherwise put
-        case fieldTypeEnums.id:
-        case fieldTypeEnums.subId:
-          if(isUpdate && !isNaN(row[index])){
-            value = row[index];
+          // update the output parent ID to the new id only if the artifact has a subtype and this entry is NOT a subtype
+          if (artifact.hasSubType && !entry.isSubType) {
+            output.parentId = output.newId;
           }
-          customType = "IntegerValue";
-          break;
-
-        // INT fields
-        case fieldTypeEnums.int:
-          // only set the value if a number has been returned
-          if (!isNaN(row[index])) {
-            value = row[index];
-            customType = "IntegerValue";
+          return output;
+        })
+        .catch(function (error) {
+          //we have an error - so set the flag and the message
+          output.error = true;
+          if (error) {
+            output.errorMessage = error;
+          } else {
+            output.errorMessage = "send attempt failed";
           }
-          break;
 
-        // DECIMAL fields
-        case fieldTypeEnums.num:
-          // only set the value if a number has been returned
-          if (!isNaN(row[index])) {
-            value = row[index];
-            customType = "DecimalValue";
+          // reset the parentId if we are not on a subType - to make sure subTypes are not added to the wrong parent
+          if (artifact.hasSubType && !entry.isSubType) {
+            output.parentId = 0;
           }
-          break;
+          return output;
+        });
 
-        // BOOL as Sheets has no bool validation, a yes/no dropdown is used
-        case fieldTypeEnums.bool:
-          // 'True' and 'False' don't work as dropdown choices, so have to convert back
-          if (row[index] == "Yes") {
-            value = true;
-            customType = "BooleanValue";
-          } else if (row[index] == "No") {
-            value = false;
-            customType = "BooleanValue";
-          }
-          break;
-
-        // DATES - parse the data and add prefix/suffix for WCF
-        case fieldTypeEnums.date:
-          if (row[index]) {
-            if (IS_GOOGLE) {
-              value = row[index];
-            } else {
-              // for Excel, dates are returned as days since 1900 - so we need to adjust this for JS date formats
-              const DAYS_BETWEEN_1900_1970 = 25567 + 2;
-              const dateInMs = (row[index] - DAYS_BETWEEN_1900_1970) * 86400 * 1000;
-              const msToMidday = 1000 * 60 * 60 * 12; // we use midday so it will show as the correct date for users no matter their time zone as this is saved in Spira as UTC
-              value = new Date(dateInMs + msToMidday);
+    }
+    else {
+      return putArtifactToSpira(entry, user, projectId, artifactTypeIdToSend, parentId)
+        .then(function (response) {
+          var errorStatus = response.error;
+          if (!errorStatus) {
+            // get the id/subType id of the updated artifact
+            var artifactIdField = getIdFieldName(fields, fieldTypeEnums, entry.isSubType);
+            //just repeat the id - it's the same 
+            output.newId = entry[artifactIdField];
+            // repeats the output parent ID only if the artifact has a subtype and this entry is NOT a subtype
+            if (artifact.hasSubType && !entry.isSubType) {
+              output.parentId = parentId;
             }
-            customType = "DateTimeValue";
-          }
-          break;
+            return output;
 
-        // ARRAY fields are for multiselect lists - currently not supported so just push value into an array to make sure server handles it correctly
-        case fieldTypeEnums.arr:
-          if (row[index]) {
-            value = [row[index]];
-            customType = ""; // array fields not used for custom properties here
           }
-          break;
+          else {
+            //there's an error
+            //we have an error - so set the flag and the message
+            console.log('ERRO' , error);
+            output.error = true;
+            if (error) {
+              output.errorMessage = error;
+            } else {
+              output.errorMessage = "send attempt failed";
+            }
 
-        // DROPDOWNS - get id from relevant name, if one is present
-        case fieldTypeEnums.drop:
-          idFromName = getIdFromName(row[index], fields[index].values);
-          if (idFromName) {
-            value = idFromName;
-            customType = "IntegerValue";
+            // reset the parentId if we are not on a subType - to make sure subTypes are not added to the wrong parent
+            if (artifact.hasSubType && !entry.isSubType) {
+              output.parentId = 0;
+            }
+            return output;
+
           }
-          break;
 
-        // MULTIDROPDOWNS - get id from relevant name, if one is present, set customtype to list value
-        case fieldTypeEnums.multi:
-          idFromName = getIdFromName(row[index], fields[index].values);
-          if (idFromName) {
-            value = [idFromName];
-            customType = "IntegerListValue";
+        })
+        .catch(function (error) {
+          //we have an error - so set the flag and the message
+          console.log('ERRO*', error);
+
+          output.error = true;
+          if (error) {
+            output.errorMessage = error;
+          } else {
+            output.errorMessage = "send attempt failed";
           }
-          break;
 
-        // USER fields - get id from relevant name, if one is present
-        case fieldTypeEnums.user:
-          idFromName = getIdFromName(row[index], model.projectUsers);
-          if (idFromName) {
-            value = idFromName;
-            customType = "IntegerValue";
+          // reset the parentId if we are not on a subType - to make sure subTypes are not added to the wrong parent
+          if (artifact.hasSubType && !entry.isSubType) {
+            output.parentId = 0;
           }
-          break;
-
-        // COMPONENT fields - get id from relevant name, if one is present
-        case fieldTypeEnums.component:
-          idFromName = getIdFromName(row[index], model.projectComponents);
-          if (idFromName) {
-            value = idFromName;
-            // component is multi select for test cases but not for other artifacts
-            customType = fields[index].isMulti ? "IntegerListValue" : "IntegerValue";
-          }
-          break;
-
-        // RELEASE fields - get id from relevant name, if one is present
-        case fieldTypeEnums.release:
-          idFromName = getIdFromName(row[index], model.projectReleases);
-          if (idFromName) {
-            value = idFromName;
-            customType = "IntegerValue";
-          }
-          break;
-
-        // All other types
-        default:
-          // just assign the value to the cell - used for text
-          value = row[index];
-          customType = "StringValue";
-          break;
+          return output;
+        });
       }
+    }
+  }
 
-
-      // HIERARCHICAL ARTIFACTS:
-      // handle hierarchy fields - if required: checks artifact type is hierarchical and if this field sets hierarchy
-      if (artifactIsHierarchical && fields[index].setsHierarchy) {
-        // first get the number of indent characters
-        var indentInfo = countIndentCharacters(value, model.indentCharacter),
-          indentCount = indentInfo.indentCount,
-          trimCount = indentInfo.trimCount,
-          indentPosition = setRelativePosition(indentCount, lastIndentPosition);
-        // make sure to slice off the indent and spacing characters from the front
-        value = value.slice(trimCount, value.length);
-
-        // set the indent position for this row
-        entry.indentPosition = indentPosition;
+    // returns the correct parentId for the relevant indent position by looping back through the list of entries
+    // returns -1 if no match found
+    // @param: indent - int of the indent position to retrieve the parent for
+    // @param: previousEntries - object containing all successfully sent entries - with, if a hierarchical artifact, a hierarchy info object
+    function getHierarchicalParentId(indent, previousEntries) {
+      // if there is no indent/ set to initial indent we return out immediately 
+      if (indent === 0 || !previousEntries.length) {
+        return -1;
       }
+      for (var i = previousEntries.length - 1; i >= 0; i--) {
+        // when the indent is greater - means we are indenting, so take the last array item and return out
+        // check for presence of correct objects in item - should exist, as otherwise error should be thrown
+        if (previousEntries[i].details && previousEntries[i].details.hierarchyInfo && previousEntries[i].details.hierarchyInfo.indent < indent) {
+          return previousEntries[i].details.hierarchyInfo.id;
+          break;
+        }
+      }
+      return -1;
+    }
 
-      // CUSTOM FIELDS:
-      // check whether field is marked as a custom field and as the required property number
-      if (fields[index].isCustom && fields[index].propertyNumber) {
 
-        // if field has data create the object
-        if (value) {
-          var customObject = {};
-          customObject.PropertyNumber = fields[index].propertyNumber;
-          customObject[customType] = value;
+    // returns an int of the total number of required fields for the passed in artifact
+    // @param: fields - the relevant fields for specific artifact, along with all metadata about each
+    // @param: forSubType - bool to determine whether to check for sub type required fields (true), or not - defaults to false
+    function countRequiredFieldsByType(fields, forSubType) {
+      var count = 0;
+      for (var i = 0; i < fields.length; i++) {
+        if (forSubType != "undefined" && forSubType) {
+          if (fields[i].requiredForSubType) {
+            count++;
+          }
+        } else if (fields[i].required) {
+          count++;
+        }
+      }
+      return count;
+    }
 
-          entry.CustomProperties.push(customObject);
+
+
+    // check to see if a row of data has entries for all required fields
+    // returns true if all required fields have (any) values, otherwise returns false
+    // @param: row - a 'row' of data that contains a single object representing all fields
+    // @param: fields - the relevant fields for specific artifact, along with all metadata about each
+    function rowCountRequiredFieldsByType(row, fields, forSubType) {
+      var count = 0;
+      for (var i = 0; i < row.length; i++) {
+        if (forSubType != "undefined" && forSubType) {
+          if (fields[i].requiredForSubType && row[i]) {
+            count++;
+          }
+        } else if (fields[i].required && row[i]) {
+          count++;
         }
 
-        // STANDARD FIELDS:
-        // add standard fields in standard way - only add if field contains data
-      } else if (value) {
-        // if the standard field is a multi select type as set in the switch above, pass the value through in an array
-        entry[fields[index].field] = (customType == "IntegerListValue") ? [value] : value;
       }
+      return count;
     }
 
-  }
-  return entry;
-}
 
 
-
-// find the corresponding ID for a string value - eg from a dropdown
-// dropdowns can only contain one item per row so we have to now get the IDs for sending to Spira
-// @param: string - the string of the name value specified
-// @param: list - the array of items with keys for id and name values
-function getIdFromName(string, list) {
-  for (var i = 0; i < list.length; i++) {
-    if (setListItemDisplayName(list[i]) == string) {
-      return list[i].id;
-    
-    // if there's no match with the item, let's try and match on just the name part of the list item  - this is the old way
-    // this code is included to accomodate users who create their spreadsheets elsewhere and then dump the data in here without knowing the ids
-    } else if (list[i] == unsetListItemDisplayName(string)) {
-      return list[i].id;
+    // check to see if a row for an artifact with a subtype has a field that can't be present if subtype fields are filled in
+    // this can be useful to make sure that one field - eg Test Case Name would make sure a test step is not created to avoid any confusion
+    // returns true if all required fields have (any) values, otherwise returns false
+    // @param: row - a 'row' of data that contains a single object representing all fields
+    // @param: fields - object of the relevant fields for specific artifact, along with all metadata about each
+    function rowBlocksSubType(row, fields) {
+      var result = false;
+      for (var column = 0; column < row.length; column++) {
+        if (fields[column].forbidOnSubType && row[column]) {
+          result = true;
+        }
+      }
+      return result;
     }
-  }
-
-  // return 0 if there's no match from either method
-  return 0;
-}
-
-// for dropdown items we need to use the id as well as the name to make sure the entries are unique - so return a standard format here
-// @param: item - object of the list item - contains a name and id
-// returns the correctly formatted string - so that it is always set consistently
-function setListItemDisplayName(item) {
-
-  return item.name + " (#" + item.id + ")";
-}
-
-// removes the id from the end of a string to get the initial value, pre setting the display name
-// @param: string - of the list item with the id added at the end as in setListItemDisplayName
-// returns a new string with the regex match removed
-function unsetListItemDisplayName(string) {
-  var regex = / \(\#\d+\)$/gi;
-  return string.replace(regex, "");
-}
 
 
-// finds and returns the field name for the specific artifiact's ID field
-// @param: fields - object of the relevant fields for specific artifact, along with all metadata about each
-// @param: fieldTypeEnums - object of all field types with enums
-// @param: getSubType - optioanl bool to specify to return the subtype Id field, not the normal field (where two exist)
-function getIdFieldName(fields, fieldTypeEnums, getSubType) {
-  for (var i = 0; i < fields.length; i++) {
-    var fieldToLookup = getSubType ? "subId" : "id";
-    if (fields[i].type == fieldTypeEnums[fieldToLookup]) {
-      return fields[i].field;
+
+    // check to see if a row for an artifact has any id field filled in with an int (not a string - a string could mean a different error message was previously added with Excel)
+    // returns false if id field is not an int, returns the ID in the cell if one is present as an INT (ie send back the Spira ID)
+    // @param: row - a 'row' of data that contains a single object representing all fields
+    // @param: fields - object of the relevant fields for specific artifact, along with all metadata about each
+    // @param: fieldTypeEnums - object of all field types with enums
+    function rowIdFieldInt(row, fields, fieldTypeEnums) {
+      var result = false;
+      for (var column = 0; column < row.length; column++) {
+        const cellIsIdField = fields[column].type === fieldTypeEnums.id || fields[column].type === fieldTypeEnums.subId;
+        if (cellIsIdField && Number.isInteger(parseInt(row[column]))) {
+          //set the result to the value of the ID so that the row is skipped but in the UI it looks the same - ie has the correct ID etc
+          result = row[column];
+          break;
+        }
+      }
+      return result;
     }
-  }
-  return null;
-}
 
 
-// returns the count of the number of indent characters and returns the value
-// @param: field - a single field string - one already designated as containing hierarchy info
-// @param: indentCharacter - the character used to denote an indent - e.g. ">"
-function countIndentCharacters(field, indentCharacter) {
-  var indentCount = 0,
-    trimCount = 0;
-  //check for field value and indent character
-  if (field && field[0] === indentCharacter) {
-    //increment indent counter while there are '>'s present
-    while (field[0] === indentCharacter || field[0] === " ") {
-      // in all cases as to the trim count
-      trimCount++;
-      // add to the indent count if we have an indent character
-      if (field[0] === indentCharacter) {
-        indentCount++;
+
+    // checks to see if the row is valid - ie required fields present and correct as expected
+    // returns a string - empty if no errors present (to evaluate to false), or an error message object otherwise
+    // @ param: rowChecks - object with different properties for different checks required
+    function rowHasProblems(rowChecks, isUpdate) {
+      var problem = null;
+      // if the row already exists in Spira then do not carry out any other problem analysis
+      if (rowChecks.spiraId && !isUpdate) {
+        problem = rowChecks.spiraId;
+        // if a new entry, carry out problem analysis
+      } else if (!rowChecks.hasSubType && rowChecks.countRequiredFields < rowChecks.totalFieldsRequired) {
+        problem = "Fill in all required fields";
+      } else if (rowChecks.hasSubType) {
+        if (rowChecks.countSubTypeRequiredFields < rowChecks.totalSubTypeFieldsRequired && !rowChecks.countRequiredFields) {
+          problem = "Fill in all required fields";
+        } else if (rowChecks.countRequiredFields < rowChecks.totalFieldsRequired && !rowChecks.countSubTypeRequiredFields) {
+          problem = "Fill in all required fields";
+        } else if (rowChecks.countSubTypeRequiredFields == rowChecks.totalSubTypeFieldsRequired && (rowChecks.countRequiredFields == rowChecks.totalFieldsRequired || rowChecks.subTypeIsBlocked)) {
+          problem = "It is unclear what artifact this is intended to be";
+        }
+      }
+      return problem;
+    }
+
+    // based on field type and conditions, determines what fields are required for a given row
+    // e.g. all fields is default and standard, if a subtype is present (eg test step) - should it send only the main type or the sub type fields
+    // returns a int representing the relevant enum value
+    // @ param: rowChecks - object with different properties for different checks required
+    function relevantFields(rowChecks) {
+      var fields = FIELD_MANAGEMENT_ENUMS.all;
+      if (rowChecks.hasSubType) {
+        if (rowChecks.countRequiredFieldsFilled == rowChecks.totalFieldsRequired && !rowChecks.countSubTypeRequiredFields) {
+          fields = FIELD_MANAGEMENT_ENUMS.standard;
+        } else if (rowChecks.countSubTypeRequiredFields == rowChecks.totalSubTypeFieldsRequired && !(rowChecks.countRequiredFields == rowChecks.totalFieldsRequired || rowChecks.subTypeIsBlocked)) {
+          fields = FIELD_MANAGEMENT_ENUMS.subType;
+        }
+      }
+      return fields;
+    }
+
+
+
+    // function creates a correctly formatted artifact object ready to send to Spira
+    // it works through each field type to validate and parse the values so object is in correct form
+    // any field that does not pass validation receives a null value
+    // @param: row - a 'row' of data that contains a single object representing all fields
+    // @param: model - full model with info about fields, dropdowns, users, etc
+    // @param: fieldTypeEnums - object of all field types with enums
+    // @param: artifactIsHierarchical - bool to tell function if this artifact has hierarchy (eg RQ and RL)
+    // @param: lastIndentPosition - int used for calculating relative indents for hierarchical artifacts
+    // @param: fieldsToFilter - enum used for selecting fields to not add to object - defaults to using all if omitted
+    function createEntryFromRow(row, model, fieldTypeEnums, artifactIsHierarchical, lastIndentPosition, fieldsToFilter, isUpdate) {
+      //create empty 'entry' object - include custom properties array here to avoid it being undefined later if needed
+      var entry = {
+        "CustomProperties": []
+      },
+        fields = model.fields;
+
+      //we need to turn an array of values in the row into a validated object
+      for (var index = 0; index < row.length; index++) {
+        var skipField = false;
+        if ((isUpdate && fields[index].type == fieldTypeEnums.id) || (isUpdate && fields[index].type == fieldTypeEnums.subId)) {
+          var skipField = false;
+        }
+        // first ignore entry that does not match the requirement specified in the fieldsToFilter
+        else if (fieldsToFilter == FIELD_MANAGEMENT_ENUMS.standard && fields[index].isSubTypeField) {
+          // skip the field
+          skipField = true;
+
+        } else if (fieldsToFilter == FIELD_MANAGEMENT_ENUMS.subType && !(fields[index].isSubTypeField || fields[index].isTypeAndSubTypeField)) {
+          // skip the field
+          skipField = true;
+          // in all other cases add the field
+        }
+        if (!skipField) {
+          var value = null,
+            customType = "",
+            idFromName = 0;
+
+          // double check data validation, convert dropdowns to required int values
+          // sets both the value, and custom types - so that custom fields are handled correctly
+          switch (fields[index].type) {
+
+            // ID fields: restricted to numbers and blank on push, otherwise put
+            case fieldTypeEnums.id:
+            case fieldTypeEnums.subId:
+              if (isUpdate && !isNaN(row[index])) {
+                value = row[index];
+              }
+              customType = "IntegerValue";
+              break;
+
+            // INT fields
+            case fieldTypeEnums.int:
+              // only set the value if a number has been returned
+              if (!isNaN(row[index])) {
+                value = row[index];
+                customType = "IntegerValue";
+              }
+              break;
+
+            // DECIMAL fields
+            case fieldTypeEnums.num:
+              // only set the value if a number has been returned
+              if (!isNaN(row[index])) {
+                value = row[index];
+                customType = "DecimalValue";
+              }
+              break;
+
+            // BOOL as Sheets has no bool validation, a yes/no dropdown is used
+            case fieldTypeEnums.bool:
+              // 'True' and 'False' don't work as dropdown choices, so have to convert back
+              if (row[index] == "Yes") {
+                value = true;
+                customType = "BooleanValue";
+              } else if (row[index] == "No") {
+                value = false;
+                customType = "BooleanValue";
+              }
+              break;
+
+            // DATES - parse the data and add prefix/suffix for WCF
+            case fieldTypeEnums.date:
+              if (row[index]) {
+                if (IS_GOOGLE) {
+                  value = row[index];
+                } else {
+                  // for Excel, dates are returned as days since 1900 - so we need to adjust this for JS date formats
+                  const DAYS_BETWEEN_1900_1970 = 25567 + 2;
+                  const dateInMs = (row[index] - DAYS_BETWEEN_1900_1970) * 86400 * 1000;
+                  const msToMidday = 1000 * 60 * 60 * 12; // we use midday so it will show as the correct date for users no matter their time zone as this is saved in Spira as UTC
+                  value = new Date(dateInMs + msToMidday);
+                }
+                customType = "DateTimeValue";
+              }
+              break;
+
+            // ARRAY fields are for multiselect lists - currently not supported so just push value into an array to make sure server handles it correctly
+            case fieldTypeEnums.arr:
+              if (row[index]) {
+                value = [row[index]];
+                customType = ""; // array fields not used for custom properties here
+              }
+              break;
+
+            // DROPDOWNS - get id from relevant name, if one is present
+            case fieldTypeEnums.drop:
+              idFromName = getIdFromName(row[index], fields[index].values);
+              if (idFromName) {
+                value = idFromName;
+                customType = "IntegerValue";
+              }
+              break;
+
+            // MULTIDROPDOWNS - get id from relevant name, if one is present, set customtype to list value
+            case fieldTypeEnums.multi:
+              idFromName = getIdFromName(row[index], fields[index].values);
+              if (idFromName) {
+                value = [idFromName];
+                customType = "IntegerListValue";
+              }
+              break;
+
+            // USER fields - get id from relevant name, if one is present
+            case fieldTypeEnums.user:
+              idFromName = getIdFromName(row[index], model.projectUsers);
+              if (idFromName) {
+                value = idFromName;
+                customType = "IntegerValue";
+              }
+              break;
+
+            // COMPONENT fields - get id from relevant name, if one is present
+            case fieldTypeEnums.component:
+              idFromName = getIdFromName(row[index], model.projectComponents);
+              if (idFromName) {
+                value = idFromName;
+                // component is multi select for test cases but not for other artifacts
+                customType = fields[index].isMulti ? "IntegerListValue" : "IntegerValue";
+              }
+              break;
+
+            // RELEASE fields - get id from relevant name, if one is present
+            case fieldTypeEnums.release:
+              idFromName = getIdFromName(row[index], model.projectReleases);
+              if (idFromName) {
+                value = idFromName;
+                customType = "IntegerValue";
+              }
+              break;
+
+            // All other types
+            default:
+              // just assign the value to the cell - used for text
+              value = row[index];
+              customType = "StringValue";
+              break;
+          }
+
+
+          // HIERARCHICAL ARTIFACTS:
+          // handle hierarchy fields - if required: checks artifact type is hierarchical and if this field sets hierarchy
+          if (artifactIsHierarchical && fields[index].setsHierarchy) {
+            // first get the number of indent characters
+            var indentInfo = countIndentCharacters(value, model.indentCharacter),
+              indentCount = indentInfo.indentCount,
+              trimCount = indentInfo.trimCount,
+              indentPosition = setRelativePosition(indentCount, lastIndentPosition);
+            // make sure to slice off the indent and spacing characters from the front
+            value = value.slice(trimCount, value.length);
+
+            // set the indent position for this row
+            entry.indentPosition = indentPosition;
+          }
+
+          // CUSTOM FIELDS:
+          // check whether field is marked as a custom field and as the required property number
+          if (fields[index].isCustom && fields[index].propertyNumber) {
+
+            // if field has data create the object
+            if (value) {
+              var customObject = {};
+              customObject.PropertyNumber = fields[index].propertyNumber;
+              customObject[customType] = value;
+
+              entry.CustomProperties.push(customObject);
+            }
+
+            // STANDARD FIELDS:
+            // add standard fields in standard way - only add if field contains data
+          } else if (value) {
+            // if the standard field is a multi select type as set in the switch above, pass the value through in an array
+            entry[fields[index].field] = (customType == "IntegerListValue") ? [value] : value;
+          }
+        }
+
+      }
+      return entry;
+    }
+
+
+
+    // find the corresponding ID for a string value - eg from a dropdown
+    // dropdowns can only contain one item per row so we have to now get the IDs for sending to Spira
+    // @param: string - the string of the name value specified
+    // @param: list - the array of items with keys for id and name values
+    function getIdFromName(string, list) {
+      for (var i = 0; i < list.length; i++) {
+        if (setListItemDisplayName(list[i]) == string) {
+          return list[i].id;
+
+          // if there's no match with the item, let's try and match on just the name part of the list item  - this is the old way
+          // this code is included to accomodate users who create their spreadsheets elsewhere and then dump the data in here without knowing the ids
+        } else if (list[i] == unsetListItemDisplayName(string)) {
+          return list[i].id;
+        }
       }
 
-      //get entry length for slice
-      var len = field.length;
-      //slice the first character off of the entry
-      field = field.slice(1, len);
-    }
-  }
-  return {
-    indentCount: indentCount,
-    trimCount: trimCount
-  };
-}
-
-
-// returns the correct relative indent position - based on the previous relative indent and other logic (int neg, pos, or zero)
-// Currently the API does not support a call to place an artifact at a certain location.
-// @param: indentCount - int of the number of indent characters set by user
-// @param: lastIndentPosition - int sum of the actual indent positions used for the preceding entries
-function setRelativePosition(indentCount, lastIndentPosition) {
-  // the first time this is called, last position will be null
-  if (lastIndentPosition === null) {
-    return 0;
-  } else if (indentCount > lastIndentPosition) {
-    // only indent one level at a time
-    return lastIndentPosition + 1;
-  } else {
-    // this will manage indents of same level or where outdents are required
-    return indentCount;
-  }
-}
-
-
-
-// anaylses the response from posting an item to Spira, and handles updating the log and displaying any messages to the user
-function processSendToSpiraResponse(i, sentToSpira, entriesForExport, artifact, log) {
-
-  var response = {};
-  response.details = sentToSpira;
-
-  // handle success and error cases
-  if (sentToSpira.error) {
-    log.errorCount++;
-    response.error = true;
-    response.message = sentToSpira.errorMessage;
-
-    //Sets error HTML modals
-    if (artifact.hierarchical) {
-      // if there is an error on any hierarchical artifact row, break out of the loop to prevent entries being attached to wrong parent
-      popupShow('Error sending ' + (i + 1) + ' of ' + (entriesForExport.length) + ' - sending stopped to avoid indenting entries incorrectly', 'Progress')
-      log.entries.push(response);
-    } else {
-      popupShow('Error sending ' + (i + 1) + ' of ' + (entriesForExport.length), 'Progress');
+      // return 0 if there's no match from either method
+      return 0;
     }
 
-  } else {
-    log.successCount++;
-    response.newId = sentToSpira.newId;
+    // for dropdown items we need to use the id as well as the name to make sure the entries are unique - so return a standard format here
+    // @param: item - object of the list item - contains a name and id
+    // returns the correctly formatted string - so that it is always set consistently
+    function setListItemDisplayName(item) {
 
-    // if artifact is hierarchical save relevant information to work out how to indent
-    if (artifact.hierarchical) {
-      response.details.hierarchyInfo = {
-        id: sentToSpira.newId,
-        indent: entriesForExport[i].indentPosition
+      return item.name + " (#" + item.id + ")";
+    }
+
+    // removes the id from the end of a string to get the initial value, pre setting the display name
+    // @param: string - of the list item with the id added at the end as in setListItemDisplayName
+    // returns a new string with the regex match removed
+    function unsetListItemDisplayName(string) {
+      var regex = / \(\#\d+\)$/gi;
+      return string.replace(regex, "");
+    }
+
+
+    // finds and returns the field name for the specific artifiact's ID field
+    // @param: fields - object of the relevant fields for specific artifact, along with all metadata about each
+    // @param: fieldTypeEnums - object of all field types with enums
+    // @param: getSubType - optioanl bool to specify to return the subtype Id field, not the normal field (where two exist)
+    function getIdFieldName(fields, fieldTypeEnums, getSubType) {
+      for (var i = 0; i < fields.length; i++) {
+        var fieldToLookup = getSubType ? "subId" : "id";
+        if (fields[i].type == fieldTypeEnums[fieldToLookup]) {
+          return fields[i].field;
+        }
       }
+      return null;
     }
-    //modal that displays the status of each artifact sent
-    popupShow('Sent ' + (i + 1) + ' of ' + (entriesForExport.length) + '...', 'Progress');
-  }
-
-  // finally write out the response to the log and return
-  log.entries.push(response);
-  return log;
-
-}
 
 
+    // returns the count of the number of indent characters and returns the value
+    // @param: field - a single field string - one already designated as containing hierarchy info
+    // @param: indentCharacter - the character used to denote an indent - e.g. ">"
+    function countIndentCharacters(field, indentCharacter) {
+      var indentCount = 0,
+        trimCount = 0;
+      //check for field value and indent character
+      if (field && field[0] === indentCharacter) {
+        //increment indent counter while there are '>'s present
+        while (field[0] === indentCharacter || field[0] === " ") {
+          // in all cases as to the trim count
+          trimCount++;
+          // add to the indent count if we have an indent character
+          if (field[0] === indentCharacter) {
+            indentCount++;
+          }
+
+          //get entry length for slice
+          var len = field.length;
+          //slice the first character off of the entry
+          field = field.slice(1, len);
+        }
+      }
+      return {
+        indentCount: indentCount,
+        trimCount: trimCount
+      };
+    }
 
 
-
-
-
-
-
-/*
- * ==================
- * GETTING FROM SPIRA
- * ==================
- *
- * get all items of an artifact and place contents in the sheet
- *
- */
-
-// GOOGLE SPECIFIC VARIATION OF THIS FUNCTION handles getting paginated artifacts from Spira and saving them as a single array
-// @param: model - full model object from client
-// @param: fieldTypeEnums - enum of fieldTypes used
-function getFromSpiraGoogle(model, fieldTypeEnums) {
-  var requiredSheetName = model.currentArtifact.name + ", PR-" + model.currentProject.id;
-  if (sheet.getName() != requiredSheetName) {
-    return operationComplete(STATUS_ENUM.wrongSheet, false);
-  }
-
-  // 1. get from spira
-  // note we don't do this by getting the count of each artifact first, because of a bug in getting the release count
-  var currentPage = 0;
-  var artifacts = [];
-  var getNextPage = true;
-
-  while (getNextPage && currentPage < 100) {
-    var startRow = (currentPage * GET_PAGINATION_SIZE) + 1;
-    var pageOfArtifacts = getArtifacts(
-      model.user,
-      model.currentProject.id,
-      model.currentArtifact.id,
-      startRow,
-      GET_PAGINATION_SIZE,
-      null
-    );
-    // if we got a non empty array back then we have artifacts to process
-    if (pageOfArtifacts.length) {
-      artifacts = artifacts.concat(pageOfArtifacts);
-      // if we got less artifacts than the max we asked for, then we reached the end of the list in this request - and should stop
-      if (pageOfArtifacts.length < GET_PAGINATION_SIZE) {
-        getNextPage = false;
-        // if we got the full page size back then there may be more artifacts to get
+    // returns the correct relative indent position - based on the previous relative indent and other logic (int neg, pos, or zero)
+    // Currently the API does not support a call to place an artifact at a certain location.
+    // @param: indentCount - int of the number of indent characters set by user
+    // @param: lastIndentPosition - int sum of the actual indent positions used for the preceding entries
+    function setRelativePosition(indentCount, lastIndentPosition) {
+      // the first time this is called, last position will be null
+      if (lastIndentPosition === null) {
+        return 0;
+      } else if (indentCount > lastIndentPosition) {
+        // only indent one level at a time
+        return lastIndentPosition + 1;
       } else {
-        currentPage++;
+        // this will manage indents of same level or where outdents are required
+        return indentCount;
       }
-      // if we got no artifacts back, stop now
-    } else {
-      getNextPage = false;
     }
-  }
-
-  // 2. if there were no artifacts at all break out now
-  if (!artifacts.length) return "no artifacts were returned";
-
-  // 3. Make sure hierarchical artifacts are ordered correctly
-  if (model.currentArtifact.hierarchical) {
-    artifacts.sort(function (a, b) {
-      return a.indentLevel < b.indentLevel ? -1 : 1;
-    });
-  }
 
 
-  // 4. if artifact has subtype that needs to be retrieved separately, do so
-  if (model.currentArtifact.hasSubType) {
-    // find the id field
-    var idFieldNameArray = model.fields.filter(function (field) {
-      return field.type === fieldTypeEnums.id;
-    });
-    // if we have an id field, then we can find the id number for each artifact in the array
-    if (idFieldNameArray && idFieldNameArray[0].field) {
-      var idFieldName = idFieldNameArray[0].field;
-      var artifactsWithSubTypes = [];
-      artifacts.forEach(function (art) {
-        artifactsWithSubTypes.push(art);
-        var subTypeArtifacts = getArtifacts(
+
+    // anaylses the response from posting an item to Spira, and handles updating the log and displaying any messages to the user
+    function processSendToSpiraResponse(i, sentToSpira, entriesForExport, artifact, log) {
+
+      var response = {};
+      response.details = sentToSpira;
+
+      // handle success and error cases
+      if (sentToSpira.error) {
+        log.errorCount++;
+        response.error = true;
+        response.message = sentToSpira.errorMessage;
+
+        //Sets error HTML modals
+        if (artifact.hierarchical) {
+          // if there is an error on any hierarchical artifact row, break out of the loop to prevent entries being attached to wrong parent
+          popupShow('Error sending ' + (i + 1) + ' of ' + (entriesForExport.length) + ' - sending stopped to avoid indenting entries incorrectly', 'Progress')
+          log.entries.push(response);
+        } else {
+          popupShow('Error sending ' + (i + 1) + ' of ' + (entriesForExport.length), 'Progress');
+        }
+
+      } else {
+        log.successCount++;
+        response.newId = sentToSpira.newId;
+
+        // if artifact is hierarchical save relevant information to work out how to indent
+        if (artifact.hierarchical) {
+          response.details.hierarchyInfo = {
+            id: sentToSpira.newId,
+            indent: entriesForExport[i].indentPosition
+          }
+        }
+        //modal that displays the status of each artifact sent
+        popupShow('Sent ' + (i + 1) + ' of ' + (entriesForExport.length) + '...', 'Progress');
+      }
+
+      // finally write out the response to the log and return
+      log.entries.push(response);
+      return log;
+
+    }
+
+
+
+
+
+
+
+
+
+    /*
+     * ==================
+     * GETTING FROM SPIRA
+     * ==================
+     *
+     * get all items of an artifact and place contents in the sheet
+     *
+     */
+
+    // GOOGLE SPECIFIC VARIATION OF THIS FUNCTION handles getting paginated artifacts from Spira and saving them as a single array
+    // @param: model - full model object from client
+    // @param: fieldTypeEnums - enum of fieldTypes used
+    function getFromSpiraGoogle(model, fieldTypeEnums) {
+      var requiredSheetName = model.currentArtifact.name + ", PR-" + model.currentProject.id;
+      if (sheet.getName() != requiredSheetName) {
+        return operationComplete(STATUS_ENUM.wrongSheet, false);
+      }
+
+      // 1. get from spira
+      // note we don't do this by getting the count of each artifact first, because of a bug in getting the release count
+      var currentPage = 0;
+      var artifacts = [];
+      var getNextPage = true;
+
+      while (getNextPage && currentPage < 100) {
+        var startRow = (currentPage * GET_PAGINATION_SIZE) + 1;
+        var pageOfArtifacts = getArtifacts(
           model.user,
           model.currentProject.id,
-          model.currentArtifact.subTypeId,
-          null,
-          null,
-          art[idFieldName]
+          model.currentArtifact.id,
+          startRow,
+          GET_PAGINATION_SIZE,
+          null
         );
-        // take action if we got any sub types back - ie if they exist for the specific artifact
-        if (subTypeArtifacts && subTypeArtifacts.length) {
-          var subTypeArtifactsWithMeta = subTypeArtifacts.map(function (sub) {
-            sub.isSubType = true;
-            sub.parentId = art[idFieldName];
-            return sub;
-          });
-          // now add the steps into the original object
-          artifactsWithSubTypes = artifactsWithSubTypes.concat(subTypeArtifactsWithMeta);
-        }
-      })
-      // update the original array (I know that mutation is bad, but it makes things easy here)
-      artifacts = artifactsWithSubTypes;
-    }
-  }
-
-  // 5. create 2d array from data to put into sheet
-  var artifactsAsCells = matchArtifactsToFields(
-    artifacts,
-    model.currentArtifact,
-    model.fields,
-    fieldTypeEnums,
-    model.projectUsers,
-    model.projectComponents,
-    model.projectReleases
-  );
-
-  // 6. add data to sheet
-  var spreadSheet = SpreadsheetApp.getActiveSpreadsheet(),
-    sheet = spreadSheet.getActiveSheet(),
-    range = sheet.getRange(2, 1, artifacts.length, model.fields.length);
-
-  range.setValues(artifactsAsCells);
-  return JSON.parse(JSON.stringify(artifactsAsCells));
-}
-
-// EXCEL SPECIFIC VARIATION OF THIS FUNCTION handles getting paginated artifacts from Spira and displaying them in the UI
-// @param: model: full model object from client
-// @param: enum of fieldTypeEnums used
-function getFromSpiraExcel(model, fieldTypeEnums) {
-
-  return Excel.run(function (context) {
-    var sheet = context.workbook.worksheets.getActiveWorksheet();
-    sheet.load("name");
-    var requiredSheetName = model.currentArtifact.name + ", PR-" + model.currentProject.id;
-
-    return context.sync()
-      .then(function() {
-        // only get the data if we are on the right sheet - the one with the template loaded on it
-        if (sheet.name == requiredSheetName) {
-          return getDataFromSpiraExcel(model, fieldTypeEnums).then((response) => {
-            return processDataFromSpiraExcel(response, model, fieldTypeEnums)
-          });
+        // if we got a non empty array back then we have artifacts to process
+        if (pageOfArtifacts.length) {
+          artifacts = artifacts.concat(pageOfArtifacts);
+          // if we got less artifacts than the max we asked for, then we reached the end of the list in this request - and should stop
+          if (pageOfArtifacts.length < GET_PAGINATION_SIZE) {
+            getNextPage = false;
+            // if we got the full page size back then there may be more artifacts to get
+          } else {
+            currentPage++;
+          }
+          // if we got no artifacts back, stop now
         } else {
-          return operationComplete(STATUS_ENUM.wrongSheet, false);
-        }
-      })
-  })
-}
-
-// EXCEL SPECIFIC VARIATION OF THIS FUNCTION handles getting paginated artifacts from Spira and saving them as a single array
-// @param: model - full model object from client
-// @param: fieldTypeEnums - enum of fieldTypes used
-async function getDataFromSpiraExcel(model, fieldTypeEnums) {
-  // 1. get from spira
-  // note we don't do this by getting the count of each artifact first, because of a bug in getting the release count
-  var currentPage = 0;
-  var artifacts = [];
-  var getNextPage = true;
-
-  async function getArtifactsPage(startRow) {
-    await getArtifacts(
-      model.user,
-      model.currentProject.id,
-      model.currentArtifact.id,
-      startRow,
-      GET_PAGINATION_SIZE,
-      null
-    ).then(function (response) {
-      // if we got a non empty array back then we have artifacts to process
-      if (response.body && response.body.length) {
-        artifacts = artifacts.concat(response.body);
-        // if we got less artifacts than the max we asked for, then we reached the end of the list in this request - and should stop
-        if (response.body && response.body.length < GET_PAGINATION_SIZE) {
           getNextPage = false;
-          // if we got the full page size back then there may be more artifacts to get
-        } else {
-          currentPage++;
         }
-        // if we got no artifacts back, stop now
-      } else {
-        getNextPage = false;
       }
-    })
-  }
 
-  while (getNextPage && currentPage < 100) {
-    var startRow = (currentPage * GET_PAGINATION_SIZE) + 1;
-    await getArtifactsPage(startRow);
-  }
+      // 2. if there were no artifacts at all break out now
+      if (!artifacts.length) return "no artifacts were returned";
 
-  // 2. if there were no artifacts at all break out now
-  if (!artifacts.length) return "no artifacts were returned";
+      // 3. Make sure hierarchical artifacts are ordered correctly
+      if (model.currentArtifact.hierarchical) {
+        artifacts.sort(function (a, b) {
+          return a.indentLevel < b.indentLevel ? -1 : 1;
+        });
+      }
 
-  // 3. Make sure hierarchical artifacts are ordered correctly
-  if (model.currentArtifact.hierarchical) {
-    artifacts.sort(function (a, b) {
-      return a.indentLevel < b.indentLevel ? -1 : 1;
-    });
-  }
 
-  // 4. if artifact has subtype that needs to be retrieved separately, do so
-  if (model.currentArtifact.hasSubType) {
-    // find the id field
-    var idFieldNameArray = model.fields.filter(function (field) {
-      return field.type === fieldTypeEnums.id;
-    });
+      // 4. if artifact has subtype that needs to be retrieved separately, do so
+      if (model.currentArtifact.hasSubType) {
+        // find the id field
+        var idFieldNameArray = model.fields.filter(function (field) {
+          return field.type === fieldTypeEnums.id;
+        });
+        // if we have an id field, then we can find the id number for each artifact in the array
+        if (idFieldNameArray && idFieldNameArray[0].field) {
+          var idFieldName = idFieldNameArray[0].field;
+          var artifactsWithSubTypes = [];
+          artifacts.forEach(function (art) {
+            artifactsWithSubTypes.push(art);
+            var subTypeArtifacts = getArtifacts(
+              model.user,
+              model.currentProject.id,
+              model.currentArtifact.subTypeId,
+              null,
+              null,
+              art[idFieldName]
+            );
+            // take action if we got any sub types back - ie if they exist for the specific artifact
+            if (subTypeArtifacts && subTypeArtifacts.length) {
+              var subTypeArtifactsWithMeta = subTypeArtifacts.map(function (sub) {
+                sub.isSubType = true;
+                sub.parentId = art[idFieldName];
+                return sub;
+              });
+              // now add the steps into the original object
+              artifactsWithSubTypes = artifactsWithSubTypes.concat(subTypeArtifactsWithMeta);
+            }
+          })
+          // update the original array (I know that mutation is bad, but it makes things easy here)
+          artifacts = artifactsWithSubTypes;
+        }
+      }
 
-    // if we have an id field, then we can find the id number for each artifact in the array
-    if (idFieldNameArray && idFieldNameArray[0].field) {
-      //function called below in the foreach call
-      async function getArtifactSubs(art) {
+      // 5. create 2d array from data to put into sheet
+      var artifactsAsCells = matchArtifactsToFields(
+        artifacts,
+        model.currentArtifact,
+        model.fields,
+        fieldTypeEnums,
+        model.projectUsers,
+        model.projectComponents,
+        model.projectReleases
+      );
+
+      // 6. add data to sheet
+      var spreadSheet = SpreadsheetApp.getActiveSpreadsheet(),
+        sheet = spreadSheet.getActiveSheet(),
+        range = sheet.getRange(2, 1, artifacts.length, model.fields.length);
+
+      range.setValues(artifactsAsCells);
+      return JSON.parse(JSON.stringify(artifactsAsCells));
+    }
+
+    // EXCEL SPECIFIC VARIATION OF THIS FUNCTION handles getting paginated artifacts from Spira and displaying them in the UI
+    // @param: model: full model object from client
+    // @param: enum of fieldTypeEnums used
+    function getFromSpiraExcel(model, fieldTypeEnums) {
+
+      return Excel.run(function (context) {
+        var sheet = context.workbook.worksheets.getActiveWorksheet();
+        sheet.load("name");
+        var requiredSheetName = model.currentArtifact.name + ", PR-" + model.currentProject.id;
+
+        return context.sync()
+          .then(function () {
+            // only get the data if we are on the right sheet - the one with the template loaded on it
+            if (sheet.name == requiredSheetName) {
+              return getDataFromSpiraExcel(model, fieldTypeEnums).then((response) => {
+                return processDataFromSpiraExcel(response, model, fieldTypeEnums)
+              });
+            } else {
+              return operationComplete(STATUS_ENUM.wrongSheet, false);
+            }
+          })
+      })
+    }
+
+    // EXCEL SPECIFIC VARIATION OF THIS FUNCTION handles getting paginated artifacts from Spira and saving them as a single array
+    // @param: model - full model object from client
+    // @param: fieldTypeEnums - enum of fieldTypes used
+    async function getDataFromSpiraExcel(model, fieldTypeEnums) {
+      // 1. get from spira
+      // note we don't do this by getting the count of each artifact first, because of a bug in getting the release count
+      var currentPage = 0;
+      var artifacts = [];
+      var getNextPage = true;
+
+      async function getArtifactsPage(startRow) {
         await getArtifacts(
           model.user,
           model.currentProject.id,
-          model.currentArtifact.subTypeId,
-          null,
-          null,
-          art[idFieldName]
+          model.currentArtifact.id,
+          startRow,
+          GET_PAGINATION_SIZE,
+          null
         ).then(function (response) {
-          // take action if we got any sub types back - ie if they exist for the specific artifact
+          // if we got a non empty array back then we have artifacts to process
           if (response.body && response.body.length) {
-            var subTypeArtifactsWithMeta = response.body.map(function (sub) {
-              sub.isSubType = true;
-              sub.parentId = art[idFieldName];
-              return sub;
-            });
-            // now add the steps into the original object
-            artifactsWithSubTypes = artifactsWithSubTypes.concat(subTypeArtifactsWithMeta);
+            artifacts = artifacts.concat(response.body);
+            // if we got less artifacts than the max we asked for, then we reached the end of the list in this request - and should stop
+            if (response.body && response.body.length < GET_PAGINATION_SIZE) {
+              getNextPage = false;
+              // if we got the full page size back then there may be more artifacts to get
+            } else {
+              currentPage++;
+            }
+            // if we got no artifacts back, stop now
+          } else {
+            getNextPage = false;
           }
         })
-      };
-
-      var idFieldName = idFieldNameArray[0].field;
-      var artifactsWithSubTypes = [];
-
-      for (var i = 0; i < artifacts.length; i++) {
-        artifactsWithSubTypes.push(artifacts[i]);
-        await getArtifactSubs(artifacts[i]);
       }
-      // update the original array (I know that mutation is bad, but it makes things easy here)
-      artifacts = artifactsWithSubTypes;
+
+      while (getNextPage && currentPage < 100) {
+        var startRow = (currentPage * GET_PAGINATION_SIZE) + 1;
+        await getArtifactsPage(startRow);
+      }
+
+      // 2. if there were no artifacts at all break out now
+      if (!artifacts.length) return "no artifacts were returned";
+
+      // 3. Make sure hierarchical artifacts are ordered correctly
+      if (model.currentArtifact.hierarchical) {
+        artifacts.sort(function (a, b) {
+          return a.indentLevel < b.indentLevel ? -1 : 1;
+        });
+      }
+
+      // 4. if artifact has subtype that needs to be retrieved separately, do so
+      if (model.currentArtifact.hasSubType) {
+        // find the id field
+        var idFieldNameArray = model.fields.filter(function (field) {
+          return field.type === fieldTypeEnums.id;
+        });
+
+        // if we have an id field, then we can find the id number for each artifact in the array
+        if (idFieldNameArray && idFieldNameArray[0].field) {
+          //function called below in the foreach call
+          async function getArtifactSubs(art) {
+            await getArtifacts(
+              model.user,
+              model.currentProject.id,
+              model.currentArtifact.subTypeId,
+              null,
+              null,
+              art[idFieldName]
+            ).then(function (response) {
+              // take action if we got any sub types back - ie if they exist for the specific artifact
+              if (response.body && response.body.length) {
+                var subTypeArtifactsWithMeta = response.body.map(function (sub) {
+                  sub.isSubType = true;
+                  sub.parentId = art[idFieldName];
+                  return sub;
+                });
+                // now add the steps into the original object
+                artifactsWithSubTypes = artifactsWithSubTypes.concat(subTypeArtifactsWithMeta);
+              }
+            })
+          };
+
+          var idFieldName = idFieldNameArray[0].field;
+          var artifactsWithSubTypes = [];
+
+          for (var i = 0; i < artifacts.length; i++) {
+            artifactsWithSubTypes.push(artifacts[i]);
+            await getArtifactSubs(artifacts[i]);
+          }
+          // update the original array (I know that mutation is bad, but it makes things easy here)
+          artifacts = artifactsWithSubTypes;
+        }
+      }
+      return artifacts;
     }
-  }
-  return artifacts;
-}
 
-// EXCEL SPECIFIC to process all the data retrieved from Spira and then display it
-// @param: artifacts: array of raw data from Spira (with subtypes already present if needed)
-// @param: model: full model object from client
-// @param: enum object of the different fieldTypeEnums
-function processDataFromSpiraExcel(artifacts, model, fieldTypeEnums) {
+    // EXCEL SPECIFIC to process all the data retrieved from Spira and then display it
+    // @param: artifacts: array of raw data from Spira (with subtypes already present if needed)
+    // @param: model: full model object from client
+    // @param: enum object of the different fieldTypeEnums
+    function processDataFromSpiraExcel(artifacts, model, fieldTypeEnums) {
 
- 
-  // 5. create 2d array from data to put into sheet
-  var artifactsAsCells = matchArtifactsToFields(
-    artifacts,
-    model.currentArtifact,
-    model.fields,
-    fieldTypeEnums,
-    model.projectUsers,
-    model.projectComponents,
-    model.projectReleases
-  );
 
-  // 6. add data to sheet
-  return Excel.run({ delayForCellEdit: true }, function (context) {
-    var sheet = context.workbook.worksheets.getActiveWorksheet(),
-      range = sheet.getRangeByIndexes(1, 0, artifacts.length, model.fields.length);
-    range.values = artifactsAsCells;
-    return context.sync()
-      .then(function () {
-        return artifactsAsCells;
+      // 5. create 2d array from data to put into sheet
+      var artifactsAsCells = matchArtifactsToFields(
+        artifacts,
+        model.currentArtifact,
+        model.fields,
+        fieldTypeEnums,
+        model.projectUsers,
+        model.projectComponents,
+        model.projectReleases
+      );
+
+      // 6. add data to sheet
+      return Excel.run({ delayForCellEdit: true }, function (context) {
+        var sheet = context.workbook.worksheets.getActiveWorksheet(),
+          range = sheet.getRangeByIndexes(1, 0, artifacts.length, model.fields.length);
+        range.values = artifactsAsCells;
+        return context.sync()
+          .then(function () {
+            return artifactsAsCells;
+          })
       })
-  })
-}
+    }
 
-// matches data against the fields to be shown in the spreadsheet - not all data fields are shown
-// @param: artifacts - array of the artifact objects we GOT from Spira
-// @param: artifactMeta - object of the meta information about the artifact
-// @param: fields - array of the fields that make up the sheet display
-// @param: fieldTypeEnums - enum object of the different fieldTypes
-// @param: users - array of the user objects
-// @param: components - array of the component objects
-// @param: releases - array of the release objects
-function matchArtifactsToFields(artifacts, artifactMeta, fields, fieldTypeEnums, users, components, releases) {
-  return artifacts.map(function (art) {
-    return fields.map(function (field) {
-      var originalFieldValue = "";
+    // matches data against the fields to be shown in the spreadsheet - not all data fields are shown
+    // @param: artifacts - array of the artifact objects we GOT from Spira
+    // @param: artifactMeta - object of the meta information about the artifact
+    // @param: fields - array of the fields that make up the sheet display
+    // @param: fieldTypeEnums - enum object of the different fieldTypes
+    // @param: users - array of the user objects
+    // @param: components - array of the component objects
+    // @param: releases - array of the release objects
+    function matchArtifactsToFields(artifacts, artifactMeta, fields, fieldTypeEnums, users, components, releases) {
+      return artifacts.map(function (art) {
+        return fields.map(function (field) {
+          var originalFieldValue = "";
 
-      // handle custom fields
-      if (field.isCustom && !art.isSubType) {
-        // if we have any custom props
-        if (art.CustomProperties && art.CustomProperties.length) {
-          // look for a match for the current field
-          var customProp = art.CustomProperties.filter(function (custom) {
-            return custom.Definition.CustomPropertyFieldName == field.field;
-          });
-          // if the property exists and isn't null - do a null check to handle booleans properly
-          if (typeof customProp != "undefined" && customProp.length && customProp[0][CUSTOM_PROP_TYPE_ENUM[field.type]] !== null) {
-            originalFieldValue = customProp[0][CUSTOM_PROP_TYPE_ENUM[field.type]];
+          // handle custom fields
+          if (field.isCustom && !art.isSubType) {
+            // if we have any custom props
+            if (art.CustomProperties && art.CustomProperties.length) {
+              // look for a match for the current field
+              var customProp = art.CustomProperties.filter(function (custom) {
+                return custom.Definition.CustomPropertyFieldName == field.field;
+              });
+              // if the property exists and isn't null - do a null check to handle booleans properly
+              if (typeof customProp != "undefined" && customProp.length && customProp[0][CUSTOM_PROP_TYPE_ENUM[field.type]] !== null) {
+                originalFieldValue = customProp[0][CUSTOM_PROP_TYPE_ENUM[field.type]];
+              }
+            }
+
+            // handle subtype fields
+          } else if (field.isSubTypeField) {
+            if (artifactMeta.hasSubType && art.isSubType) {
+              // first check to make sure the field exists in the artifact data
+              if (typeof art[field.field] != "undefined" && art[field.field]) {
+                originalFieldValue = art[field.field]
+              }
+            }
+
+            // handle standard fields
+          } else if (!art.isSubType) {
+            // first check to make sure the field exists in the artifact data
+            if (typeof art[field.field] != "undefined" && art[field.field]) {
+              originalFieldValue = art[field.field];
+            }
           }
-        }
-        
-      // handle subtype fields
-      } else if (field.isSubTypeField) {
-        if (artifactMeta.hasSubType && art.isSubType) {
-          // first check to make sure the field exists in the artifact data
-          if (typeof art[field.field] != "undefined" && art[field.field]) {
-            originalFieldValue = art[field.field]
+          // handle list values - turn from the id to the actual string so the string can be displayed
+          if (
+            field.type == fieldTypeEnums.drop ||
+            field.type == fieldTypeEnums.multi ||
+            field.type == fieldTypeEnums.user ||
+            field.type == fieldTypeEnums.component ||
+            field.type == fieldTypeEnums.release
+          ) {
+            // a field can have display overrides - if one of these overrides is in the artifact field specified, then this is returned instead of the lookup - used specifically to make sure RQ Epics show as Epics 
+            if (field.displayOverride && field.displayOverride.field && field.displayOverride.values && field.displayOverride.values.includes(art[field.displayOverride.field])) {
+              return art[field.displayOverride.field] + art[field.displayOverride.id];
+            } else {
+              // handle multilist fields (custom props or components for some artifacts) - we can only display one in Excel so pick the first in the array to match
+              var fieldValueForLookup = Array.isArray(originalFieldValue) ? originalFieldValue[0] : originalFieldValue;
+              var fieldName = getListValueFromId(
+                fieldValueForLookup,
+                field.type,
+                fieldTypeEnums,
+                field.values,
+                users,
+                components,
+                releases
+              );
+
+              if (fieldName) {
+                fieldName = fieldName + " (#" + fieldValueForLookup + ")";
+              }
+
+              return fieldName;
+
+            }
+
+            // handle date fields 
+          } else if (field.type == fieldTypeEnums.date) {
+            if (originalFieldValue) {
+              var jsObj = new Date(originalFieldValue);
+              return JSDateToExcelDate(jsObj);
+            } else {
+              return "";
+            }
+
+            // handle booleans - need to make sure null values are ignored ie treated differently to false
+          } else if (field.type == fieldTypeEnums.bool) {
+            return originalFieldValue ? "Yes" : originalFieldValue === false ? "No" : "";
+            // handle hierarchical artifacts
+          } else if (field.setsHierarchy) {
+            return makeHierarchical(originalFieldValue, art.IndentLevel);
+            // handle artifacts that have extra information we can display to the user - ie where there is a linked test step this will add the information about the link at the end of the field
+          } else if (field.extraDataField && art[field.extraDataField]) {
+            return `${originalFieldValue} ${field.extraDataPrefix ? field.extraDataPrefix + ":" : ""}${art[field.extraDataField]}`;
+          } else {
+            return originalFieldValue;
+
           }
-        }
+        });
+      })
+    }
 
-      // handle standard fields
-      } else if (!art.isSubType) {
-        // first check to make sure the field exists in the artifact data
-        if (typeof art[field.field] != "undefined" && art[field.field]) {
-          originalFieldValue = art[field.field];
-        }
+    // takes an id for a lookup field and returns the string to display
+    // @param: id - int of the id to lookup
+    // @param: type - enum of the type of filed we need to look up
+    // @param: fieldTypeEnums - enum object of the different fieldTypes
+    // @param: fieldValues - array of the value objects for bespoke lookups
+    // @param: users - array of the user objects
+    // @param: components - array of the component objects
+    // @param: releases - array of the release objects
+    function getListValueFromId(id, type, fieldTypeEnums, fieldValues, users, components, releases) {
+      var match = null;
+      switch (type) {
+        case fieldTypeEnums.drop:
+        case fieldTypeEnums.multi:
+          match = fieldValues.filter(function (val) { return val.id == id; });
+          break;
+        case fieldTypeEnums.user:
+          match = users.filter(function (val) { return val.id == id; });
+          break;
+        case fieldTypeEnums.component:
+          match = components.filter(function (val) { return val.id == id; });
+          break;
+        case fieldTypeEnums.release:
+          match = releases.filter(function (val) { return val.id == id; });
+          break;
       }
-      // handle list values - turn from the id to the actual string so the string can be displayed
-      if (
-        field.type == fieldTypeEnums.drop ||
-        field.type == fieldTypeEnums.multi ||
-        field.type == fieldTypeEnums.user ||
-        field.type == fieldTypeEnums.component ||
-        field.type == fieldTypeEnums.release
-      ) {
-        // a field can have display overrides - if one of these overrides is in the artifact field specified, then this is returned instead of the lookup - used specifically to make sure RQ Epics show as Epics 
-        if (field.displayOverride && field.displayOverride.field && field.displayOverride.values && field.displayOverride.values.includes(art[field.displayOverride.field])) {
-          return art[field.displayOverride.field] + art[field.displayOverride.id];
-        } else {
-          // handle multilist fields (custom props or components for some artifacts) - we can only display one in Excel so pick the first in the array to match
-          var fieldValueForLookup = Array.isArray(originalFieldValue) ? originalFieldValue[0] : originalFieldValue; 
-          var fieldName = getListValueFromId(
-            fieldValueForLookup,
-            field.type,
-            fieldTypeEnums,
-            field.values,
-            users,
-            components,
-            releases
-          );
-          
-          if (fieldName) {
-            fieldName = fieldName + " (#" + fieldValueForLookup + ")";
-        }
+      return typeof match != "undefined" && match && match.length ? match[0].name : "";
+    }
 
-        return fieldName;
-          
-        }
-      
-      // handle date fields 
-      } else if (field.type == fieldTypeEnums.date) {
-        if (originalFieldValue) {
-          var jsObj = new Date(originalFieldValue);
-          return JSDateToExcelDate(jsObj);
-        } else {
-          return "";
-        }
-
-      // handle booleans - need to make sure null values are ignored ie treated differently to false
-      } else if (field.type == fieldTypeEnums.bool) {
-        return originalFieldValue ? "Yes" : originalFieldValue === false ? "No" : "";
-        // handle hierarchical artifacts
-      } else if (field.setsHierarchy) {
-        return makeHierarchical(originalFieldValue, art.IndentLevel);
-        // handle artifacts that have extra information we can display to the user - ie where there is a linked test step this will add the information about the link at the end of the field
-      } else if (field.extraDataField && art[field.extraDataField]) {
-        return `${originalFieldValue} ${field.extraDataPrefix ? field.extraDataPrefix + ":" : "" }${art[field.extraDataField]}`;
-      } else {
-        return originalFieldValue;
-        
+    function makeHierarchical(value, indent) {
+      var indentIncrements = Math.floor(indent.length / 3) - 1;
+      var indentText = "";
+      for (var i = 0; i < indentIncrements; i++) {
+        indentText += "> ";
       }
-    });
-  })
-}
+      indentText += value;
+      return indentText;
+    }
 
-// takes an id for a lookup field and returns the string to display
-// @param: id - int of the id to lookup
-// @param: type - enum of the type of filed we need to look up
-// @param: fieldTypeEnums - enum object of the different fieldTypes
-// @param: fieldValues - array of the value objects for bespoke lookups
-// @param: users - array of the user objects
-// @param: components - array of the component objects
-// @param: releases - array of the release objects
-function getListValueFromId(id, type, fieldTypeEnums, fieldValues, users, components, releases) {
-  var match = null;
-  switch (type) {
-    case fieldTypeEnums.drop:
-    case fieldTypeEnums.multi:
-      match = fieldValues.filter(function (val) { return val.id == id; });
-      break;
-    case fieldTypeEnums.user:
-      match = users.filter(function (val) { return val.id == id; });
-      break;
-    case fieldTypeEnums.component:
-      match = components.filter(function (val) { return val.id == id; });
-      break;
-    case fieldTypeEnums.release:
-      match = releases.filter(function (val) { return val.id == id; });
-      break;
-  }
-  return typeof match != "undefined" && match && match.length ? match[0].name : "";
-}
-
-function makeHierarchical(value, indent) {
-  var indentIncrements = Math.floor(indent.length / 3) - 1;
-  var indentText = "";
-  for (var i = 0; i < indentIncrements; i++) {
-    indentText += "> ";
-  }
-  indentText += value;
-  return indentText;
-}
-
-//Convert JS date object to excel format - Excel dates start at 1900 not 1970
-//@param: inDate - js date object
-function JSDateToExcelDate(inDate) {
-  var returnDateTime = 25569.0 + ((inDate.getTime() - (inDate.getTimezoneOffset() * 60 * 1000)) / (1000 * 60 * 60 * 24));
-  return returnDateTime.toString().substr(0,20);
-}
+    //Convert JS date object to excel format - Excel dates start at 1900 not 1970
+    //@param: inDate - js date object
+    function JSDateToExcelDate(inDate) {
+      var returnDateTime = 25569.0 + ((inDate.getTime() - (inDate.getTimezoneOffset() * 60 * 1000)) / (1000 * 60 * 60 * 24));
+      return returnDateTime.toString().substr(0, 20);
+    }
