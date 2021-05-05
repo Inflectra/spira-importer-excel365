@@ -250,7 +250,9 @@ var templateFields = {
             }
         },
         { field: "CreationDate", name: "Creation Date", type: params.fieldType.date },
-        { field: "PlannedDate", name: "Planned Date", type: params.fieldType.date }
+        { field: "PlannedDate", name: "Planned Date", type: params.fieldType.date },
+        { field: "ExecutionDate", name: "Execution Date", type: params.fieldType.date,isReadOnly: true },
+        { field: "ConcurrencyDate", name: "Concurrency Date", type: params.fieldType.text ,isReadOnly: true },
     ],
     incidents: [
         { field: "IncidentId", name: "Incident ID", type: params.fieldType.id },
@@ -350,7 +352,10 @@ var templateFields = {
                 isProjectBased: true
             }
         },
-        { field: "ComponentIds", name: "Test Case Component", type: params.fieldType.component, isMulti: true }
+        { field: "ComponentIds", name: "Test Case Component", type: params.fieldType.component, isMulti: true },
+        { field: "CreationDate", name: "Test Case Creation Date", type: params.fieldType.text ,isReadOnly: true },
+        { field: "ConcurrencyDate", name: "Test Case Conc. Date", type: params.fieldType.text ,isReadOnly: true },
+        { field: "ConcurrencyDate", name: "Test Step Conc. Date", type: params.fieldType.text, isReadOnly: true , isSubTypeField: true }
     ],
 
     risks: [

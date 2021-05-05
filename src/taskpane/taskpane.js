@@ -108,7 +108,7 @@ function setDevStuff(devMode) {
     } else {
       model.user.url = "https://internal-bruno.spiraservice.net/";
       model.user.userName = "administrator";
-      model.user.api_key = btoa("&api-key=" + encodeURIComponent("{D0D25647-F6C9-4355-8B83-F21666B84BD1}"));
+      model.user.api_key = btoa("&api-key=" + encodeURIComponent("{092DF44E-5F94-4C8B-A1CD-705E44319E6D}"));
     }
     loginAttempt();
   }
@@ -812,8 +812,6 @@ function updateSpiraAttempt() {
     }
   
 }
-
-
 
 function sendToSpiraComplete(log) {
   hideLoadingSpinner();

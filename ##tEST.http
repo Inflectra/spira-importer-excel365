@@ -1,0 +1,105 @@
+##tEST
+PUT https://internal-bruno.spiraservice.net/services/v6_0/RestService.svc/projects/1/test-sets/?username=administrator&api-key=%7B092DF44E-5F94-4C8B-A1CD-705E44319E6D%7D
+content-type: application/json
+Accept: application/json
+
+{
+    
+    "TestSetId": 8,
+    "IndentLevel": null,
+    "TestSetStatusId": 3,
+    "CreatorId": 1,
+    "OwnerId": 1,
+    "ReleaseId": 11,
+    "AutomationHostId": null,
+    "TestRunTypeId": 1,
+    "RecurrenceId": 3,
+    "Name": "New TS From Excel",
+    "Description": "<p>Sample Description</p>\n",
+    "CreationDate": "2021-04-10T18:27:12.653Z",
+    "LastUpdateDate": "2021-04-10T19:00:51.320Z",
+    "PlannedDate": "2021-04-12T12:00:00.000Z",
+    "ExecutionDate": null,
+    "CountPassed": 0,
+    "CountFailed": 0,
+    "CountCaution": 0,
+    "CountBlocked": 0,
+    "CountNotRun": 0,
+    "CountNotApplicable": 0,
+    "CreatorName": "System Administrator",
+    "OwnerName": "System Administrator",
+    "ProjectName": "Library Information System (Sample)",
+    "TestSetStatusName": "Completed",
+    "ReleaseVersionNumber": "1.0.1.0.0001",
+    "RecurrenceName": "Weekly",
+    "TestSetFolderId": 2,
+    "EstimatedDuration": null,
+    "ActualDuration": null,
+    "IsAutoScheduled": false,
+    "IsDynamic": false,
+    "DynamicQuery": null,
+    "TestConfigurationSetId": null,
+    "BuildExecuteTimeInterval": null,
+    "ProjectId": 1,
+    "ArtifactTypeId": 8,
+    "ConcurrencyDate": "2021-04-10T19:00:51.320Z",
+    "CustomProperties": [
+      {
+        "PropertyNumber": 1,
+        "StringValue": "<p>Bla</p>\n",
+        "IntegerValue": null,
+        "BooleanValue": null,
+        "DateTimeValue": null,
+        "DecimalValue": null,
+        "IntegerListValue": null,
+        "Definition": {
+          "CustomPropertyId": 15,
+          "ProjectTemplateId": 1,
+          "ArtifactTypeId": 8,
+          "Name": "Notes",
+          "CustomList": null,
+          "CustomPropertyFieldName": "Custom_01",
+          "CustomPropertyTypeId": 1,
+          "CustomPropertyTypeName": "Text",
+          "IsDeleted": false,
+          "PropertyNumber": 1,
+          "SystemDataType": "System.String",
+          "Options": [
+            {
+              "CustomPropertyOptionId": 4,
+              "Value": "Y"
+            }
+          ]
+        }
+      },
+      {
+        "PropertyNumber": 2,
+        "StringValue": null,
+        "IntegerValue": null,
+        "BooleanValue": null,
+        "DateTimeValue": null,
+        "DecimalValue": null,
+        "IntegerListValue": [
+          13
+        ],
+        "Definition": {
+          "CustomPropertyId": 16,
+          "ProjectTemplateId": 1,
+          "ArtifactTypeId": 8,
+          "Name": "Operating System",
+          "CustomList": null,
+          "CustomPropertyFieldName": "Custom_02",
+          "CustomPropertyTypeId": 7,
+          "CustomPropertyTypeName": "MultiList",
+          "IsDeleted": false,
+          "PropertyNumber": 2,
+          "SystemDataType": "System.Collections.Generic.List`1[System.Int32]",
+          "Options": null
+        }
+      }
+    ],
+    "IsAttachments": false,
+    "Tags": null
+  }
+
+
