@@ -18,12 +18,6 @@ var isGoogle = false;
  //artifactUpdateUI(false);
 
 
-
-
-
-
-
-
 /*
  *
  * ============================
@@ -765,7 +759,6 @@ function getFromSpiraComplete(log) {
 function sendToSpiraAttempt() {
   // first update state to reflect user intent
   model.isGettingDataAttempt = false;
-
   //check that template is loaded
   if (model.isTemplateLoaded) {
     showLoadingSpinner();

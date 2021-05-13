@@ -1,0 +1,124 @@
+
+### GET
+https://internal-bruno.spiraservice.net//services/v6_0/RestService.svc/projects/1/test-sets?starting_row=1&number_of_rows=100&sort_field=TestSetId&sort_direction=ASC&username=administrator&api-key=%7B092DF44E-5F94-4C8B-A1CD-705E44319E6D%7D
+
+##tEST
+PUT http://gallifrey/Spira/services/v6_0/RestService.svc/projects/138/test-sets/?username=administrator&api-key=%7BB9050F75-C5E6-4244-8712-FBF20061A976%7D
+content-type: application/json
+Accept: application/json
+
+{
+    "CustomProperties":[],
+    "TestSetId":1,
+    "Name":"Testing Cycle for Release 1.0",
+    "Description":"This tests the functionality introduced in release 1.0 of the library system",
+    "ReleaseId":1,
+    "TestRunTypeId":1,
+    "TestSetStatusId":2,
+    "CreatorId":2,
+    "OwnerId":3,
+    "TestSetFolderId":1,
+    "CreationDate":"2020-09-15T10:00:24.502Z",
+    "PlannedDate":"2020-11-10T10:00:24.502Z",
+    "ExecutionDate":"2021-01-11T10:00:26.689Z",
+    "EstimatedDuration":44,
+    "ActualDuration":235,
+    "ConcurrencyDate":"2021-05-03T17:52:02.830Z"
+}
+
+
+## SIMON PUT
+PUT http://gallifrey/Spira/services/v6_0/RestService.svc/projects/138/test-sets/?username=administrator&api-key=%7BB9050F75-C5E6-4244-8712-FBF20061A976%7D
+content-type: application/json
+Accept: application/json
+
+{
+  "TestSetId": 87,
+  "IndentLevel": null,
+  "TestSetStatusId": 1,
+  "CreatorId": 1,
+  "OwnerId": null,
+  "ReleaseId": null,
+  "AutomationHostId": null,
+  "TestRunTypeId": 1,
+  "RecurrenceId": null,
+  "Name": "beta set",
+  "Description": null,
+  "CreationDate": "2021-03-30T16:34:38.043Z",
+  "LastUpdateDate": "2021-03-30T16:34:42.873Z",
+  "PlannedDate": null,
+  "ExecutionDate": null,
+  "CountPassed": 0,
+  "CountFailed": 0,
+  "CountCaution": 0,
+  "CountBlocked": 0,
+  "CountNotRun": 0,
+  "CountNotApplicable": 0,
+  "CreatorName": "System Administrator",
+  "OwnerName": null,
+  "ProjectName": "shb_2021-03-30T16:29:34.875Z",
+  "TestSetStatusName": "Not Started",
+  "ReleaseVersionNumber": null,
+  "RecurrenceName": null,
+  "TestSetFolderId": null,
+  "EstimatedDuration": null,
+  "ActualDuration": null,
+  "IsAutoScheduled": false,
+  "IsDynamic": false,
+  "DynamicQuery": null,
+  "TestConfigurationSetId": null,
+  "BuildExecuteTimeInterval": null,
+  "ProjectId": 138,
+  "ArtifactTypeId": 8,
+  "ConcurrencyDate": "2021-03-30T19:44:21.997Z",
+  "CustomProperties": [
+    {
+      "PropertyNumber": 30,
+      "StringValue": "test3",
+      "IntegerValue": null,
+      "BooleanValue": null,
+      "DateTimeValue": null,
+      "DecimalValue": null,
+      "IntegerListValue": null,
+      "Definition": {
+        "CustomPropertyId": 338,
+        "ProjectTemplateId": 113,
+        "ArtifactTypeId": 8,
+        "Name": "o",
+        "CustomList": null,
+        "CustomPropertyFieldName": "Custom_30",
+        "CustomPropertyTypeId": 1,
+        "CustomPropertyTypeName": "Text",
+        "IsDeleted": false,
+        "PropertyNumber": 30,
+        "SystemDataType": "System.String",
+        "Options": null
+      }
+    },
+    {
+      "PropertyNumber": 31,
+      "StringValue": "test4",
+      "IntegerValue": null,
+      "BooleanValue": null,
+      "DateTimeValue": null,
+      "DecimalValue": null,
+      "IntegerListValue": null,
+      "Definition": {
+        "CustomPropertyId": 333,
+        "ProjectTemplateId": 113,
+        "ArtifactTypeId": 8,
+        "Name": "p",
+        "CustomList": null,
+        "CustomPropertyFieldName": "Custom_31",
+        "CustomPropertyTypeId": 1,
+        "CustomPropertyTypeName": "Text",
+        "IsDeleted": false,
+        "PropertyNumber": 31,
+        "SystemDataType": "System.String",
+        "Options": null
+      }
+    }
+  ],
+  "IsAttachments": false,
+  "Tags": null
+}

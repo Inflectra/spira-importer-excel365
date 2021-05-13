@@ -50,16 +50,6 @@
       "webRoot": "${workspaceFolder}",
       "preLaunchTask": "Debug: Web"
     },
-    {
-	    "type": "office-addin",
-	    "request": "attach",
-	    "name": "Attach to Office Add-ins",
-	    "port": 9222,
-	    "trace": "verbose",
-	    "url": "https://localhost:3000/taskpane.html?_host_Info=Excel$Win32$16.01$en-US$$$$0",
-	    "webRoot": "${workspaceFolder}",
-	    "timeout": 45000
-	  }
   ],
   "inputs": [
     {

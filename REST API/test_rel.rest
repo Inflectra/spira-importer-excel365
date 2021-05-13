@@ -1,0 +1,84 @@
+###GET
+https://internal-bruno.spiraservice.net//services/v6_0/RestService.svc/projects/1/requirements/1?username=administrator&api-key=%7B092DF44E-5F94-4C8B-A1CD-705E44319E6D%7D
+
+###PUT
+PUT https://internal-bruno.spiraservice.net//services/v6_0/RestService.svc/projects/1/releases?username=administrator&api-key=%7B092DF44E-5F94-4C8B-A1CD-705E44319E6D%7D
+content-type: application/json
+Accept: application/json
+
+{
+  "ReleaseId": 60,
+  "CreatorId": 6,
+  "Name": "Excel Release",
+  "Description": "Testing New",
+  "VersionNumber": "2.0",
+  "CreationDate": "2021-05-07T21:59:02.860Z",
+  "ReleaseStatusId": 1,
+  "ReleaseTypeId": 2,
+  "ResourceCount": 33.0,
+  "DaysNonWorking": 2.0,
+  "PlannedEffort": 711840,
+  "AvailableEffort": 711840,
+  "ProjectId": 1,
+  "ArtifactTypeId": 4,
+  "ConcurrencyDate": "2021-05-07T21:59:02.860Z",
+  "CustomProperties": []
+}
+
+###ORIGINAL PUT
+PUT https://internal-bruno.spiraservice.net//services/v6_0/RestService.svc/projects/1/requirements?username=administrator&api-key=%7B092DF44E-5F94-4C8B-A1CD-705E44319E6D%7D
+content-type: application/json
+Accept: application/json
+
+{
+  "RequirementId": 1,
+  "IndentLevel": "AAA",
+  "StatusId": 3,
+  "RequirementTypeId": -1,
+  "AuthorId": 2,
+  "OwnerId": null,
+  "ImportanceId": null,
+  "ReleaseId": null,
+  "ComponentId": null,
+  "Name": "Functional System Requirements",
+  "Description": "<p><span style=\"color:#000000\">A </span><strong>System Requirements Specification (SRS)</strong><span style=\"color:#000000\"> (also known as a Software Requirements Specification) is a document or set of documentation that describes the features and behavior of a system or software application. It includes a variety of elements (see below) that attempts to define the intended functionality required by the customer to satisfy their different users.</span></p><p>This section usually consists of a hierarchical organization of requirements, with the business/functional requirements at the highest-level and the detailed system requirements listed as their child items. Generally the requirements are written as statements such as &quot;System needs the ability to do x&quot; with supporting detail and information included as necessary.</p>",
+  "CreationDate": "2020-10-08T10:00:24.207Z",
+  "LastUpdateDate": "2021-05-07T16:43:47.307Z",
+  "Summary": false,
+  "CoverageCountTotal": 20,
+  "CoverageCountPassed": 11,
+  "CoverageCountFailed": 2,
+  "CoverageCountCaution": 4,
+  "CoverageCountBlocked": 0,
+  "EstimatePoints": 18.5,
+  "EstimatedEffort": 8880,
+  "TaskEstimatedEffort": 14769,
+  "TaskActualEffort": 11060,
+  "TaskCount": 57,
+  "ReleaseVersionNumber": null,
+  "AuthorName": "Fred Bloggs",
+  "OwnerName": null,
+  "StatusName": "In Progress",
+  "ImportanceName": null,
+  "ProjectName": "Library Information System (Sample)",
+  "RequirementTypeName": "Epic",
+  "Steps": null,
+  "StartDate": null,
+  "EndDate": null,
+  "PercentComplete": null,
+  "ThemeId": null,
+  "GoalId": null,
+  "ProjectId": 1,
+  "ArtifactTypeId": 1,
+  "ConcurrencyDate": "2021-05-07T16:43:47.307Z",
+  "CustomProperties": null,
+  "IsAttachments": false,
+  "Tags": null
+}
+
+###Excel
+PUT https://internal-bruno.spiraservice.net//services/v6_0/RestService.svc/projects/1/releases?username=administrator&api-key=%7B092DF44E-5F94-4C8B-A1CD-705E44319E6D%7D
+content-type: application/json
+Accept: application/json
+
+{"CustomProperties":[{"PropertyNumber":1,"StringValue":"aaa"},{"PropertyNumber":2,"IntegerListValue":[20]}],"ReleaseId":60,"indentPosition":0,"Name":"Excel Release","Description":"Testing New","VersionNumber":2,"ReleaseStatusId":1,"ReleaseTypeId":2,"CreatorId":6,"StartDate":"2021-07-06T06:00:00.000Z","EndDate":"2021-09-06T06:00:00.000Z","ResourceCount":33,"DaysNonWorking":2,"CreationDate":"2021-05-08T15:59:02.859Z","ConcurrencyDate":"2021-05-11T18:20:37.010Z"}

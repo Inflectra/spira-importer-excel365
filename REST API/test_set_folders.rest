@@ -1,0 +1,53 @@
+###GET TEST SET FOLDERS
+https:[BASE_URL]/services/v6_0/RestService.svc/projects/[PROJECT_ID]/test-set-folders?username=[USER_NAME]&api-key=[API_KEY]
+
+###PUT - UPDATE A TEST SET FOLDER
+PUT https:[BASE_URL]/services/v6_0/RestService.svc/projects/[PROJECT_ID]/test-set-folders?username=[USER_NAME]&api-key=[API_KEY]
+content-type: application/json
+Accept: application/json
+
+{
+  "TestSetFolderId": 4,
+  "ProjectId": 1,
+  "IndentLevel": null,
+  "Name": "Functional Test Sets",
+  "Description": null,
+  "CreationDate": "2021-05-10T18:04:45.310Z",
+  "LastUpdateDate": "2021-05-10T18:04:45.310Z",
+  "ExecutionDate": null,
+  "EstimatedDuration": null,
+  "ProjectName": null,
+  "ParentTestSetFolderId": null,
+  "ActualDuration": null,
+  "CountBlocked": 0,
+  "CountCaution": 0,
+  "CountFailed": 0,
+  "CountNotApplicable": 0,
+  "CountNotRun": 0,
+  "CountPassed": 0
+}
+
+###POST - CREATE A NEW TEST SET FOLDER
+POST https:[BASE_URL]/services/v6_0/RestService.svc/projects/[PROJECT_ID]/test-set-folders?username=[USER_NAME]&api-key=[API_KEY]
+content-type: application/json
+Accept: application/json
+
+{
+    "ProjectId": 1,
+    "IndentLevel": "AAA",
+    "Name": "Functional Test Sets 2",
+    "Description": null,
+    "CreationDate": "0001-01-01T00:00:00.000Z",
+    "LastUpdateDate": "2021-05-10T16:40:44.921Z",
+    "ExecutionDate": null,
+    "EstimatedDuration": null,
+    "ProjectName": null,
+    "ParentTestSetFolderId": null,
+    "ActualDuration": null,
+    "CountBlocked": 0,
+    "CountCaution": 0,
+    "CountFailed": 0,
+    "CountNotApplicable": 0,
+    "CountNotRun": 0,
+    "CountPassed": 0
+  }
