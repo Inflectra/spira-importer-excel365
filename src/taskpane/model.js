@@ -111,8 +111,8 @@ var templateFields = {
         { field: "OwnerId", name: "Owner", type: params.fieldType.user },
         { field: "ComponentId", name: "Component", type: params.fieldType.component },
         { field: "CreationDate", name: "Creation Date", type: params.fieldType.date },
-        { field: "ConcurrencyDate", name: "Concurrency Date", type: params.fieldType.text ,isReadOnly: true },
-        { field: "IndentLevel", name: "Indent Level", type: params.fieldType.text ,isReadOnly: true },
+        { field: "ConcurrencyDate", name: "Concurrency Date", type: params.fieldType.text ,isReadOnly: true, isHidden: true },
+        { field: "IndentLevel", name: "Indent Level", type: params.fieldType.text , isReadOnly: true },
     ],
 
     releases: [

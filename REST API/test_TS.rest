@@ -2,28 +2,30 @@
 ### GET
 https://internal-bruno.spiraservice.net//services/v6_0/RestService.svc/projects/1/test-sets?starting_row=1&number_of_rows=100&sort_field=TestSetId&sort_direction=ASC&username=administrator&api-key=%7B092DF44E-5F94-4C8B-A1CD-705E44319E6D%7D
 
-##tEST
-PUT http://gallifrey/Spira/services/v6_0/RestService.svc/projects/138/test-sets/?username=administrator&api-key=%7BB9050F75-C5E6-4244-8712-FBF20061A976%7D
+###tEST minimum
+PUT https://internal-bruno.spiraservice.net/services/v6_0/RestService.svc/projects/1/test-sets/?username=administrator&api-key=%7B092DF44E-5F94-4C8B-A1CD-705E44319E6D%7D
 content-type: application/json
 Accept: application/json
 
 {
-    "CustomProperties":[],
-    "TestSetId":1,
-    "Name":"Testing Cycle for Release 1.0",
-    "Description":"This tests the functionality introduced in release 1.0 of the library system",
-    "ReleaseId":1,
-    "TestRunTypeId":1,
-    "TestSetStatusId":2,
-    "CreatorId":2,
-    "OwnerId":3,
-    "TestSetFolderId":1,
-    "CreationDate":"2020-09-15T10:00:24.502Z",
-    "PlannedDate":"2020-11-10T10:00:24.502Z",
-    "ExecutionDate":"2021-01-11T10:00:26.689Z",
-    "EstimatedDuration":44,
-    "ActualDuration":235,
-    "ConcurrencyDate":"2021-05-03T17:52:02.830Z"
+    "TestSetId": 1,
+    "TestSetStatusId": 2,
+    "Name": "Testing Cycle for Release 1.0",
+    "CreationDate": "2020-09-17T07:00:24.503Z",
+    "ConcurrencyDate": "2021-05-13T04:01:57.790Z",
+}
+
+###Test Sets Minimum PUT
+PUT https:[BASE_URL]/services/v6_0/RestService.svc/projects/[PROJECT_ID]/test-sets/?username=[USERNAME]&api-key=[API_KEY]
+content-type: application/json
+Accept: application/json
+
+{
+    "TestSetId": 1,
+    "TestSetStatusId": 2,
+    "Name": "Testing Cycle for Release 1.0",
+    "CreationDate": "2020-09-17T07:00:24.503Z",
+    "ConcurrencyDate": "2021-05-13T04:01:57.790Z",
 }
 
 

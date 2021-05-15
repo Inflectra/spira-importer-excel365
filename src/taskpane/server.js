@@ -31,10 +31,6 @@ import { showPanel, hidePanel } from './taskpane.js';
  
  - make sure when you change project / art the get / send buttons are disabled
  - check what happens when add more rows from get than are on sheet. Does the validation get copied down?
- - do we need PUT? Existing customers want it but it causes so much hassle and misuse
- - TODO: disable "send to spira" after have done a get
- - better handling of trying to do a put
- - try using it for several times in a row and fix any bugs
  */
 
 
@@ -521,9 +517,6 @@ function putUpdater(body, currentUser, PUTUrl) {
         .send(body)
         .set("Content-Type", "application/json", "accepts", "application/json");
 
-    console.log('putResult ' + putResult);
-    //CONTINUAR DAQUI, INVESTIGANDO PQ NAO VOLTOU A MENSAGEM
-
     return putResult;
   }
 }
@@ -603,8 +596,8 @@ function postArtifactToSpira(entry, user, projectId, artifactTypeId, parentId) {
       break;
   }
 
-  console.log('POST URL ' + postUrl);
-  console.log('POST JSON_body ' + JSON.stringify(JSON_body));
+  //console.log('POST URL ' + postUrl);
+  //console.log('POST JSON_body ' + JSON.stringify(JSON_body));
   return postUrl ? poster(JSON_body, user, postUrl) : null;
 }
 
@@ -670,8 +663,8 @@ function putArtifactToSpira(entry, user, projectId, artifactTypeId, parentId) {
       putUrl = API_PROJECT_BASE + projectId + '/test-sets/?';
       break;
   }
-  console.log('JSON_body', JSON.stringify(JSON_body));
-  console.log('putUrl', JSON.stringify(putUrl));
+  //console.log('JSON_body', JSON.stringify(JSON_body));
+  //console.log('putUrl', JSON.stringify(putUrl));
   return putUrl ? putUpdater(JSON_body, user, putUrl) : null;
 }
 
@@ -1227,7 +1220,7 @@ function contentFormattingSetter(sheet, model) {
 
     // protect column
     // read only fields - ie ones you can get from Spira but not create in Spira (as with IDs - eg task component)
-    if (model.fields[i].unsupported || model.fields[i].isReadOnly) {
+    if ((model.fields[i].unsupported || model.fields[i].isReadOnly) && !model.fields[i].isHidden) {
       var warning = "";
       if (model.fields[i].unsupported) {
         warning = model.fields[i].name + "unsupported";
@@ -1241,9 +1234,24 @@ function contentFormattingSetter(sheet, model) {
         nonHeaderRows,
         model.colors.bgReadOnly,
         warning,
-        true
+        false
       );
     }
+
+    if (model.fields[i].isHidden) {
+      var warning = "";
+      warning = model.fields[i].name + " is hidden";
+      protectColumn(
+        sheet,
+        columnNumber,
+        nonHeaderRows,
+        model.colors.bgReadOnly,
+        warning,
+        true
+      );
+
+    }
+
   }
 }
 
@@ -1275,6 +1283,11 @@ function protectColumn(sheet, columnNumber, rowLength, bgColor, name, hide) {
     // set the background color
     range.set({ format: { fill: { color: bgColor } } });
 
+    //hide the column, if necessary
+    if (hide) {
+      range.ColumnHidden = true;
+    }
+
     // now we can add data validation
     // the easiest hack way to not allow any entry into the cell is to make sure its text length can only be zero
     range.dataValidation.clear();
@@ -1305,16 +1318,16 @@ function protectColumn(sheet, columnNumber, rowLength, bgColor, name, hide) {
 // @param: sheetName - current sheet name
 
 function resetIdColors(requiredSheetName) {
-    Excel.run(function (ctx) { 
-      var rangeAddress = "A2:A5000";
-      var range = ctx.workbook.worksheets.getItem(requiredSheetName).getRange(rangeAddress);
-      range.format.fill.color = '#eeeeee';
-      return ctx.sync(); 
-  }).catch(function(error) {
-      console.log("Error: " + error);
-      if (error instanceof OfficeExtension.Error) {
-          console.log("Debug info: " + JSON.stringify(error.debugInfo));
-      }
+  Excel.run(function (ctx) {
+    var rangeAddress = "A2:A5000";
+    var range = ctx.workbook.worksheets.getItem(requiredSheetName).getRange(rangeAddress);
+    range.format.fill.color = '#eeeeee';
+    return ctx.sync();
+  }).catch(function (error) {
+    console.log("Error: " + error);
+    if (error instanceof OfficeExtension.Error) {
+      console.log("Debug info: " + JSON.stringify(error.debugInfo));
+    }
   });
 }
 
@@ -1323,7 +1336,8 @@ function resetIdColors(requiredSheetName) {
 // returns the filtered sheetData object
 
 function clearErrorMessages(sheetData, isUpdate) {
-
+  console.log('clearErrorMessages sheetData');
+  console.log(sheetData);
   for (var rowToPrep = 0; rowToPrep < sheetData.length; rowToPrep++) {
     // stop at the first row that is fully blank
     if (sheetData[rowToPrep].join("") === "") {
@@ -1502,7 +1516,7 @@ function sendExportEntriesGoogle(entriesForExport, sheetData, sheet, sheetRange,
       }
 
       log = processSendToSpiraResponse(i, sentToSpira, entriesForExport, artifact, log);
-      if (sentToSpira.error && artifact.hierarchical) {
+      if (sentToSpira.error && artifact.hierarchical && !isUpdate) {
         // break out of the recursive loop
         log.doNotContinue = true;
       }
@@ -1574,7 +1588,7 @@ async function sendExportEntriesExcel(entriesForExport, sheetData, sheet, sheetR
             log.parentId = response.parentId;
           }
           log = processSendToSpiraResponse(i, response, entriesForExport, artifact, log);
-          if (response.error && artifact.hierarchical) {
+          if (response.error && artifact.hierarchical && !isUpdate) {
             // break out of the recursive loop
             log.doNotContinue = true;
           }
@@ -1605,7 +1619,7 @@ async function sendExportEntriesExcel(entriesForExport, sheetData, sheet, sheetR
 
 // 5. SET MESSAGES AND FORMATTING ON SHEET
 function updateSheetWithExportResults(log, entriesForExport, sheetData, sheet, sheetRange, model, fieldTypeEnums, fields, artifact, context, isUpdate) {
-   var bgColors = [],
+  var bgColors = [],
     notes = [],
     values = [];
   // first handle cell formatting
@@ -1777,10 +1791,12 @@ function setFeedbackBgColor(cell, error, field, fieldTypeEnums, artifact, colors
 // @param: message - relevant error message from the entry for this row
 // @param: value - original ID of the artifact to be kept in case of an error
 function setFeedbackNote(cell, error, field, fieldTypeEnums, message, value, isUpdate) {
+  console.log('field:');
+  console.dir(field);
   // handle entries with errors - add error notes into ID field
   if (error && field.type == fieldTypeEnums.id) {
-    if (value == "-1" && isUpdate) {
-      return "Error: you can't create new data using this option. Please use the 'Send data to Spira' one."
+    if (value == "-1" && isUpdate && field.field != "TestCaseId" && field.field != "TestStepId") {
+      return "Error: you can't send new data to Spira when updating. Please use the 'Send data to Spira' option."
     }
     else {
       return value + ',' + message;
@@ -2333,6 +2349,7 @@ function getIdFromName(string, list) {
 function setListItemDisplayName(item) {
 
   return item.name + " (#" + item.id + ")";
+
 }
 
 // removes the id from the end of a string to get the initial value, pre setting the display name
@@ -2807,7 +2824,7 @@ function matchArtifactsToFields(artifacts, artifactMeta, fields, fieldTypeEnums,
       ) {
         // a field can have display overrides - if one of these overrides is in the artifact field specified, then this is returned instead of the lookup - used specifically to make sure RQ Epics show as Epics 
         if (field.displayOverride && field.displayOverride.field && field.displayOverride.values && field.displayOverride.values.includes(art[field.displayOverride.field])) {
-          return art[field.displayOverride.field] + art[field.displayOverride.id];
+          return art[field.displayOverride.field];
         } else {
           // handle multilist fields (custom props or components for some artifacts) - we can only display one in Excel so pick the first in the array to match
           var fieldValueForLookup = Array.isArray(originalFieldValue) ? originalFieldValue[0] : originalFieldValue;
@@ -2821,7 +2838,7 @@ function matchArtifactsToFields(artifacts, artifactMeta, fields, fieldTypeEnums,
             releases
           );
 
-          if (fieldName) {
+          if (fieldName && fieldValueForLookup) {
             fieldName = fieldName + " (#" + fieldValueForLookup + ")";
           }
 
