@@ -1329,16 +1329,54 @@ function hideColumn(sheet, columnNumber, rowLength, bgColor) {
 // resets ID column backgroung colors to its original - used before a GET command
 // @param: sheetName - current sheet name
 
-function resetIdColors(requiredSheetName) {
+function resetIdColors(model, fieldTypeEnums, sheetRangeOld) {
   Excel.run(function (ctx) {
-    var rangeAddress = "A2:A5000";
-    var range = ctx.workbook.worksheets.getItem(requiredSheetName).getRange(rangeAddress);
-    range.format.fill.color = '#eeeeee';
+    var fields = model.fields;
+    var columnCount = Object.keys(fields).length;
+
+    //get the previous data number of rows
+    var rowCount;
+    var sheetOldData = sheetRangeOld.values;
+
+    for (var i = 0; i < sheetOldData.length; i++) {
+      // stop at the first row that is fully blank
+      if (sheetOldData[i].join("") === "") {
+        break;
+      }
+      else {
+        rowCount = i;
+      }
+    }
+
+    //complete data range from old data
+    var sheet = ctx.workbook.worksheets.getActiveWorksheet();
+    var range = sheet.getRangeByIndexes(1, 0, rowCount + 1, columnCount);
+
+    //reset each column color schema, depending on property type
+    for (var j = 0; j < columnCount; j++) {
+
+      var subColumnRange = range.getColumn(j);
+      var fieldType = fields[j].type;
+      var isReadOnly = fields[j].isReadOnly;
+      var bgColor;
+
+      if (fieldType == fieldTypeEnums.id || fieldType == fieldTypeEnums.subId ||isReadOnly) {
+
+        bgColor = model.colors.bgReadOnly;
+      }
+      else {
+
+        bgColor = model.colors.header;
+      }
+
+      subColumnRange.format.fill.color = bgColor;
+    }
+
     return ctx.sync();
   }).catch(function (error) {
-    console.log("Error: " + error);
+    if (devmode) console.log("Error: " + error);
     if (error instanceof OfficeExtension.Error) {
-      console.log("Debug info: " + JSON.stringify(error.debugInfo));
+      if (devmode) console.log("Debug info: " + JSON.stringify(error.debugInfo));
     }
   });
 }
@@ -1580,7 +1618,6 @@ async function sendExportEntriesExcel(entriesForExport, sheetData, sheet, sheetR
 
     // loop through objects to send and update the log
     async function sendSingleEntry(i) {
-      console.dir(entriesForExport[i]);
       // set the correct parentId for hierarchical artifacts
       // set before launching the API call as we need to look back through previous entries
       if (artifact.hierarchical) {
@@ -2637,18 +2674,21 @@ function getFromSpiraGoogle(model, fieldTypeEnums) {
 // @param: model: full model object from client
 // @param: enum of fieldTypeEnums used
 function getFromSpiraExcel(model, fieldTypeEnums) {
-
   return Excel.run(function (context) {
-    var sheet = context.workbook.worksheets.getActiveWorksheet();
+    var fields = model.fields;
+    var sheet = context.workbook.worksheets.getActiveWorksheet(),
+      sheetRange = sheet.getRangeByIndexes(1, 0, EXCEL_MAX_ROWS, fields.length);
+
     sheet.load("name");
+    sheetRange.load("values");
     var requiredSheetName = model.currentArtifact.name + ", PR-" + model.currentProject.id;
 
     return context.sync()
       .then(function () {
         // only get the data if we are on the right sheet - the one with the template loaded on it
         if (sheet.name == requiredSheetName) {
-          //clear the background colors of IDs (in case we had any errors in the last run)
-          resetIdColors(requiredSheetName);
+          //first, clear the background colors of the spreadsheet (in case we had any errors in the last run)
+          resetIdColors(model, fieldTypeEnums, sheetRange);
           return getDataFromSpiraExcel(model, fieldTypeEnums).then((response) => {
             return processDataFromSpiraExcel(response, model, fieldTypeEnums)
           });
