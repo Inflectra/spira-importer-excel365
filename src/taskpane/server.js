@@ -66,6 +66,7 @@ var API_PROJECT_BASE = '/services/v6_0/RestService.svc/projects/',
     wrongSheet: 4,
     existingEntries: 5
   },
+  SUBTYPE_IDS = ["TestCaseId", "TestStepId"],
   STATUS_MESSAGE_GOOGLE = {
     1: "All done! To send more data over, clear the sheet first.",
     2: "Sorry, but there were some problems (see the cells marked in red). Check any notes on the relevant ID field for explanations.",
@@ -92,7 +93,12 @@ var API_PROJECT_BASE = '/services/v6_0/RestService.svc/projects/',
 
   },
   INLINE_STYLING = "style='font-family: sans-serif'",
-  IS_GOOGLE = typeof UrlFetchApp != "undefined";
+  IS_GOOGLE = typeof UrlFetchApp != "undefined",
+  ART_PARENT_IDS = {
+    2: 'TestCaseId',
+    7: 'TestCaseId'
+  };
+
 
 /*
  * ======================
@@ -596,8 +602,6 @@ function postArtifactToSpira(entry, user, projectId, artifactTypeId, parentId) {
       break;
   }
 
-  //console.log('POST URL ' + postUrl);
-  //console.log('POST JSON_body ' + JSON.stringify(JSON_body));
   return postUrl ? poster(JSON_body, user, postUrl) : null;
 }
 
@@ -663,8 +667,6 @@ function putArtifactToSpira(entry, user, projectId, artifactTypeId, parentId) {
       putUrl = API_PROJECT_BASE + projectId + '/test-sets/?';
       break;
   }
-  //console.log('JSON_body', JSON.stringify(JSON_body));
-  //console.log('putUrl', JSON.stringify(putUrl));
   return putUrl ? putUpdater(JSON_body, user, putUrl) : null;
 }
 
@@ -920,8 +922,7 @@ function contentValidationSetter(sheet, model, fieldTypeEnums, context) {
           columnNumber,
           nonHeaderRows,
           model.colors.bgReadOnly,
-          "ID field",
-          false
+          "ID field"
         );
         break;
 
@@ -1220,7 +1221,7 @@ function contentFormattingSetter(sheet, model) {
 
     // protect column
     // read only fields - ie ones you can get from Spira but not create in Spira (as with IDs - eg task component)
-    if ((model.fields[i].unsupported || model.fields[i].isReadOnly) && !model.fields[i].isHidden) {
+    if (model.fields[i].unsupported || model.fields[i].isReadOnly) {
       var warning = "";
       if (model.fields[i].unsupported) {
         warning = model.fields[i].name + "unsupported";
@@ -1233,21 +1234,18 @@ function contentFormattingSetter(sheet, model) {
         columnNumber,
         nonHeaderRows,
         model.colors.bgReadOnly,
-        warning,
-        false
+        warning
       );
     }
-
+    // hide this column if specified in the field model
     if (model.fields[i].isHidden) {
       var warning = "";
       warning = model.fields[i].name + " is hidden";
-      protectColumn(
+      hideColumn(
         sheet,
         columnNumber,
         nonHeaderRows,
-        model.colors.bgReadOnly,
-        warning,
-        true
+        model.colors.bgReadOnly
       );
 
     }
@@ -1263,8 +1261,7 @@ function contentFormattingSetter(sheet, model) {
 // @param: rowLength - int of default number of rows to apply any formattting to
 // @param: bgColor - string color to set on background as hex code (eg '#ffffff')
 // @param: name - string description for the protected range
-// @param: hide - optional bool to hide column completely
-function protectColumn(sheet, columnNumber, rowLength, bgColor, name, hide) {
+function protectColumn(sheet, columnNumber, rowLength, bgColor, name) {
   // only for google as cannot protect individual cells easily in Excel
   if (IS_GOOGLE) {
     // create range
@@ -1274,19 +1271,11 @@ function protectColumn(sheet, columnNumber, rowLength, bgColor, name, hide) {
       .setDescription(name)
       .setWarningOnly(true);
 
-    if (hide) {
-      sheet.hideColumns(columnNumber);
-    }
   } else {
     var range = sheet.getRangeByIndexes(1, columnNumber - 1, rowLength, 1);
 
     // set the background color
     range.set({ format: { fill: { color: bgColor } } });
-
-    //hide the column, if necessary
-    if (hide) {
-      range.ColumnHidden = true;
-    }
 
     // now we can add data validation
     // the easiest hack way to not allow any entry into the cell is to make sure its text length can only be zero
@@ -1314,6 +1303,29 @@ function protectColumn(sheet, columnNumber, rowLength, bgColor, name, hide) {
 
 }
 
+
+// hides a specific column range
+// @param: sheet - the sheet object
+// @param: columnNumber - int of column to hide
+// @param: rowLength - int of default number of rows to apply any formattting to
+// @param: bgColor - string color to set on background as hex code (eg '#ffffff')
+function hideColumn(sheet, columnNumber, rowLength, bgColor) {
+  // only for google as cannot protect individual cells easily in Excel
+  if (IS_GOOGLE) {
+
+    sheet.hideColumns(columnNumber);
+
+  } else {
+    var range = sheet.getRangeByIndexes(1, columnNumber - 1, rowLength, 1);
+
+    // set the background color
+    range.set({ format: { fill: { color: bgColor } } });
+
+    //hide the column
+    range.columnHidden = true;
+  }
+}
+
 // resets ID column backgroung colors to its original - used before a GET command
 // @param: sheetName - current sheet name
 
@@ -1336,8 +1348,6 @@ function resetIdColors(requiredSheetName) {
 // returns the filtered sheetData object
 
 function clearErrorMessages(sheetData, isUpdate) {
-  console.log('clearErrorMessages sheetData');
-  console.log(sheetData);
   for (var rowToPrep = 0; rowToPrep < sheetData.length; rowToPrep++) {
     // stop at the first row that is fully blank
     if (sheetData[rowToPrep].join("") === "") {
@@ -1376,6 +1386,7 @@ function clearErrorMessages(sheetData, isUpdate) {
 // function that manages exporting data from the sheet - creating an array of objects based on entered data, then sending to Spira
 // @param: model - full model object from client containing field data for specific artifact, list of project users, components, etc
 // @param: fieldTypeEnums - list of fieldType enums from client params object
+// @param: isUpdate - boolean that indicates if this is an update operation (true) or create operation (false)
 function sendToSpira(model, fieldTypeEnums, isUpdate) {
 
   // 0. SETUP FUNCTION LEVEL VARS
@@ -1569,16 +1580,18 @@ async function sendExportEntriesExcel(entriesForExport, sheetData, sheet, sheetR
 
     // loop through objects to send and update the log
     async function sendSingleEntry(i) {
+      console.dir(entriesForExport[i]);
       // set the correct parentId for hierarchical artifacts
       // set before launching the API call as we need to look back through previous entries
       if (artifact.hierarchical) {
         log.parentId = getHierarchicalParentId(entriesForExport[i].indentPosition, log.entries);
       }
 
-      //set the correct parentId artifact for Test Steps and property (needed for POST URL)
-      if (artifact.id == 2 && entriesForExport[i].hasOwnProperty('TestStepId')) {
+      //set the correct parentId artifact for subtypes (needed for POST URL)
+      if (artifact.hasSubType && entriesForExport[i].isSubType) {
         log.parentId = getAssociationParentId(entriesForExport, i, artifact.id);
-        entriesForExport[i].TestCaseId = log.parentId;
+        //let the child object to hold the parent ID field
+        entriesForExport[i][ART_PARENT_IDS[artifact.id]] = log.parentId;
       }
 
       await manageSendingToSpira(entriesForExport[i], model.user, model.currentProject.id, artifact, fields, fieldTypeEnums, log.parentId, isUpdate)
@@ -1791,12 +1804,14 @@ function setFeedbackBgColor(cell, error, field, fieldTypeEnums, artifact, colors
 // @param: message - relevant error message from the entry for this row
 // @param: value - original ID of the artifact to be kept in case of an error
 function setFeedbackNote(cell, error, field, fieldTypeEnums, message, value, isUpdate) {
-  console.log('field:');
-  console.dir(field);
   // handle entries with errors - add error notes into ID field
   if (error && field.type == fieldTypeEnums.id) {
-    if (value == "-1" && isUpdate && field.field != "TestCaseId" && field.field != "TestStepId") {
-      return "Error: you can't send new data to Spira when updating. Please use the 'Send data to Spira' option."
+    //invalid new rows always have -1 in the ID field
+    if (value == "-1" && isUpdate) {
+      //however, special subtype IDs can be blank, that's not an error
+      if (!SUBTYPE_IDS.includes(field.field)) {
+        return "Error: you can't send new data to Spira when updating. Please use the 'Send data to Spira' option."
+      }
     }
     else {
       return value + ',' + message;
@@ -1991,13 +2006,13 @@ function getHierarchicalParentId(indent, previousEntries) {
 // @param: i - target artifact position to look for
 // @param: artifactId - artifact type
 function getAssociationParentId(entriesForExport, i, artifactId) {
-  // if there is no indent/ set to initial indent we return out immediately 
-  if (artifactId == 2 || artifactId == 7) {
-
+  // we need to know the artifact type to look for specific parent ID fields
+  if (artifactId == ART_ENUMS.testCases) {
+    //look for parents in the previous rows
     for (i; i > 0; i--) {
-
-      if (entriesForExport[i - 1].hasOwnProperty('TestCaseId')) {
-        return entriesForExport[i - 1].TestCaseId;
+      //if we found the specific parentID for the artifact type, return it
+      if (entriesForExport[i - 1].hasOwnProperty(ART_PARENT_IDS[artifactId])) {
+        return entriesForExport[i - 1][ART_PARENT_IDS[artifactId]];
       }
     }
     return -1;
@@ -2142,7 +2157,7 @@ function createEntryFromRow(row, model, fieldTypeEnums, artifactIsHierarchical, 
   for (var index = 0; index < row.length; index++) {
     var skipField = false;
     if ((isUpdate && fields[index].type == fieldTypeEnums.id) || (isUpdate && fields[index].type == fieldTypeEnums.subId)) {
-      var skipField = false;
+      //do nothing
     }
     // first ignore entry that does not match the requirement specified in the fieldsToFilter
     else if (fieldsToFilter == FIELD_MANAGEMENT_ENUMS.standard && fields[index].isSubTypeField) {
@@ -2152,8 +2167,8 @@ function createEntryFromRow(row, model, fieldTypeEnums, artifactIsHierarchical, 
     } else if (fieldsToFilter == FIELD_MANAGEMENT_ENUMS.subType && !(fields[index].isSubTypeField || fields[index].isTypeAndSubTypeField)) {
       // skip the field
       skipField = true;
-      // in all other cases add the field
     }
+    // in all other cases add the field
     if (!skipField) {
       var value = null,
         customType = "",
