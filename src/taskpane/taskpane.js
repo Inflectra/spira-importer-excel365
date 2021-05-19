@@ -14,13 +14,14 @@ var uiSelection = new tempDataStore();
 var devMode = false;
 var isGoogle = false;
 
+//ENUMS
 
-
-
-
-
-
-
+var UI_MODE = {
+  newProject: 1,
+  newArtifact: 2,
+  getData: 3,
+  errorMode: 4
+};
 
 /*
  *
@@ -72,7 +73,7 @@ Office.onReady(info => {
     setEventListeners();
     // for dev mode only - comment out or set to false to disable any UI dev features
     setDevStuff(devMode);
-    
+
     // dom specific changes
     document.body.classList.add('ms-office');
     document.getElementById("help-connection-google").style.display = "none";
@@ -104,9 +105,9 @@ function setDevStuff(devMode) {
       model.user.userName = "administrator";
       model.user.api_key = btoa("&api-key=" + encodeURIComponent("{10E5D4F2-2188-40F5-8707-252B99B0606A}"));
     } else {
-      model.user.url = "https://internal-bruno.spiraservice.net/";
+      model.user.url = "";
       model.user.userName = "administrator";
-      model.user.api_key = btoa("&api-key=" + encodeURIComponent("{C544F400-1E87-4753-968D-BF2F4E740579}"));
+      model.user.api_key = btoa("&api-key=" + encodeURIComponent(""));
     }
     loginAttempt();
   }
@@ -149,6 +150,7 @@ function setEventListeners() {
   document.getElementById("btn-toSpira").onclick = sendToSpiraAttempt;
   document.getElementById("btn-fromSpira").onclick = getFromSpiraAttempt;
   document.getElementById("btn-template").onclick = updateTemplateAttempt;
+  document.getElementById("btn-updateToSpira").onclick = updateSpiraAttempt;
 
   document.getElementById("btn-help-back").onclick = function () { panelToggle("help") };
   document.getElementById("btn-help-section-login").onclick = function () { showChosenHelpSection('login') };
@@ -245,6 +247,7 @@ function resetUi() {
   document.getElementById("select-artifact").disabled = true;
   document.getElementById("btn-fromSpira").disabled = true;
   document.getElementById("btn-toSpira").disabled = true;
+  document.getElementById("btn-updateToSpira").disabled = true;
   document.getElementById("btn-toSpira").innerHTML = "Prepare Template";
 
   // reset artifact dropdown to 'Select an Artifact'
@@ -256,6 +259,7 @@ function resetUi() {
   // reset action buttons
   document.getElementById("btn-fromSpira").style.display = "";
   document.getElementById("btn-toSpira").style.display = "";
+  document.getElementById("btn-updateToSpira").style.display = "";
 
 
   // reset guide text on the main pane
@@ -265,6 +269,7 @@ function resetUi() {
   document.getElementById("main-heading-fromSpira").style.display = "";
   document.getElementById("main-heading-toSpira").style.display = "";
   document.getElementById("main-guide-2").classList.add("pale");
+  document.getElementById("main-guide-3").classList.add("pale");
 }
 
 
@@ -394,7 +399,7 @@ function populateProjects(projects) {
   // sets the display current logged in user name
   document.getElementById("js--loggedInAs-decision").innerHTML = "Logged in as: " + model.user.userName;
   document.getElementById("js--loggedInAs-main").innerHTML = "Logged in as: " + model.user.userName;
-  
+
   // get UI logic ready for decision panel
   showPanel("decide");
   hideLoadingSpinner();
@@ -418,6 +423,7 @@ function populateProjects(projects) {
 
 // manage the switching of the UI off the login screen on succesful login and retrieval of projects
 function showMainPanel(type) {
+
   setDropdown("select-product", model.projects, "Select a product");
   setDropdown("select-artifact", params.artifacts, "Select an artifact");
 
@@ -426,10 +432,14 @@ function showMainPanel(type) {
     document.getElementById("btn-fromSpira").style.display = "none";
     document.getElementById("main-guide-1-fromSpira").style.display = "none";
     document.getElementById("main-heading-fromSpira").style.display = "none";
+    document.getElementById("btn-updateToSpira").style.visibility = "hidden";
+    document.getElementById("main-guide-3").style.visibility = "hidden";
   } else {
     document.getElementById("btn-toSpira").style.display = "none";
     document.getElementById("main-guide-1-toSpira").style.display = "none";
     document.getElementById("main-heading-toSpira").style.display = "none";
+    document.getElementById("main-guide-3").style.visibility = "visible";
+    document.getElementById("btn-updateToSpira").style.visibility = "visible";
   }
 
   // opens the panel
@@ -472,6 +482,9 @@ function logout(shouldLogout) {
 
 
 function changeProjectSelect(e) {
+  //sets the UI to correspond to this mode
+  artifactUpdateUI(UI_MODE.newProject);
+
   // if the project field has not been selected all other selected buttons are disabled
   if (e.target.value == 0) {
     document.getElementById("select-artifact").disabled = true;
@@ -497,11 +510,11 @@ function changeProjectSelect(e) {
 
       // for 6.1 the v6 API for get projects does not get the project template IDs so have to do this
       getTemplateFromProjectId(model.user, uiSelection.currentProject.id, uiSelection.currentArtifact);
-      
+
       // get new data for artifact and this project, if artifact has been selected
       // USE THIS CODE WHEN bug in 6.1 is fixed
       // if (uiSelection.currentArtifact) {
-        //getArtifactSpecificInformation(model.user, uiSelection.currentProject.templateId, uiSelection.currentProject.id, uiSelection.currentArtifact)
+      //getArtifactSpecificInformation(model.user, uiSelection.currentProject.templateId, uiSelection.currentProject.id, uiSelection.currentArtifact)
       // }
     }
   }
@@ -527,8 +540,45 @@ function getTemplateFromProjectId(user, projectId, artifact) {
   }
 }
 
+//handles hiding/displaying and changing colors of elements in the UI based on the operation
+function artifactUpdateUI(mode) {
+
+  switch (mode) {
+
+    case UI_MODE.newProject:
+      //when selecting a new project
+      document.getElementById("main-guide-1").classList.remove("pale");
+      document.getElementById("main-guide-2").classList.add("pale");
+      document.getElementById("main-guide-3").classList.add("pale");
+      document.getElementById("btn-fromSpira").disabled = true;
+      document.getElementById("btn-updateToSpira").disabled = true;
+      break;
+
+    case UI_MODE.newArtifact:
+      //when selecting a new artifact
+      document.getElementById("main-guide-3").classList.add("pale");
+      document.getElementById("btn-updateToSpira").disabled = true;
+      break;
+
+    case UI_MODE.getData:
+      //when clicking from-Spira button
+      document.getElementById("btn-updateToSpira").disabled = false;
+      break;
+
+    case UI_MODE.errorMode:
+      //in case of any error
+      document.getElementById("main-guide-2").classList.remove("pale");
+      document.getElementById("btn-fromSpira").disabled = false;
+      document.getElementById("main-guide-3").classList.add("pale");
+      document.getElementById("btn-updateToSpira").disabled = true;
+      break;
+  }
+}
+
 
 function changeArtifactSelect(e) {
+  //sets the UI to correspond to this mode
+  artifactUpdateUI(UI_MODE.newArtifact);
   if (e.target.value == 0) {
     document.getElementById("btn-toSpira").disabled = true;
     document.getElementById("btn-fromSpira").disabled = true;
@@ -549,8 +599,6 @@ function changeArtifactSelect(e) {
       if (uiSelection.currentProject.templateId && uiSelection.currentProject.id) {
         getArtifactSpecificInformation(model.user, uiSelection.currentProject.templateId, uiSelection.currentProject.id, uiSelection.currentArtifact);
       }
-
-
     }
   }
 }
@@ -575,16 +623,28 @@ function manageTemplateBtnState() {
 
     function updateButtonStatus() {
       if (allGetsSucceeded()) {
-        document.getElementById("btn-toSpira").disabled = false;
-        document.getElementById("btn-fromSpira").disabled = false;
-        document.getElementById("message-fetching-data").style.visibility = "hidden";
-        document.getElementById("main-guide-1").classList.add("pale");
-        document.getElementById("main-guide-2").classList.remove("pale");
+
+        if (!document.getElementById("btn-updateToSpira").disabled) {
+          //sets the UI to allow update
+          document.getElementById("btn-fromSpira").disabled = false;
+          document.getElementById("main-guide-2").classList.add("pale");
+          document.getElementById("main-guide-3").classList.remove("pale");
+          document.getElementById("message-fetching-data").style.visibility = "hidden";
+        }
+        else {
+          document.getElementById("btn-toSpira").disabled = false;
+          document.getElementById("btn-fromSpira").disabled = false;
+
+          document.getElementById("message-fetching-data").style.visibility = "hidden";
+          document.getElementById("main-guide-1").classList.add("pale");
+          document.getElementById("main-guide-2").classList.remove("pale");
+        }
+
         clearInterval(checkGetsSuccess);
 
         // if there is a discrepancy between the dropdown and the currently active template
         // only do this is user will send to spira - determined by whether the send to spira button is visible
-        if(document.getElementById("btn-toSpira").style.display != "none") {
+        if (document.getElementById("btn-toSpira").style.display != "none") {
           if (isModelDifferentToSelection()) {
             document.getElementById("pnl-template").style.display = "";
             document.getElementById("btn-template").disabled = false;
@@ -593,6 +653,8 @@ function manageTemplateBtnState() {
             document.getElementById("btn-template").disabled = true;
           }
         }
+      }
+      else {
       }
     }
   }
@@ -661,9 +723,9 @@ function getFromSpiraAttempt() {
     //if no template - then get the template
     createTemplateAttempt();
   }
+  //sets the UI to correspond to this mode
+  artifactUpdateUI(UI_MODE.getData);
 }
-
-
 
 function getFromSpiraComplete(log) {
   if (devMode) console.log(log);
@@ -672,6 +734,9 @@ function getFromSpiraComplete(log) {
     errorMessages = log.entries
       .filter(function (entry) { return entry.error; })
       .map(function (entry) { return entry.message; });
+  }
+  else {
+    manageTemplateBtnState();
   }
   hideLoadingSpinner();
 
@@ -690,7 +755,6 @@ function getFromSpiraComplete(log) {
 function sendToSpiraAttempt() {
   // first update state to reflect user intent
   model.isGettingDataAttempt = false;
-
   //check that template is loaded
   if (model.isTemplateLoaded) {
     showLoadingSpinner();
@@ -700,9 +764,9 @@ function sendToSpiraAttempt() {
       google.script.run
         .withFailureHandler(errorImpExp)
         .withSuccessHandler(sendToSpiraComplete)
-        .sendToSpira(model, params.fieldType);
+        .sendToSpira(model, params.fieldType, false);
     } else {
-      msOffice.sendToSpira(model, params.fieldType)
+      msOffice.sendToSpira(model, params.fieldType, false)
         .then((response) => sendToSpiraComplete(response))
         .catch((error) => errorImpExp(error));
     }
@@ -712,7 +776,31 @@ function sendToSpiraAttempt() {
   }
 }
 
+function updateSpiraAttempt() {
 
+  // first update state to reflect user intent
+  model.isGettingDataAttempt = false;
+  //check that template is loaded
+  if (model.isTemplateLoaded) {
+    showLoadingSpinner();
+
+    //call export function
+    if (isGoogle) {
+      google.script.run
+        .withFailureHandler(errorImpExp)
+        .withSuccessHandler(sendToSpiraComplete)
+        .sendToSpira(model, params.fieldType, true);
+    } else {
+      msOffice.sendToSpira(model, params.fieldType, true)
+        .then((response) => sendToSpiraComplete(response))
+        .catch((error) => errorImpExp(error));
+    }
+  } else {
+    //if no template - throw an error
+    errorExcel("The spreadsheet does not match the selected artifact. Please check your data.")
+  }
+
+}
 
 function sendToSpiraComplete(log) {
   hideLoadingSpinner();
@@ -721,8 +809,8 @@ function sendToSpiraComplete(log) {
   //if array (which holds error responses) is present, and errors present
   if (log.errorCount) {
     var errorMessages = log.entries
-        .filter(function (entry) { return entry.error; })
-        .map(function (entry) { return entry.message; });
+      .filter(function (entry) { return entry.error; })
+      .map(function (entry) { return entry.message; });
 
   }
   //runs the export success function, passes a boolean flag, if there are errors the flag is true.
@@ -978,10 +1066,10 @@ function getBespoke(user, templateId, projectId, artifactId, field) {
   } else {
     msOffice.getBespoke(user, templateId, projectId, artifactId, field)
       .then((response) => getBespokeSuccess({
-          artifactName: artifactId,
-          field: field,
-          values: response.body
-      })) 
+        artifactName: artifactId,
+        field: field,
+        values: response.body
+      }))
       .catch((error) => errorNetwork(error));
   }
 }
@@ -1163,7 +1251,7 @@ function templateLoader() {
       .templateLoader(model, params.fieldType);
   } else {
     msOffice.templateLoader(model, params.fieldType)
-      .then(response => templateLoaderSuccess(response)) 
+      .then(response => templateLoaderSuccess(response))
       .catch(error => error.description ? errorExcel(error) : errorNetwork(error));
   }
 }
@@ -1194,10 +1282,6 @@ function templateLoaderSuccess(response) {
   document.getElementById("template-project").textContent = model.currentProject.name;
   document.getElementById("template-artifact").textContent = model.currentArtifact.name;
 
-  // de-emphasise the explanatory message - we have to put it in a set timeout because there is already a delay set for other checks that affect the view state of this element
-  setTimeout(function() {
-    document.getElementById("main-guide-2").classList.add("pale");
-  }, 750);
 }
 
 
@@ -1222,13 +1306,18 @@ function errorPopUp(type, err) {
   if (isGoogle) {
     google.script.run.error(type);
     console.log(err);
+    //sets the UI to correspond to this mode
+    artifactUpdateUI(UI_MODE.errorMode);
   } else {
     msOffice.error(type, err);
+    //sets the UI to correspond to this mode
+    artifactUpdateUI(UI_MODE.errorMode);
     console.error("SpiraPlan Import/Export Plugin encountered an error:", err.status ? err.status : "", err.response ? err.response.text : "", err.description ? err.description : "")
     console.info("SpiraPlan Import/Export Plugin: full error is... ", err)
   }
   hideLoadingSpinner();
 }
+
 function errorNetwork(err) {
   errorPopUp("network", err);
 }

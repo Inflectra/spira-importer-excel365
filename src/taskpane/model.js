@@ -33,6 +33,7 @@ var params = {
         risks: 14
     },
 
+
     // enums for different types of field - match custom field prop types where relevant
     fieldType: {
         text: 1,
@@ -110,6 +111,8 @@ var templateFields = {
         { field: "OwnerId", name: "Owner", type: params.fieldType.user },
         { field: "ComponentId", name: "Component", type: params.fieldType.component },
         { field: "CreationDate", name: "Creation Date", type: params.fieldType.date },
+        { field: "ConcurrencyDate", name: "Concurrency Date", type: params.fieldType.text ,isReadOnly: true, isHidden: true },
+        { field: "IndentLevel", name: "Indent Level", type: params.fieldType.text , isReadOnly: true, isHidden: true },
     ],
 
     releases: [
@@ -144,6 +147,7 @@ var templateFields = {
         { field: "ResourceCount", name: "Resources", type: params.fieldType.num },
         { field: "DaysNonWorking", name: "Non Working Days", type: params.fieldType.int },
         { field: "CreationDate", name: "Creation Date", type: params.fieldType.date },
+        { field: "ConcurrencyDate", name: "Concurrency Date", type: params.fieldType.text ,isReadOnly: true, isHidden: true },
         // unsupported {field: "Comment", name: "Comment", type: params.fieldType.text, unsuppored: true}
     ],
 
@@ -192,12 +196,17 @@ var templateFields = {
                 isProjectBased: true
             }
         },
-        { field: "CreationDate", name: "Creation Date", type: params.fieldType.date },
+        { field: "CreationDate", name: "Creation Date", type: params.fieldType.date},
         { field: "StartDate", name: "Start Date", type: params.fieldType.date },
-        { field: "EndDate", name: "End Date", type: params.fieldType.date },
+        { field: "EndDate", name: "End Date", type: params.fieldType.date},
         { field: "EstimatedEffort", name: "Estimated Effort (in mins)", type: params.fieldType.int },
         { field: "ActualEffort", name: "Actual Effort (in mins)", type: params.fieldType.int },
+        { field: "ProjectedEffort", name: "Projected Effort (in mins)", type: params.fieldType.int },
         { field: "RemainingEffort", name: "Remaining Effort (in mins)", type: params.fieldType.int },
+        { field: "RequirementId", name: "RequirementId", type: params.fieldType.int },
+        { field: "ProjectId", name: "Project ID", type: params.fieldType.int ,isReadOnly: true, isHidden: true },
+        { field: "ConcurrencyDate", name: "Concurrency Date", type: params.fieldType.text , isReadOnly: true, isHidden: true },
+
     ],
     testSets: [
         { field: "TestSetId", name: "ID", type: params.fieldType.id },
@@ -243,7 +252,9 @@ var templateFields = {
             }
         },
         { field: "CreationDate", name: "Creation Date", type: params.fieldType.date },
-        { field: "PlannedDate", name: "Planned Date", type: params.fieldType.date }
+        { field: "PlannedDate", name: "Planned Date", type: params.fieldType.date },
+        { field: "ExecutionDate", name: "Execution Date", type: params.fieldType.date,isReadOnly: true, isHidden: true },
+        { field: "ConcurrencyDate", name: "Concurrency Date", type: params.fieldType.text ,isReadOnly: true, isHidden: true },
     ],
     incidents: [
         { field: "IncidentId", name: "Incident ID", type: params.fieldType.id },
@@ -292,7 +303,7 @@ var templateFields = {
         { field: "ClosedDate", name: "Closed On", type: params.fieldType.date },
         { field: "EstimatedEffort", name: "Estimated Effort (mins)", type: params.fieldType.int },
         { field: "ActualEffort", name: "Actual Effort (mins)", type: params.fieldType.int },
-        { field: "RemainingEffort", name: "Remaining Effort (mins)", type: params.fieldType.int }
+        { field: "ConcurrencyDate", name: "Concurrency Date", type: params.fieldType.text ,isReadOnly: true, isHidden: true },
     ],
 
     testCases: [
@@ -341,7 +352,10 @@ var templateFields = {
                 isProjectBased: true
             }
         },
-        { field: "ComponentIds", name: "Test Case Component", type: params.fieldType.component, isMulti: true }
+        { field: "ComponentIds", name: "Test Case Component", type: params.fieldType.component, isMulti: true },
+        { field: "CreationDate", name: "Test Case Creation Date", type: params.fieldType.text ,isReadOnly: true },
+        { field: "ConcurrencyDate", name: "Test Case Conc. Date", type: params.fieldType.text ,isReadOnly: true, isHidden: true },
+        { field: "ConcurrencyDate", name: "Test Step Conc. Date", type: params.fieldType.text, isReadOnly: true , isSubTypeField: true, isHidden: true }
     ],
 
     risks: [
@@ -391,6 +405,8 @@ var templateFields = {
         { field: "CreationDate", name: "Creation Date", type: params.fieldType.date },
         { field: "ClosedDate", name: "Closed Date", type: params.fieldType.date },
         { field: "ReviewDate", name: "Review Date", type: params.fieldType.date },
+        { field: "RiskExposure", name: "Risk Exposure", type: params.fieldType.int, isReadOnly: true, isHidden: true },
+        { field: "ConcurrencyDate", name: "Concurrency Date", type: params.fieldType.text ,isReadOnly: true, isHidden: true },
     ],
 };
 

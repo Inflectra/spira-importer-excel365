@@ -49,7 +49,7 @@
       "url": "${input:officeOnlineDocumentUrl}",
       "webRoot": "${workspaceFolder}",
       "preLaunchTask": "Debug: Web"
-    }
+    },
   ],
   "inputs": [
     {
