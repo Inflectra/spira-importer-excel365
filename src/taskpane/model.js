@@ -202,6 +202,7 @@ var templateFields = {
         { field: "EstimatedEffort", name: "Estimated Effort (in mins)", type: params.fieldType.int },
         { field: "ActualEffort", name: "Actual Effort (in mins)", type: params.fieldType.int },
         { field: "ProjectedEffort", name: "Projected Effort (in mins)", type: params.fieldType.int },
+        { field: "RemainingEffort", name: "Remaining Effort (in mins)", type: params.fieldType.int },
         { field: "RequirementId", name: "RequirementId", type: params.fieldType.int },
         { field: "ProjectId", name: "Project ID", type: params.fieldType.int ,isReadOnly: true, isHidden: true },
         { field: "ConcurrencyDate", name: "Concurrency Date", type: params.fieldType.text , isReadOnly: true, isHidden: true },
@@ -302,7 +303,6 @@ var templateFields = {
         { field: "ClosedDate", name: "Closed On", type: params.fieldType.date },
         { field: "EstimatedEffort", name: "Estimated Effort (mins)", type: params.fieldType.int },
         { field: "ActualEffort", name: "Actual Effort (mins)", type: params.fieldType.int },
-        { field: "CompletionPercent", name: "Completion Percent", type: params.fieldType.int },
         { field: "ConcurrencyDate", name: "Concurrency Date", type: params.fieldType.text ,isReadOnly: true, isHidden: true },
     ],
 
