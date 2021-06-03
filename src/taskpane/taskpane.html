@@ -11,19 +11,21 @@
     <script type="text/javascript" src="https://appsforoffice.microsoft.com/lib/1.1/hosted/office.js"></script>
 
     <script src="https://cdn.jsdelivr.net/npm/superagent@5.1.0/dist/superagent.min.js"></script>
-    
+
     <!-- For more information on Office UI Fabric, visit https://developer.microsoft.com/fabric. -->
-    <link rel="stylesheet" href="https://static2.sharepointonline.com/files/fabric/office-ui-fabric-core/10.0.0/css/fabric.min.css" />
-    <link rel="stylesheet" href="https://static2.sharepointonline.com/files/fabric/office-ui-fabric-js/1.2.0/css/fabric.components.min.css" />
-    
+    <link rel="stylesheet"
+        href="https://static2.sharepointonline.com/files/fabric/office-ui-fabric-core/10.0.0/css/fabric.min.css" />
+    <link rel="stylesheet"
+        href="https://static2.sharepointonline.com/files/fabric/office-ui-fabric-js/1.2.0/css/fabric.components.min.css" />
+
     <!-- Plugin specific files -->
     <link href="taskpane.css" rel="stylesheet" type="text/css" />
 </head>
 
 <body class="ms-font-m ms-welcome ms-Fabric">
-    	<!--This is the HTML that the user sees when the app launched and the sidebar is opened. -->
-	    <!-- appscript: `< ?!= include(X)? >` are template inserts for modularity -->
-	    <!-- appscript: and the entire document will be bundled together with inline CSS and JavaScript on deployment -->
+    <!--This is the HTML that the user sees when the app launched and the sidebar is opened. -->
+    <!-- appscript: `< ?!= include(X)? >` are template inserts for modularity -->
+    <!-- appscript: and the entire document will be bundled together with inline CSS and JavaScript on deployment -->
 
     <header class="header">
         <img src="https://files.inflectra.com/google/sheets/spiraplan-icon.svg" class="header-logo">
@@ -33,108 +35,71 @@
 
     <!--auth page-->
     <div class="panel" id="panel-auth">
-        
+
         <p class="well">
-            Learn how to use this app via the <a id="lnk-help-login" href="#">mini help</a>, or read our <a target="_blank" href="http://spiradoc.inflectra.com/Migration-and-Integration/Importing-from-Microsoft-Excel-(Office365)/">full documentation</a>.
+            Learn how to use this app via the <a id="lnk-help-login" href="#">mini help</a>, or read our <a
+                target="_blank"
+                href="http://spiradoc.inflectra.com/Migration-and-Integration/Importing-from-Microsoft-Excel-(Office365)/">full
+                documentation</a>.
         </p>
-                
+
         <h3 class="mt-md mb-0">1. Connect to your Spira app</h3>
         <ul class="form">
             <li class="form-pair">
-                <label 
-                    class="form-label ms-Label" 
-                    for="input-url"
-                    >
+                <label class="form-label ms-Label" for="input-url">
                     Spira URL:
                 </label>
-                <input 
-                    class="form-input" 
-                    id="input-url" 
-                    name="URL" 
-                    placeholder="https://<your-site-name>.com" 
-                    type="text" 
-                    />
+                <input class="form-input" id="input-url" name="URL" placeholder="https://<your-site-name>.com"
+                    type="text" />
             </li>
             <li class="form-pair">
-                <label 
-                    class="form-label ms-Label"
-                    for="input-userName"
-                    >
+                <label class="form-label ms-Label" for="input-userName">
                     User Name:
                 </label>
-                <input 
-                    class="form-input" 
-                    id="input-userName" 
-                    name="user-name" 
-                    placeholder="User Name" 
-                    type="text" 
-                    />
+                <input class="form-input" id="input-userName" name="user-name" placeholder="User Name" type="text" />
             </li>
             <li class="form-pair">
-                <label
-                    class="form-label ms-Label"
-                    for="input-password"
-                    >
+                <label class="form-label ms-Label" for="input-password">
                     RSS Token:
                 </label>
-                <input 
-                    class="form-input" 
-                    id="input-password" 
-                    name="password" 
-                    placeholder="{Your-RSS-Token}" 
-                    type="password" 
-                    />
+                <input class="form-input" id="input-password" name="password" placeholder="{Your-RSS-Token}"
+                    type="password" />
             </li>
         </ul>
-        
+
         <div class="mt-md">
-            <button 
-                class="action ms-Button ms-Button--primary" 
-                id="btn-login"
-                title="Login using details filled out above"
-                type="button"
-                >
+            <button class="action ms-Button ms-Button--primary" id="btn-login"
+                title="Login using details filled out above" type="button">
                 Log In
             </button>
-            <button 
-                class="ms-Button ms-Button--default"
-                id="btn-help-login"
-                title="View help screens"
-                type="button"
-                >
+            <button class="ms-Button ms-Button--default" id="btn-help-login" title="View help screens" type="button">
                 Help
             </button>
-            
-            <!-- Dev mock login data button. For developement only -->	
-            <button
-                class="hidden ms-Button ms-Button--default"
-                id="btn-dev"
-                title="Click to load login screen with dev details"
-                type="button"
-                >
+
+            <!-- Dev mock login data button. For developement only -->
+            <button class="hidden ms-Button ms-Button--default" id="btn-dev"
+                title="Click to load login screen with dev details" type="button">
                 Dev
             </button>
         </div>
 
         <p class="mt-md mb-0">
             <small>
-                Don't use SpiraPlan? Get a demo, purchase or learn more about SpiraPlan <a target="_blank" href="https://www.inflectra.com/Trial/SpiraPlan.aspx">here</a>.
+                Don't use SpiraPlan? Get a demo, purchase or learn more about SpiraPlan <a target="_blank"
+                    href="https://www.inflectra.com/Trial/SpiraPlan.aspx">here</a>.
             </small>
         </p>
-    </div> 
+    </div>
 
 
 
     <!--decision page-->
     <div class="panel offscreen" id="panel-decide">
-        <p 
-            class="secondary" 
-            id="js--loggedInAs-decision"
-            >
+        <p class="secondary" id="js--loggedInAs-decision">
         </p>
 
         <h3>2. Choose which mode to use</h3>
-        
+
         <p class="mt-md">The Spira Import/Export Tool helps you:</p>
         <ul>
             <li>
@@ -143,56 +108,45 @@
             <li>
                 send (import) new data to Spira</p>
             </li>
-        </ul> 
+        </ul>
         <p></p>
         <p class="mt-md"><b>Choose what to do</b> or read the <a href="#" id="lnk-help-decide">help</a>.</p>
-        
+
         <div class="mt-md">
-            <button 
-                class="action ms-Button ms-Button--primary"
-                id="btn-decide-get"
-                title="Get data out of Spira"
-                type="button"
-                >
+            <button class="action ms-Button ms-Button--primary" id="btn-decide-get" title="Get data out of Spira"
+                type="button">
                 Get data from Spira*
             </button>
         </div>
         <div class="mt-md">
-            <button 
-                class="action ms-Button ms-Button--primary" 
-                id="btn-decide-send"
-                title="Prepare data to send into Spira"
-                type="button"
-                >
-                Send data to Spira 
+            <button class="action ms-Button ms-Button--primary" id="btn-decide-send"
+                title="Prepare data to send into Spira" type="button">
+                Send data to Spira
             </button>
         </div>
-        
-        
+
+        <div class="mt-md">
+
+            <input type="checkbox" id="chkAdvanced" name="chkAdvancedMain" value="Bike">
+            <label for="chkAdvancedMain"> Advanced Mode </label><br>
+        </div>
+
         <div class="mt-lg">
-            <button 
-                class="ms-Button"
-                id="btn-decide-logout"
-                title="Logout"
-                type="button"
-                >
+            <button class="ms-Button" id="btn-decide-logout" title="Logout" type="button">
                 Logout
             </button>
         </div>
 
-    <p class="mt-md"><i>*Optionally, update the data and send it back to Spira.</p></i>
+        <p class="mt-md"><i>*Optionally, update the data and send it back to Spira.</p></i>
 
-    </div> 
+    </div>
 
     <!--main screen-->
     <div class="panel offscreen" id="panel-main">
-        <p 
-            class="secondary" 
-            id="js--loggedInAs-main"
-            >
+        <p class="secondary" id="js--loggedInAs-main">
         </p>
-        
-        <h3 id="main-heading-fromSpira">3. Prepare to get data from Spira</h3>            
+
+        <h3 id="main-heading-fromSpira">3. Prepare to get data from Spira</h3>
         <h3 id="main-heading-toSpira">3. Prepare to send data to Spira</h3>
 
         <div id="main-guide-1">
@@ -201,57 +155,36 @@
         </div>
         <ul class="form">
             <li class="form-pair">
-                <label 
-                    class="form-label" 
-                    for="select-product"
-                    >
+                <label class="form-label" for="select-product">
                     Products:
                 </label>
-                <select 
-                    class="form-input"
-                    id="select-product"
-                    >
+                <select class="form-input" id="select-product">
                     <!--aysnc populated -->
                 </select>
             </li>
             <li class="form-pair">
-                <label 
-                    class="form-label" 
-                    for="select-artifact"
-                    >
+                <label class="form-label" for="select-artifact">
                     Artifact:
                 </label>
-                <select 
-                    class="form-input"
-                    disabled="true"
-                    id="select-artifact" 
-                    >
+                <select class="form-input" disabled="true" id="select-artifact">
                     <!--aysnc populated -->
                 </select>
             </li>
         </ul>
-        
-        
+
+
         <p class="ma-0 form-label pale" style="visibility: hidden" id="message-fetching-data">
-            Fetching the data needed... 
+            Fetching the data needed...
         </p>
-        
-        
-        <div 
-            class="pb-md" 
-            id="pnl-template"
-            style="display: none" 
-            >
+
+
+        <div class="pb-md" id="pnl-template" style="display: none">
             <p>
-                The template is set to: <span id="template-artifact"></span>, in product: <span id="template-project"></span>, but you have chosen different options
+                The template is set to: <span id="template-artifact"></span>, in product: <span
+                    id="template-project"></span>, but you have chosen different options
             </p>
-            <button 
-                class="action ms-Button ms-Button--default"
-                disabled="true"
-                id="btn-template"
-                title="Update the active sheet for the chosen template options"
-                type="button"
-                >
+            <button class="action ms-Button ms-Button--default" disabled="true" id="btn-template"
+                title="Update the active sheet for the chosen template options" type="button">
                 Update Template
             </button>
         </div>
@@ -262,22 +195,12 @@
             <p id="main-guide-2" class="pale">
                 <b>b. Start the data transfer with Spira</b>
             </p>
-            <button
-                class="action ms-Button ms-Button--primary"
-                disabled="true"
-                id="btn-toSpira" 
-                type="button"
-                title="Prepare the active sheet so you can enter data into it"
-                >
+            <button class="action ms-Button ms-Button--primary" disabled="true" id="btn-toSpira" type="button"
+                title="Prepare the active sheet so you can enter data into it">
                 Prepare Sheet
             </button>
-            <button  
-                class="action ms-Button ms-Button--primary"
-                disabled="true"
-                id="btn-fromSpira"
-                type="button"
-                title="Get data for the specified artifact from SpiraPlan"
-                >
+            <button class="action ms-Button ms-Button--primary" disabled="true" id="btn-fromSpira" type="button"
+                title="Get data for the specified artifact from SpiraPlan">
                 Get from Spira
             </button>
         </div>
@@ -286,96 +209,68 @@
             <p id="main-guide-3" class="pale">
                 c. Send the updated data to Spira (optional)
             </p>
-            <button
-                class="ms-Button ms-Button--default"
-                disabled="true"
-                id="btn-updateToSpira" 
-                type="button"
-                title="Send data back to Spira, reflecting the changes from the spreadsheet"
-                >
+            <button class="ms-Button ms-Button--default" disabled="true" id="btn-updateToSpira" type="button"
+                title="Send data back to Spira, reflecting the changes from the spreadsheet">
                 Update Spira
             </button>
         </div>
 
         <div class="btn-group mt-lg">
-            <button 
-                class="ms-Button ms-Button--default"
-                id="btn-main-back"
-                title="Go back to choose to send data to or get data from Spira"
-                type="button"
-                >
+            <button class="ms-Button ms-Button--default" id="btn-main-back"
+                title="Go back to choose to send data to or get data from Spira" type="button">
                 Back
             </button>
-            <button 
-                class="ms-Button ms-Button--default"
-                id="btn-help-main"
-                title="View help screen"
-                type="button"
-                >
+            <button class="ms-Button ms-Button--default" id="btn-help-main" title="View help screen" type="button">
                 Help
             </button>
-            <button 
-                class="ms-Button ms-Button--default"
-                id="btn-logout"
-                title="Logout of addon (no data on sheet is affected)"
-                type="button"
-                >
+            <button class="ms-Button ms-Button--default" id="btn-logout"
+                title="Logout of addon (no data on sheet is affected)" type="button">
                 Logout
             </button>
         </div>
     </div>
-        
 
-    
+
+
     <!--help page-->
     <div class="panel offscreen" id="panel-help">
         <!-- help button and module for help page -->
-        <button 
-            class="ms-Button ms-Button--default"
-            id="btn-help-back"
-            type="button"
-            >
+        <button class="ms-Button ms-Button--default" id="btn-help-back" type="button">
             Back
         </button>
-        
+
         <h3>Quick Help Guide</h3>
-        <p class="mt-0">For more information see our <a target="_blank" href="http://spiradoc.inflectra.com/Migration-and-Integration/Importing-from-Microsoft-Excel-(Office365)/">documentation</a>.</p>
-        
+        <p class="mt-0">For more information see our <a target="_blank"
+                href="http://spiradoc.inflectra.com/Migration-and-Integration/Importing-from-Microsoft-Excel-(Office365)/">documentation</a>.
+        </p>
+
         <div class="flex" id='help-header'>
-            <button 
-                class="btn-help ms-Button ms-Button--default"
-                id="btn-help-section-login"
-                title="Help with the login screen"
-                type="button"
-                >
+            <button class="btn-help ms-Button ms-Button--default" id="btn-help-section-login"
+                title="Help with the login screen" type="button">
                 Login
             </button>
-            <button 
-                class="btn-help ms-Button ms-Button--default"
-                id="btn-help-section-modes"
-                title="Which mode of the tool is right for you"
-                type="button"
-                >
+            <button class="btn-help ms-Button ms-Button--default" id="btn-help-section-modes"
+                title="Which mode of the tool is right for you" type="button">
                 Modes
             </button>
-            <button 
-                class="btn-help ms-Button ms-Button--default"
-                id="btn-help-section-data"
-                title="Help with working with import and export modes for different artifacts"
-                type="button"
-                >
+            <button class="btn-help ms-Button ms-Button--default" id="btn-help-section-data"
+                title="Help with working with import and export modes for different artifacts" type="button">
                 Data
             </button>
         </div>
 
         <div id="help-section-login" class="help-section hidden">
             <h4>1. Connect to your Spira app</h4>
-            <p id="help-connection-google">You can use this add-on with SpiraTest®, SpiraTeam®, or SpiraPlan®. It works with any cloud Spira app. Any on premise Spira needs to be accessible over the internet.</p>
-            <p id="help-connection-excel">You can use this add-on with SpiraTest®, SpiraTeam®, or SpiraPlan®. If you are using Excel in the browser, your Spira app needs to be accessible over the internet.</p>
+            <p id="help-connection-google">You can use this add-on with SpiraTest®, SpiraTeam®, or SpiraPlan®. It works
+                with any cloud Spira app. Any on premise Spira needs to be accessible over the internet.</p>
+            <p id="help-connection-excel">You can use this add-on with SpiraTest®, SpiraTeam®, or SpiraPlan®. If you are
+                using Excel in the browser, your Spira app needs to be accessible over the internet.</p>
             <ol class="list">
                 <li>
                     <p><b>Enter your SpiraTeam URL</b></p>
-                    <small>Use the web address you use to access Spira in your browser. This is usually of the form 'http://(company).spiraservice.net'. Make sure you remove any suffixes from the address (e.g. Default.aspx or "/")</small>
+                    <small>Use the web address you use to access Spira in your browser. This is usually of the form
+                        'http://(company).spiraservice.net'. Make sure you remove any suffixes from the address (e.g.
+                        Default.aspx or "/")</small>
                 </li>
                 <li>
                     <p><b>Enter your username</b></p>
@@ -385,29 +280,40 @@
                 </li>
                 <li>
                     <p><b>Enter your RSS token</b></p>
-                    <small>You can find or generate this from your user profile page inside Spira. Make sure to include the curly braces - {ExampleRSS}</small>
+                    <small>You can find or generate this from your user profile page inside Spira. Make sure to include
+                        the curly braces - {ExampleRSS}</small>
                 </li>
             </ol>
         </div>
-        
-        
-        
-        
+
+
+
+
         <div id="help-section-modes" class="help-section hidden">
             <h4>2. Choose which mode to use</h4>
             <p>This add-in has two separate modes: exporting; and importing.</p>
-            <p>Once you have successfully logged in to your Spira application, you need to decide what you want to use this add-in for. You can go back and change your mind at any time.</p>
+            <p>Once you have successfully logged in to your Spira application, you need to decide what you want to use
+                this add-in for. You can go back and change your mind at any time.</p>
             <ul class="list">
                 <li>
                     <p>
                         <b>Get data from Spira (exporting)</b>
-                        <small>This button will prompt you to pick a product and artifact to LOAD FROM Spira loaded into the spreadsheet (on the current active sheet). Exporting data in this way can be helpful to share with colleagues who are not using Spira. Please note that this will bring over 100% of the artifacts in that product so it may take some time. Optionally, after exporting the data from Spira, you can change the available fields and import the updated data back to Spira, hitting the button 'Update Spira'. Please note that this option only allows you to update the received data, not create new artifacts.</small>
+                        <small>This button will prompt you to pick a product and artifact to LOAD FROM Spira loaded into
+                            the spreadsheet (on the current active sheet). Exporting data in this way can be helpful to
+                            share with colleagues who are not using Spira. Please note that this will bring over 100% of
+                            the artifacts in that product so it may take some time. Optionally, after exporting the data
+                            from Spira, you can change the available fields and import the updated data back to Spira,
+                            hitting the button 'Update Spira'. Please note that this option only allows you to update
+                            the received data, not create new artifacts.</small>
                     </p>
                 </li>
                 <li>
                     <p>
                         <b>Send data to Spira (importing)</b>
-                        <small>This will button will prompt you to pick a product and artifact to SEND TO Spira from the current active sheet. Before you can enter data to send, the add-in creates a dynamic template for that specific product and artifact to make it easier to enter data correctly.</small>
+                        <small>This will button will prompt you to pick a product and artifact to SEND TO Spira from the
+                            current active sheet. Before you can enter data to send, the add-in creates a dynamic
+                            template for that specific product and artifact to make it easier to enter data
+                            correctly.</small>
                     </p>
                 </li>
                 <li>
@@ -418,14 +324,15 @@
                 </li>
             </ul>
         </div>
-        
-        
-        
-        
+
+
+
+
         <div id="help-section-data" class="help-section hidden">
             <h4>3. Prepare for the data transfer</h4>
 
-            <p>If you are getting data from or sending data to Spira you first have to select the product and artifact to use from the dropdown menus.</p>
+            <p>If you are getting data from or sending data to Spira you first have to select the product and artifact
+                to use from the dropdown menus.</p>
             <ul class="list">
                 <li>
                     <p>
@@ -434,22 +341,29 @@
                 </li>
                 <li>
                     <p>
-                        <b>Artifacts</b>: <small>this menu does not dynamically change based on your permissions, so if you cannot add data to an artifact this could be why.</small>
+                        <b>Artifacts</b>: <small>this menu does not dynamically change based on your permissions, so if
+                            you cannot add data to an artifact this could be why.</small>
                     </p>
                 </li>
             </ul>
 
-            <p><b>Getting data from Spira</b>: once you have your product and artifact selected, click the button to start the export process. The add-in gets every entry of that artifact in the chosen product so it may take some time.</p>
-            
-            <p><i>Updating data in Spira (optional):</i> once you have the data from Spira in the spreadsheet, you can update the available fields and then click on 'Update Spira' to make the changes reflect in Spira.</p>
+            <p><b>Getting data from Spira</b>: once you have your product and artifact selected, click the button to
+                start the export process. The add-in gets every entry of that artifact in the chosen product so it may
+                take some time.</p>
 
-            <p><b>Sending data to Spira</b>: before you can enter data into the sheet click "Prepare Sheet" to create a template for that product and artifact. Once the sheet is ready click the Send button to add that data to Spira.</p>
+            <p><i>Updating data in Spira (optional):</i> once you have the data from Spira in the spreadsheet, you can
+                update the available fields and then click on 'Update Spira' to make the changes reflect in Spira.</p>
+
+            <p><b>Sending data to Spira</b>: before you can enter data into the sheet click "Prepare Sheet" to create a
+                template for that product and artifact. Once the sheet is ready click the Send button to add that data
+                to Spira.</p>
 
             <h4>Fields: working with required fields</h4>
             <ul class="list">
                 <li>
                     <p>
-                        <small>Required fields are marked by their name in the title row shown as bold black text (standard fields are regular light text)</small>
+                        <small>Required fields are marked by their name in the title row shown as bold black text
+                            (standard fields are regular light text)</small>
                     </p>
                 </li>
                 <li>
@@ -458,31 +372,38 @@
                     </p>
                 </li>
             </ul>
-            
+
             <h4>Fields: how certain 'special' fields work</h4>
             <ul class="list">
                 <li>
                     <p>
                         <b>ID Fields</b>
-                        <small>This field MUST be left blank to add new items to Spira. Any rows with entries in the ID fields are skipped over.</small>
+                        <small>This field MUST be left blank to add new items to Spira. Any rows with entries in the ID
+                            fields are skipped over.</small>
                     </p>
                 </li>
                 <li>
                     <p>
                         <b>Test Cases and Test Steps</b>
                         <small>
-                            Test case fields are columns with a darker background color. Test steps fields are columns with a lighter background color. 
+                            Test case fields are columns with a darker background color. Test steps fields are columns
+                            with a lighter background color.
                             </br>
-                            To create a test case with a step, fill in the test case fields in the first row. Then fill in the test step fields for the second row. Add more steps as needed in new rows. To add a second test case, start a new row and fill in the test case fields again. 
+                            To create a test case with a step, fill in the test case fields in the first row. Then fill
+                            in the test step fields for the second row. Add more steps as needed in new rows. To add a
+                            second test case, start a new row and fill in the test case fields again.
                             </br>
-                            Make sure: each row only fills in either test case or test step columns. If the system cannot tell whether an entry is a test case or step it is skipped over when sending to Spira.
+                            Make sure: each row only fills in either test case or test step columns. If the system
+                            cannot tell whether an entry is a test case or step it is skipped over when sending to
+                            Spira.
                         </small>
                     </p>
                 </li>
                 <li>
                     <p>
                         <b>Name</b>
-                        <small>For REQUIREMENTS and RELEASES this field supports indentation, add a “ > “ symbol to indicate how the items in the artifact hierarchy are organized.</small>
+                        <small>For REQUIREMENTS and RELEASES this field supports indentation, add a “ > “ symbol to
+                            indicate how the items in the artifact hierarchy are organized.</small>
                     </p>
                     <pre>
 Example:
@@ -493,7 +414,7 @@ Item 1
                     </pre>
                 </li>
             </ul>
-            
+
             <h4>Fields: dates</h4>
             <ul class="list">
                 <li>
@@ -507,12 +428,14 @@ Item 1
             <ul class="list">
                 <li>
                     <p>
-                        <small>Some fields in SpiraPlan let you select multiple items from a list. Spreadsheets do not allow this functionality</small>
+                        <small>Some fields in SpiraPlan let you select multiple items from a list. Spreadsheets do not
+                            allow this functionality</small>
                     </p>
                 </li>
                 <li>
                     <p>
-                        <small>When data is sent from SpiraPlan to the spreadsheet, only the first value in the list (if multiple are selected) will be displayed</small>
+                        <small>When data is sent from SpiraPlan to the spreadsheet, only the first value in the list (if
+                            multiple are selected) will be displayed</small>
                     </p>
                 </li>
                 <li>
@@ -550,31 +473,23 @@ Item 1
     <!-- warning page - ms excel only -->
     <div class="panel offscreen" id="panel-confirm">
         <p id="message-confirm"></p>
-        <button 
-            class="ms-Button ms-Button--default"
-            id="btn-confirm-ok"
-            type="button"
-            >
+        <button class="ms-Button ms-Button--default" id="btn-confirm-ok" type="button">
             OK
         </button>
-        <button 
-            class="ms-Button ms-Button--default"
-            id="btn-confirm-cancel"
-            type="button"
-            >
+        <button class="ms-Button ms-Button--default" id="btn-confirm-cancel" type="button">
             Cancel
         </button>
 
-    </div>    
+    </div>
 
-    <!-- footer -->  
+    <!-- footer -->
     <footer class="footer">
         <a href="https://www.inflectra.com" target="_blank">
-            <img src="https://files.inflectra.com/google/sheets/by_inflectra.png"  class="footer-logo">
+            <img src="https://files.inflectra.com/google/sheets/by_inflectra.png" class="footer-logo">
         </a>
     </footer>
-    
-    
+
+
     <!--spinner-->
     <div id='loader' class='loader-box hidden'>
         <div class="loader"></div>

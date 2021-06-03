@@ -14,6 +14,16 @@ var uiSelection = new tempDataStore();
 var devMode = true;
 var isGoogle = false;
 
+/*
+Global Variable to control if advanced options should be enabled to the user
+Up to know, the advanced features are :
+1."New Comment" field to all the artifacts -> allow creating new comments in Spira
+2. Create new Artifacts Association:
+  a. TestCase: Requirements, Releases and TestSet
+  b. Requirements: Requirents
+*/
+var advancedMode = false;
+
 //ENUMS
 
 var UI_MODE = {
@@ -105,9 +115,7 @@ function setDevStuff(devMode) {
       model.user.userName = "administrator";
       model.user.api_key = btoa("&api-key=" + encodeURIComponent("{10E5D4F2-2188-40F5-8707-252B99B0606A}"));
     } else {
-      model.user.url = "";
-      model.user.userName = "administrator";
-      model.user.api_key = btoa("&api-key=" + encodeURIComponent(""));
+     
     }
     loginAttempt();
   }
@@ -126,6 +134,7 @@ function setEventListeners() {
     showChosenHelpSection('login');
   };
   document.getElementById("btn-dev").onclick = setAuthDetails;
+  document.getElementById("chkAdvanced").onclick = setAdvancedMode;
 
 
   document.getElementById("lnk-help-decide").onclick = function () {
@@ -349,14 +358,20 @@ function setAuthDetails() {
 }
 
 
+// switches the value of the global variable for the Advanced Mode
+function setAdvancedMode() {
+  if (document.getElementById('chkAdvanced').checked){
+    advancedMode = true;
+  } else {
+    advancedMode = false;
+  }
+}
 
 // handle the click of the login button
 function loginAttempt() {
   if (!devMode) getAuthDetails();
   login();
 }
-
-
 
 // login function that starts the intial data creation
 function login() {
@@ -700,11 +715,10 @@ function createTemplate(shouldContinue) {
   }
 }
 
-
-
 function getFromSpiraAttempt() {
   // first update state to reflect user intent
   model.isGettingDataAttempt = true;
+
   //check that template is loaded and that it matches the UI choices
   if (model.isTemplateLoaded && !isModelDifferentToSelection()) {
     showLoadingSpinner();
@@ -1248,9 +1262,9 @@ function templateLoader() {
     google.script.run
       .withSuccessHandler(templateLoaderSuccess)
       .withFailureHandler(errorUnknown)
-      .templateLoader(model, params.fieldType);
+      .templateLoader(model, params.fieldType, advancedMode);
   } else {
-    msOffice.templateLoader(model, params.fieldType)
+    msOffice.templateLoader(model, params.fieldType, advancedMode)
       .then(response => templateLoaderSuccess(response))
       .catch(error => error.description ? errorExcel(error) : errorNetwork(error));
   }
@@ -1305,7 +1319,6 @@ function templateLoaderSuccess(response) {
 function errorPopUp(type, err) {
   if (isGoogle) {
     google.script.run.error(type);
-    console.log(err);
     //sets the UI to correspond to this mode
     artifactUpdateUI(UI_MODE.errorMode);
   } else {
