@@ -127,8 +127,9 @@
 
         <div class="mt-md">
 
-            <input type="checkbox" id="chkAdvanced" name="chkAdvancedMain" value="Bike">
-            <label for="chkAdvancedMain"> Advanced Mode </label><br>
+            <input type="checkbox" id="chkAdvanced" name="chkAdvancedMain">
+            <label for="chkAdvancedMain"> Advanced Mode </label><div class = "circleHelp"><p>?</p></div>
+            <div class="helpBox">This mode allows you to create artifact associations and comments. Please refer to the documentation for more details.</div>
         </div>
 
         <div class="mt-lg">
@@ -314,6 +315,23 @@
                             current active sheet. Before you can enter data to send, the add-in creates a dynamic
                             template for that specific product and artifact to make it easier to enter data
                             correctly.</small>
+                    </p>
+                </li>
+                <li>
+                    <p>
+                        <b>Advanced Mode (optional)</b>
+                        <small>This mode allows you to create new comments and associate some artifacts. It's possible to associate: </small>
+                        <br>
+                            <small><li>Requirements to Requirements</li></small>
+                            <small><li>TestCases to Requirements</li></small>
+                            <small><li>TestCases to Releases</li></small>
+                            <small><li>TestCases to TestSets</li></small>
+                            <br>
+                        <small>To create a new comment, simply enter the text under the column "New Comment". When you send to / update Spira, this text will 
+                            be saved as a new comment in the artifact.</small>
+                            <small><p>To associate artifacts, find the column of the artifact type you want to associate
+                                to (e.g.: "Linked Requirement") and enter the ID(s) of the artifact(s) to associate to. You can associate multiple artifacts
+                                at a time using a comma-separated list of IDs, e.g.: 335,336,337.</p></small>
                     </p>
                 </li>
                 <li>
