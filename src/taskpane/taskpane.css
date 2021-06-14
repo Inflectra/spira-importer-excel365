@@ -93,6 +93,61 @@
 .form-input {
     width: 100%;
 }
+
+.mt-md {
+    display: block;
+    position: relative;
+}
+
+.mt-md div {
+    display: inline-flex;
+    margin: 0 0.4rem;
+    position: absolute;
+}
+
+.mt-md div p {
+    position: relative;
+    top: -15px;
+    left: 7px;
+   size: 0.4rem;
+   font-weight: bold;
+   color: white;
+ 
+}
+
+.circleHelp:hover + .helpBox{
+    visibility: visible;
+}
+
+.circleHelp:hover {
+    background-color: rgb(0, 90, 158);
+}
+
+
+
+.helpBox {
+    position: absolute;
+    max-width: 80%;
+    border: 1px solid rgb(87, 87, 87);
+    background-color: rgb(255, 255, 133);
+    border-radius: 8px;
+    left: 10%;
+    top: 40px;
+    padding: 15px;
+    visibility: hidden;
+    z-index: 10;
+}
+
+
+
+.circleHelp {
+    height: 20px;
+    width: 20px;
+    border-radius: 50%;
+    background-color:#0078d7;
+}
+
+
 pre {
     background: #f5f5f5;
     border-radius: 4px;

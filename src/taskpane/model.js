@@ -52,6 +52,14 @@ var params = {
         arr: 13, // used for comma separated lists in a single cell (eg linked Ids)
         folder: 14 // don't think in reality this will be need
     },
+    
+    //enums for association between artifact types we handle in the add-in
+    associationEnums: {
+        req2req: 1,
+        tc2req: 2,
+        tc2rel: 3,
+        tc2ts: 4
+    },
 
     // enums and various metadata for all artifacts potentially used by the system
     artifacts: [
@@ -61,7 +69,7 @@ var params = {
         { field: 'releases', name: 'Releases', id: 4, hierarchical: true },
         { field: 'testRuns', name: 'Test Runs', id: 5, disabled: true, hidden: true},
         { field: 'tasks', name: 'Tasks', id: 6, hasFolders: true },
-        { field: 'testSteps', name: 'Test Steps', id: 7, disabled: true, hidden: true },
+        { field: 'testSteps', name: 'Test Steps', id: 7, disabled: true, hidden: true, isSubType: true },
         { field: 'testSets', name: 'Test Sets', id: 8, hasFolders: true },
         { field: 'risks', name: 'Risks', id: 14 }
     ]
@@ -111,6 +119,8 @@ var templateFields = {
         { field: "OwnerId", name: "Owner", type: params.fieldType.user },
         { field: "ComponentId", name: "Component", type: params.fieldType.component },
         { field: "CreationDate", name: "Creation Date", type: params.fieldType.date },
+        { field: "Text", name: "New Comment", type: params.fieldType.text, isComment: true, isAdvanced: true},
+        { field: "Association", name: "Linked Requirement", type: params.fieldType.text, isAdvanced: true, association: params.associationEnums.req2req },
         { field: "ConcurrencyDate", name: "Concurrency Date", type: params.fieldType.text ,isReadOnly: true, isHidden: true },
         { field: "IndentLevel", name: "Indent Level", type: params.fieldType.text , isReadOnly: true, isHidden: true },
     ],
@@ -147,8 +157,8 @@ var templateFields = {
         { field: "ResourceCount", name: "Resources", type: params.fieldType.num },
         { field: "DaysNonWorking", name: "Non Working Days", type: params.fieldType.int },
         { field: "CreationDate", name: "Creation Date", type: params.fieldType.date },
+        { field: "Text", name: "New Comment", type: params.fieldType.text, isComment: true, isAdvanced: true},
         { field: "ConcurrencyDate", name: "Concurrency Date", type: params.fieldType.text ,isReadOnly: true, isHidden: true },
-        // unsupported {field: "Comment", name: "Comment", type: params.fieldType.text, unsuppored: true}
     ],
 
     tasks: [
@@ -205,8 +215,8 @@ var templateFields = {
         { field: "RemainingEffort", name: "Remaining Effort (in mins)", type: params.fieldType.int },
         { field: "RequirementId", name: "RequirementId", type: params.fieldType.int },
         { field: "ProjectId", name: "Project ID", type: params.fieldType.int ,isReadOnly: true, isHidden: true },
+        { field: "Text", name: "New Comment", type: params.fieldType.text, isComment: true, isAdvanced: true},
         { field: "ConcurrencyDate", name: "Concurrency Date", type: params.fieldType.text , isReadOnly: true, isHidden: true },
-
     ],
     testSets: [
         { field: "TestSetId", name: "ID", type: params.fieldType.id },
@@ -253,6 +263,7 @@ var templateFields = {
         },
         { field: "CreationDate", name: "Creation Date", type: params.fieldType.date },
         { field: "PlannedDate", name: "Planned Date", type: params.fieldType.date },
+        { field: "Text", name: "New Comment", type: params.fieldType.text, isComment: true, isAdvanced: true},
         { field: "ExecutionDate", name: "Execution Date", type: params.fieldType.date,isReadOnly: true, isHidden: true },
         { field: "ConcurrencyDate", name: "Concurrency Date", type: params.fieldType.text ,isReadOnly: true, isHidden: true },
     ],
@@ -303,6 +314,7 @@ var templateFields = {
         { field: "ClosedDate", name: "Closed On", type: params.fieldType.date },
         { field: "EstimatedEffort", name: "Estimated Effort (mins)", type: params.fieldType.int },
         { field: "ActualEffort", name: "Actual Effort (mins)", type: params.fieldType.int },
+        { field: "Text", name: "New Comment", type: params.fieldType.text, isComment: true, isAdvanced: true},
         { field: "ConcurrencyDate", name: "Concurrency Date", type: params.fieldType.text ,isReadOnly: true, isHidden: true },
     ],
 
@@ -341,6 +353,7 @@ var templateFields = {
                 isActive: "Active"
             }
         },
+        { field: "AuthorId", name: "Author", type: params.fieldType.user },
         { field: "OwnerId", name: "Test Case Owner", type: params.fieldType.user },
         {
             field: "TestCaseFolderId", name: "Test Case Folder", type: params.fieldType.drop, values: [],
@@ -352,8 +365,12 @@ var templateFields = {
                 isProjectBased: true
             }
         },
+        { field: "Requirement", name: "Requirement(s)", type: params.fieldType.text, isAdvanced: true, association: params.associationEnums.tc2req },
+        { field: "Release", name: "Release(s)", type: params.fieldType.text, isAdvanced: true, association: params.associationEnums.tc2rel },
+        { field: "TestSet", name: "Test Set(s)", type: params.fieldType.text, isAdvanced: true, association: params.associationEnums.tc2ts },
         { field: "ComponentIds", name: "Test Case Component", type: params.fieldType.component, isMulti: true },
         { field: "CreationDate", name: "Test Case Creation Date", type: params.fieldType.text ,isReadOnly: true },
+        { field: "Text", name: "New Comment", type: params.fieldType.text, isComment: true, isAdvanced: true},
         { field: "ConcurrencyDate", name: "Test Case Conc. Date", type: params.fieldType.text ,isReadOnly: true, isHidden: true },
         { field: "ConcurrencyDate", name: "Test Step Conc. Date", type: params.fieldType.text, isReadOnly: true , isSubTypeField: true, isHidden: true }
     ],
@@ -406,6 +423,7 @@ var templateFields = {
         { field: "ClosedDate", name: "Closed Date", type: params.fieldType.date },
         { field: "ReviewDate", name: "Review Date", type: params.fieldType.date },
         { field: "RiskExposure", name: "Risk Exposure", type: params.fieldType.int, isReadOnly: true, isHidden: true },
+        { field: "Text", name: "New Comment", type: params.fieldType.text, isComment: true, isAdvanced: true},
         { field: "ConcurrencyDate", name: "Concurrency Date", type: params.fieldType.text ,isReadOnly: true, isHidden: true },
     ],
 };
