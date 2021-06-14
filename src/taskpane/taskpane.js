@@ -111,9 +111,9 @@ function setDevStuff(devMode) {
   if (devMode) {
     document.getElementById("btn-dev").classList.remove("hidden");
     if (isGoogle) {
-      model.user.url = "https://staging.spiraservice.net";
-      model.user.userName = "administrator";
-      model.user.api_key = btoa("&api-key=" + encodeURIComponent("{10E5D4F2-2188-40F5-8707-252B99B0606A}"));
+      // model.user.url = "https://staging.spiraservice.net";
+      // model.user.userName = "administrator";
+      // model.user.api_key = btoa("&api-key=" + encodeURIComponent("{10E5D4F2-2188-40F5-8707-252B99B0606A}"));
     } else {
       model.user.url = "";
       model.user.userName = "administrator";
