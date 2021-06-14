@@ -81,7 +81,8 @@ var API_PROJECT_BASE = '/services/v6_0/RestService.svc/projects/',
     2: "Sorry, but there were some problems (see the cells marked in red). Check any notes on the relevant ID field for explanations.",
     3: "We're really sorry, but we couldn't send anything to SpiraPlan - please check notes on the ID fields for more information.",
     4: "You are not on the correct worksheet. Please go to the sheet that matches the one listed on the Spira taskpane / the selection you made in the sidebar.",
-    5: "Some/all of the rows already exist in SpiraPlan. These rows have not been re-added."
+    5: "Some/all of the rows already exist in SpiraPlan. These rows have not been re-added.",
+    6: "Data sent! Since you are using the advanced mode, any errors related to comments and/or associations will be marked as red in the spreadsheet. To send more data over, clear the sheet first."
   },
   CUSTOM_PROP_TYPE_ENUM = {
     1: "StringValue",
@@ -823,8 +824,6 @@ function operationComplete(messageEnum, isTemplateLoadFail) {
   }
 }
 
-
-
 // Alert pop up for no template present
 function noTemplate() {
   okWarn('Please load a template to continue.');
@@ -1069,6 +1068,10 @@ function contentValidationSetter(sheet, model, fieldTypeEnums, context) {
         setDropdownValidation(sheet, columnNumber, nonHeaderRows, list, false);
         break;
 
+      case fieldTypeEnums.text:
+        setTextValidation(sheet, columnNumber, nonHeaderRows, false);
+        break;
+
       // All other types
       default:
         //do nothing
@@ -1298,6 +1301,39 @@ function setNumberValidation(sheet, columnNumber, rowLength, allowInvalid) {
   }
 }
 
+// create text validation on set column base
+// @param: sheet - the sheet object
+// @param: columnNumber - int of the column to validate
+// @param: rowLength - int of the number of rows for range (global param)
+// @param: allowInvalid - bool to state whether to restrict any values to those in validation or not
+function setTextValidation(sheet, columnNumber, rowLength, allowInvalid) {
+  if (IS_GOOGLE) {
+    //TO-DO
+    // var range = sheet.getRange(2, columnNumber, rowLength);
+
+    // // create the validation rule
+    // //must be a valid number greater than -1 (also excludes 1.1.0 style numbers)
+    // var rule = SpreadsheetApp.newDataValidation()
+    //   .requireNumberGreaterThan(0)
+    //   .setAllowInvalid(allowInvalid)
+    //   .setHelpText('Must be a text string')
+    //   .build();
+    // range.setDataValidation(rule);
+
+  } else {
+    var range = sheet.getRangeByIndexes(1, columnNumber - 1, rowLength, 1);
+    range.dataValidation.clear();
+
+    range.numberFormat = '@';
+
+    range.dataValidation.errorAlert = {
+      message: "Sorry, only text string is allowed.",
+      showAlert: true,
+      style: "Stop",
+      title: "Invalid entry"
+    };
+  }
+}
 
 // format columns based on a potential range of factors - eg hide unsupported columns
 // @param: sheet - the sheet object
@@ -1512,9 +1548,12 @@ function clearErrorMessages(sheetData, isUpdate) {
 // @param: model - full model object from client containing field data for specific artifact, list of project users, components, etc
 // @param: fieldTypeEnums - list of fieldType enums from client params object
 // @param: isUpdate - boolean that indicates if this is an update operation (true) or create operation (false)
-function sendToSpira(model, fieldTypeEnums, isUpdate) {
+async function sendToSpira(model, fieldTypeEnums, isUpdate) {
 
   // 0. SETUP FUNCTION LEVEL VARS
+
+  var entriesLog, commentsLog, associationsLog;
+
   var fields = model.fields,
     artifact = model.currentArtifact,
     artifactIsHierarchical = artifact.hierarchical,
@@ -1537,34 +1576,54 @@ function sendToSpira(model, fieldTypeEnums, isUpdate) {
       return log;
     }
   } else {
-    return Excel.run({ delayForCellEdit: true }, function (context) {
+    return await Excel.run({ delayForCellEdit: true }, function (context) {
       var sheet = context.workbook.worksheets.getActiveWorksheet(),
         sheetRange = sheet.getRangeByIndexes(1, 0, EXCEL_MAX_ROWS, fields.length);
       sheet.load("name");
       sheetRange.load("values");
 
-      return context.sync()
-        .then(function () {
-          if (sheet.name == requiredSheetName) {
-            var sheetData = sheetRange.values;
-            //Clear error messages from the ID fields, if any
-            sheetData = clearErrorMessages(sheetData, isUpdate);
-            var entriesForExport = createExportEntries(sheetData, model, fieldTypeEnums, fields, artifact, artifactIsHierarchical, isUpdate);
+      return new Promise(function (resolve, reject) {
+        context.sync()
+          .then(function () {
+            if (sheet.name == requiredSheetName) {
+              var sheetData = sheetRange.values;
+              //Clear error messages from the ID fields, if any
+              sheetData = clearErrorMessages(sheetData, isUpdate);
+              //use this variable to save the new artifact entries
+              var artifactEntries;
 
-            var commentEntriesForExport = createExportCommentEntries(sheetData, model, fieldTypeEnums, artifact, artifactIsHierarchical);
-            var associationEntriesForExport = createExportAssociationEntries(sheetData, model, fieldTypeEnums, artifact);
+              //First, send the artifact entries for Spira
+              var entriesForExport = createExportEntries(sheetData, model, fieldTypeEnums, fields, artifact, artifactIsHierarchical, isUpdate);
 
-            return sendExportEntriesExcel(entriesForExport, commentEntriesForExport, associationEntriesForExport, sheetData, sheet, sheetRange, model, fieldTypeEnums, fields, artifact, context, isUpdate);
-          } else {
-            var log = {
-              status: STATUS_ENUM.wrongSheet
-            };
-            return log;
-          }
-        })
+              return sendExportEntriesExcel(entriesForExport, '', '', sheetData, sheet, sheetRange, model, fieldTypeEnums, fields, artifact, context, isUpdate).then(function (response) {
+
+                entriesLog = response;
+                artifactEntries = response.entries;
+                //Then, send the comments entry for Spira
+                var commentEntriesForExport = createExportCommentEntries(sheetData, model, fieldTypeEnums, artifact, artifactIsHierarchical, artifactEntries);
+                return sendExportEntriesExcel('', commentEntriesForExport, '', sheetData, sheet, sheetRange, model, fieldTypeEnums, fields, artifact, context, isUpdate);
+              }).then(function (responseComments) {
+                commentsLog = responseComments;
+                //Finally, send the associations
+                var associationEntriesForExport = createExportAssociationEntries(sheetData, model, fieldTypeEnums, artifact, artifactEntries);
+                return sendExportEntriesExcel('', '', associationEntriesForExport, sheetData, sheet, sheetRange, model, fieldTypeEnums, fields, artifact, context, isUpdate);
+              }).then(function (responseAssociations) { associationsLog = responseAssociations; }).catch(function (err) {
+                reject()
+              }).finally(function () {
+                resolve(updateSheetWithExportResults(entriesLog, commentsLog, associationsLog, entriesForExport, sheetData, sheet, sheetRange, model, fieldTypeEnums, fields, artifact, context, isUpdate))
+              })
+            }
+            else {
+              var log = {
+                status: STATUS_ENUM.wrongSheet
+              };
+              return log;
+            }
+          })
+          .catch();
+      })
         .catch();
     })
-      .catch();
   }
 }
 
@@ -1594,8 +1653,10 @@ function createExportEntries(sheetData, model, fieldTypeEnums, fields, artifact,
       },
         // create entry used to populate all relevant data for this row
         entry = {};
+
       // first check for errors
       var hasProblems = rowHasProblems(rowChecks, isUpdate);
+
       if (hasProblems) {
         entry.validationMessage = hasProblems;
         // if error free determine what field filtering is required - needed to choose type/subtype fields if subtype is present
@@ -1620,7 +1681,7 @@ function createExportEntries(sheetData, model, fieldTypeEnums, fields, artifact,
 //2.2 Comment fields (if any) - Sent through the artifact comment API function (POST)
 // loop to create artifact comment objects from each row taken from the spreadsheet
 // vars needed: sheetData, artifact, fields, model, fieldTypeEnums, artifactIsHierarchical,
-function createExportCommentEntries(sheetData, model, fieldTypeEnums, artifact, artifactIsHierarchical) {
+function createExportCommentEntries(sheetData, model, fieldTypeEnums, artifact, artifactIsHierarchical, artifactEntries) {
 
   var lastIndentPosition = null,
     entriesForExport = [],
@@ -1637,11 +1698,13 @@ function createExportCommentEntries(sheetData, model, fieldTypeEnums, artifact, 
       var entry = {};
       // first check for errors
       var hasProblems = commentHasProblems(artifact);
+      var sourceID = artifactEntries[rowToPrep].newId;
+
       if (hasProblems) {
         entry.validationMessage = hasProblems;
         // if error free, create the entry
       } else {
-        entry = createEntryFromRow(sheetData[rowToPrep], model, fieldTypeEnums, artifactIsHierarchical, lastIndentPosition, "", isUpdate, isComment);
+        entry = createEntryFromRow(sheetData[rowToPrep], model, fieldTypeEnums, artifactIsHierarchical, lastIndentPosition, "", isUpdate, isComment, sourceID);
       }
       entriesForExport.push(entry);
     }
@@ -1652,8 +1715,9 @@ function createExportCommentEntries(sheetData, model, fieldTypeEnums, artifact, 
 //2.3 Association fields (if any) - Sent through the artifact association API function (POST)
 // loop to create artifact association objects from each row taken from the spreadsheet
 // vars needed: sheetData, artifact, fields, model, fieldTypeEnums, artifactIsHierarchical
-function createExportAssociationEntries(sheetData, model, fieldTypeEnums, artifact) {
+function createExportAssociationEntries(sheetData, model, fieldTypeEnums, artifact, artifactEntries) {
   var entriesForExport = [];
+
   //in the function logics, associations are always update (we already have the ArtifactIDs)
   for (var rowToPrep = 0; rowToPrep < sheetData.length; rowToPrep++) {
     // stop at the first row that is fully blank
@@ -1662,13 +1726,15 @@ function createExportAssociationEntries(sheetData, model, fieldTypeEnums, artifa
     } else {
       // create entry used to populate the comment field for this row
       var entry = [];
+      var sourceID = artifactEntries[rowToPrep].newId;
+
       // first check for errors
-      var hasProblems = associationHasProblems(sheetData[rowToPrep], model.fields);
+      var hasProblems = null; //associationHasProblems(sheetData[rowToPrep], model.fields);
       if (hasProblems) {
         entry.validationMessage = hasProblems;
         // if error free, create the entry
       } else {
-        entry = createAssociationEntryFromRow(sheetData[rowToPrep], model, fieldTypeEnums);
+        entry = createAssociationEntryFromRow(sheetData[rowToPrep], model, fieldTypeEnums, sourceID);
       }
       //append each entry to the export object
       entry.forEach(function appendItems(item) {
@@ -1768,7 +1834,7 @@ function sendExportEntriesGoogle(entriesForExport, sheetData, sheet, sheetRange,
 // check we have some entries and with no errors
 // Create and show a message to tell the user what is going on
 async function sendExportEntriesExcel(entriesForExport, commentEntriesForExport, associationEntriesForExport, sheetData, sheet, sheetRange, model, fieldTypeEnums, fields, artifact, context, isUpdate) {
-  if (!entriesForExport.length) {
+  if (!entriesForExport.length && !commentEntriesForExport.length && !associationEntriesForExport.length) {
     popupShow('There are no entries to send to Spira', 'Check Sheet')
     return "nothing to send";
   } else {
@@ -1794,11 +1860,12 @@ async function sendExportEntriesExcel(entriesForExport, commentEntriesForExport,
       }
 
       //if we not have a parent ID yet, set the correct parentId artifact for subtypes (needed for POST URL)
-      if (log.parentId == -1 && artifact.hasSubType && entriesForExport[i].isSubType) {
+      if (isUpdate && Number(log.parentId) == -1 && artifact.hasSubType && entriesForExport[i].isSubType) {
         log.parentId = getAssociationParentId(entriesForExport, i, artifact.id);
         //let the child object to hold the parent ID field
         entriesForExport[i][ART_PARENT_IDS[artifact.id]] = log.parentId;
       }
+
 
       await manageSendingToSpira(entriesForExport[i], model.user, model.currentProject.id, artifact, fields, fieldTypeEnums, log.parentId, isUpdate, false, false)
         .then(function (response) {
@@ -1812,6 +1879,10 @@ async function sendExportEntriesExcel(entriesForExport, commentEntriesForExport,
             log.doNotContinue = true;
           }
         })
+      //reset the variable to the next position
+      if (isUpdate) {
+        log.parentId = -1;
+      }
     }
 
     // loop through comment objects to send
@@ -1823,10 +1894,6 @@ async function sendExportEntriesExcel(entriesForExport, commentEntriesForExport,
             log.parentId = response.parentId;
           }
           log = processSendToSpiraResponse(j, response, commentEntriesForExport, artifact, log, true, false);
-          if (response.error && artifact.hierarchical && !isUpdate) {
-            // break out of the recursive loop
-            log.doNotContinue = true;
-          }
         })
     }
 
@@ -1839,10 +1906,6 @@ async function sendExportEntriesExcel(entriesForExport, commentEntriesForExport,
             log.parentId = response.parentId;
           }
           log = processSendToSpiraResponse(k, response, associationEntriesForExport, artifact, log, false, true);
-          if (response.error && artifact.hierarchical && !isUpdate) {
-            // break out of the recursive loop
-            log.doNotContinue = true;
-          }
         })
     }
 
@@ -1866,7 +1929,7 @@ async function sendExportEntriesExcel(entriesForExport, commentEntriesForExport,
     //then, send comments for the artifact (if any)
     for (var j = 0; j < commentEntriesForExport.length; j++) {
       //make sure we don't have any error and we have the comment populated
-      if (!log.entries[j].error && Object.keys(commentEntriesForExport[j]).length > 1) {
+      if (Object.keys(commentEntriesForExport[j]).length > 1) {
         await sendSingleCommentEntry(j);
       }
     }
@@ -1874,7 +1937,7 @@ async function sendExportEntriesExcel(entriesForExport, commentEntriesForExport,
     //if any association is available, send them
     for (var k = 0; k < associationEntriesForExport.length; k++) {
       //make sure we don't have any error and we have the comment populated
-      if (!log.entries[k].error && Object.keys(associationEntriesForExport[k]).length > 1) {
+      if (Object.keys(associationEntriesForExport[k]).length > 1) {
         await sendSingleAssociationEntry(k);
       }
     }
@@ -1882,16 +1945,17 @@ async function sendExportEntriesExcel(entriesForExport, commentEntriesForExport,
     // review all activity and set final status
     log.status = setFinalStatus(log);
     // call the final function here - so we know that it is only called after the recursive function above (ie all posting) has ended
-    return updateSheetWithExportResults(log, entriesForExport, sheetData, sheet, sheetRange, model, fieldTypeEnums, fields, artifact, context, isUpdate);
+    return log;
   }
 }
 
 
 // 5. SET MESSAGES AND FORMATTING ON SHEET
-function updateSheetWithExportResults(log, entriesForExport, sheetData, sheet, sheetRange, model, fieldTypeEnums, fields, artifact, context, isUpdate) {
+function updateSheetWithExportResults(entriesLog, commentsLog, associationsLog, entriesForExport, sheetData, sheet, sheetRange, model, fieldTypeEnums, fields, artifact, context, isUpdate) {
   var bgColors = [],
     notes = [],
     values = [];
+  var associationCounter = 0;
   // first handle cell formatting
   for (var row = 0; row < entriesForExport.length; row++) {
     var rowBgColors = [],
@@ -1903,13 +1967,31 @@ function updateSheetWithExportResults(log, entriesForExport, sheetData, sheet, s
         value = sheetData[row][col];
 
       // we may have more rows than entries - because the entries can be stopped early (eg when an error is found on a hierarchical artifact)
-      if (log.entries.length > row) {
-        // first handle when we are dealing with data that has been sent to Spira
-        var isSubType = (log.entries[row].details && log.entries[row].details.entry && log.entries[row].details.entry.isSubType) ? log.entries[row].details.entry.isSubType : false;
+      if (entriesLog.entries.length > row) {
+        //check for comments error
+        if (fields[col].isComment && commentsLog) {
+          if (commentsLog.entries[row]) {
+            if (commentsLog.entries[row].error) {
+              bgColor = model.colors.warning;
+            }
+          }
+        }
+        //check for associations error
+        else if (fields[col].association && associationsLog.entries) {
+          if (associationsLog.entries[associationCounter]) {
+            if (associationsLog.entries[associationCounter].error) {
+              bgColor = model.colors.warning;
+            }
+          }
+        }
+        else {
+          // first handle when we are dealing with data that has been sent to Spira
+          var isSubType = (entriesLog.entries[row].details && entriesLog.entries[row].details.entry && entriesLog.entries[row].details.entry.isSubType) ? entriesLog.entries[row].details.entry.isSubType : false;
 
-        bgColor = setFeedbackBgColor(sheetData[row][col], log.entries[row].error, fields[col], fieldTypeEnums, artifact, model.colors);
-        value = setFeedbackValue(sheetData[row][col], log.entries[row].error, fields[col], fieldTypeEnums, log.entries[row].newId || "", isSubType);
-        note = setFeedbackNote(sheetData[row][col], log.entries[row].error, fields[col], fieldTypeEnums, log.entries[row].message, value, isUpdate);
+          bgColor = setFeedbackBgColor(sheetData[row][col], entriesLog.entries[row].error, fields[col], fieldTypeEnums, artifact, model.colors);
+          value = setFeedbackValue(sheetData[row][col], entriesLog.entries[row].error, fields[col], fieldTypeEnums, entriesLog.entries[row].newId || "", isSubType, col);
+          note = setFeedbackNote(sheetData[row][col], entriesLog.entries[row].error, fields[col], fieldTypeEnums, entriesLog.entries[row].message, value, isUpdate);
+        }
       }
 
       if (IS_GOOGLE) {
@@ -1925,6 +2007,8 @@ function updateSheetWithExportResults(log, entriesForExport, sheetData, sheet, s
         cellRange.values = [[value]];
 
       }
+      //keeping track of associations - they're not directly related to the row number
+      if (fields[col].association) { associationCounter++; }
     }
     if (IS_GOOGLE) {
       bgColors.push(rowBgColors);
@@ -1943,13 +2027,11 @@ function updateSheetWithExportResults(log, entriesForExport, sheetData, sheet, s
 
   if (IS_GOOGLE) {
     sheetRange.setBackgrounds(bgColors).setNotes(notes).setValues(values);
-    return log;
+    return entriesLog;
   } else {
-    return context.sync().then(function () { return log; });
+    return context.sync().then(function () { return entriesLog; });
   }
 }
-
-
 
 function checkSingleEntryForErrors(singleEntry, log, artifact) {
   var response = {};
@@ -2085,7 +2167,7 @@ function setFeedbackNote(cell, error, field, fieldTypeEnums, message, value, isU
 // @param: fieldTypeEnums - enum information about field types
 // @param: newId - int that is the newly created Id for this row
 // @param: isSubType - bool if row is subtype or not - false on error as there will be no id to add anyway
-function setFeedbackValue(cell, error, field, fieldTypeEnums, newId, isSubType) {
+function setFeedbackValue(cell, error, field, fieldTypeEnums, newId, isSubType, col) {
   // when there is an error we don't change any of the cell data
   if (error) {
     return cell;
@@ -2097,6 +2179,9 @@ function setFeedbackValue(cell, error, field, fieldTypeEnums, newId, isSubType) 
       return newIdToEnter;
     } else if (isSubType && field.type == fieldTypeEnums.subId) {
       return newIdToEnter;
+    } else if (isSubType && field.type == fieldTypeEnums.id && col == 0 && cell == -1) {
+      //this fix the visual bug for test steps
+      return '';
     } else {
       return cell;
     }
@@ -2320,7 +2405,6 @@ function getHierarchicalParentId(indent, previousEntries) {
     // check for presence of correct objects in item - should exist, as otherwise error should be thrown
     if (previousEntries[i].details && previousEntries[i].details.hierarchyInfo && previousEntries[i].details.hierarchyInfo.indent < indent) {
       return previousEntries[i].details.hierarchyInfo.id;
-      break;
     }
   }
   return -1;
@@ -2531,7 +2615,7 @@ function relevantFields(rowChecks) {
 // @param: fieldsToFilter - enum used for selecting fields to not add to object - defaults to using all if omitted
 // @param: isUpdate - bool to flag id this is an update operation. If false, it is a creation operation
 // @param: isComment - bool to flag if we will return a comment entry (true) or custom/standard (false)
-function createEntryFromRow(row, model, fieldTypeEnums, artifactIsHierarchical, lastIndentPosition, fieldsToFilter, isUpdate, isComment) {
+function createEntryFromRow(row, model, fieldTypeEnums, artifactIsHierarchical, lastIndentPosition, fieldsToFilter, isUpdate, isComment, sourceId) {
 
   var fields = model.fields;
   var entry = {};
@@ -2542,13 +2626,9 @@ function createEntryFromRow(row, model, fieldTypeEnums, artifactIsHierarchical, 
       "CustomProperties": []
     }
   }
-  //console.dir(row);
-  //console.dir(fields);
   //we need to turn an array of values in the row into a validated object
   for (var index = 0; index < row.length; index++) {
-
     var skipField = false;
-
     if (!isComment) {
       if ((isUpdate && fields[index].type == fieldTypeEnums.id) || (isUpdate && fields[index].type == fieldTypeEnums.subId)) {
         //do nothing
@@ -2557,7 +2637,6 @@ function createEntryFromRow(row, model, fieldTypeEnums, artifactIsHierarchical, 
       else if (fieldsToFilter == FIELD_MANAGEMENT_ENUMS.standard && fields[index].isSubTypeField) {
         // skip the field
         skipField = true;
-
       } else if (fieldsToFilter == FIELD_MANAGEMENT_ENUMS.subType && !(fields[index].isSubTypeField || fields[index].isTypeAndSubTypeField)) {
         // skip the field
         skipField = true;
@@ -2573,6 +2652,7 @@ function createEntryFromRow(row, model, fieldTypeEnums, artifactIsHierarchical, 
         var skipField = true;
       }
     }
+
     // in all other cases add the field
     if (!skipField) {
       var value = null,
@@ -2585,7 +2665,8 @@ function createEntryFromRow(row, model, fieldTypeEnums, artifactIsHierarchical, 
 
         // ID fields: restricted to numbers and blank on push, otherwise put
         case fieldTypeEnums.id:
-          if (isUpdate && !isNaN(row[index]) && row[index] > 0) {
+
+          if (isUpdate && !isNaN(row[index])) {
             value = row[index];
           }
           customType = "IntegerValue";
@@ -2593,7 +2674,7 @@ function createEntryFromRow(row, model, fieldTypeEnums, artifactIsHierarchical, 
 
 
         case fieldTypeEnums.subId:
-          if (isUpdate && !isNaN(row[index]) && !isComment && row[index] > 0) {
+          if (isUpdate && !isNaN(row[index]) && !isComment) {
             value = row[index];
           }
           customType = "IntegerValue";
@@ -2757,9 +2838,16 @@ function createEntryFromRow(row, model, fieldTypeEnums, artifactIsHierarchical, 
     }
 
   }
-  //double checking if the comment object has at least the necessary fields (i.e.: comment + ID)
+  //double checking if the comment object has at least the necessary fields (i.e.: comment + ID). If not, add the correspondent fields
   if (isComment) {
-    if (entry.ArtifactId && entry.Text) { return entry }
+    if (entry.ArtifactId && entry.Text) {
+      return entry
+    }
+    else if (entry.Text && sourceId) {
+      //we still need to get the artifactID
+      entry.ArtifactId = sourceId;
+      return entry
+    }
     else return false;
   }
   else return entry;
@@ -2776,7 +2864,7 @@ function createEntryFromRow(row, model, fieldTypeEnums, artifactIsHierarchical, 
 // @param: fieldsToFilter - enum used for selecting fields to not add to object - defaults to using all if omitted
 // @param: isUpdate - bool to flag id this is an update operation. If false, it is a creation operation
 // @param: isComment - bool to flag if we will return a comment entry (true) or custom/standard (false)
-function createAssociationEntryFromRow(row, model, fieldTypeEnums) {
+function createAssociationEntryFromRow(row, model, fieldTypeEnums, originId) {
 
   var fields = model.fields,
     finalEntry = [],
@@ -2788,11 +2876,13 @@ function createAssociationEntryFromRow(row, model, fieldTypeEnums) {
   sourceTypeId = model.currentArtifact.id;
   //get all the data we need from each row
   for (var index = 0; index < row.length; index++) {
+
     destTypeId = [];
     destId = [];
     if (fields[index].type == fieldTypeEnums.id) {
       sourceId = row[index]
     }
+
     if (row[index] && fields[index].association) {
       if (fields[index].association == params.associationEnums.req2req) {
         //Requirement to Requirement association
@@ -2809,7 +2899,12 @@ function createAssociationEntryFromRow(row, model, fieldTypeEnums) {
         //build the entry object (return object)
         destId.forEach(function entryBuilder(item, pos) {
           var singleEntry = {};
-          singleEntry.SourceArtifactId = sourceId;
+          if (sourceId) {
+            singleEntry.SourceArtifactId = sourceId;
+          }
+          else if (originId) { //if we just created this artifact, its ID is not in the spreadsheet yet
+            singleEntry.SourceArtifactId = originId;
+          }
           singleEntry.SourceArtifactTypeId = sourceTypeId;
           singleEntry.DestArtifactId = Number(item);
           singleEntry.DestArtifactTypeId = destTypeId[pos];
@@ -2833,7 +2928,13 @@ function createAssociationEntryFromRow(row, model, fieldTypeEnums) {
         //build the entry object (return object)
         destId.forEach(function entryBuilder(item, pos) {
           var singleEntry = {};
-          singleEntry.TestCaseId = sourceId;
+          if (sourceId) {
+            singleEntry.TestCaseId = sourceId;
+          }
+          else if (originId) {
+            //if we just created this artifact, its ID is not in the spreadsheet yet
+            singleEntry.TestCaseId = originId;
+          }
           singleEntry.RequirementId = Number(item);
           finalEntry.push(singleEntry);
         });
@@ -2853,7 +2954,14 @@ function createAssociationEntryFromRow(row, model, fieldTypeEnums) {
         //build the entry object (return object)
         destId.forEach(function entryBuilder(item, pos) {
           var singleEntry = {};
-          singleEntry.TestCaseId = sourceId;
+          if (sourceId) {
+            singleEntry.TestCaseId = sourceId;
+          }
+          else if (originId) {
+            //if we just created this artifact, its ID is not in the spreadsheet yet
+            singleEntry.TestCaseId = originId;
+          }
+
           singleEntry.ReleaseId = Number(item);
           finalEntry.push(singleEntry);
         });
@@ -2871,7 +2979,14 @@ function createAssociationEntryFromRow(row, model, fieldTypeEnums) {
         //build the entry object (return object)
         destId.forEach(function entryBuilder(item, pos) {
           var singleEntry = {};
-          singleEntry.TestSetTestCaseId = sourceId;
+          if (sourceId) {
+            singleEntry.TestSetTestCaseId = sourceId;
+          }
+          else if (originId) {
+            //if we just created this artifact, its ID is not in the spreadsheet yet
+            singleEntry.TestSetTestCaseId = originId;
+          }
+
           singleEntry.TestSetId = Number(item);
           finalEntry.push(singleEntry);
         });
@@ -3052,7 +3167,6 @@ function processSendToSpiraResponse(i, sentToSpira, entriesForExport, artifact, 
   // finally write out the response to the log and return
   log.entries.push(response);
   return log;
-
 }
 
 

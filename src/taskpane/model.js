@@ -353,6 +353,7 @@ var templateFields = {
                 isActive: "Active"
             }
         },
+        { field: "AuthorId", name: "Author", type: params.fieldType.user },
         { field: "OwnerId", name: "Test Case Owner", type: params.fieldType.user },
         {
             field: "TestCaseFolderId", name: "Test Case Folder", type: params.fieldType.drop, values: [],

@@ -115,13 +115,9 @@ function setDevStuff(devMode) {
       model.user.userName = "administrator";
       model.user.api_key = btoa("&api-key=" + encodeURIComponent("{10E5D4F2-2188-40F5-8707-252B99B0606A}"));
     } else {
-<<<<<<< 7174583993a79c2f5c492e857c84cf5d63c26709
-     
-=======
       model.user.url = "";
       model.user.userName = "administrator";
       model.user.api_key = btoa("&api-key=" + encodeURIComponent("{}"));
->>>>>>> bug fixes
     }
     loginAttempt();
   }
@@ -366,7 +362,7 @@ function setAuthDetails() {
 
 // switches the value of the global variable for the Advanced Mode
 function setAdvancedMode() {
-  if (document.getElementById('chkAdvanced').checked){
+  if (document.getElementById('chkAdvanced').checked) {
     advancedMode = true;
   } else {
     advancedMode = false;
@@ -811,7 +807,7 @@ function updateSpiraAttempt() {
         .withSuccessHandler(sendToSpiraComplete)
         .sendToSpira(model, params.fieldType, true);
     } else {
-      msOffice.sendToSpira(model, params.fieldType, true)
+       msOffice.sendToSpira(model, params.fieldType, true)
         .then((response) => sendToSpiraComplete(response))
         .catch((error) => errorImpExp(error));
     }
@@ -823,24 +819,25 @@ function updateSpiraAttempt() {
 }
 
 function sendToSpiraComplete(log) {
-  hideLoadingSpinner();
-  if (devMode) console.log(log);
+    hideLoadingSpinner();
+    if (devMode) console.log(log);
 
-  //if array (which holds error responses) is present, and errors present
-  if (log.errorCount) {
-    var errorMessages = log.entries
-      .filter(function (entry) { return entry.error; })
-      .map(function (entry) { return entry.message; });
+    //if array (which holds error responses) is present, and errors present
+    if (log.errorCount) {
+      var errorMessages = log.entries
+        .filter(function (entry) { return entry.error; })
+        .map(function (entry) { return entry.message; });
 
-  }
-  //runs the export success function, passes a boolean flag, if there are errors the flag is true.
-  if (log && log.status) {
-    if (isGoogle) {
-      google.script.run.operationComplete(log.status);
-    } else {
-      msOffice.operationComplete(log.status);
     }
-  }
+    //runs the export success function, passes a boolean flag, if there are errors the flag is true.
+    if (log && log.status) {
+      if (isGoogle) {
+        google.script.run.operationComplete(log.status);
+      } else {
+        msOffice.operationComplete(log.status);
+      }
+    }
+  
 }
 
 
