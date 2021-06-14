@@ -117,7 +117,7 @@ function setDevStuff(devMode) {
     } else {
       model.user.url = "";
       model.user.userName = "administrator";
-      model.user.api_key = btoa("&api-key=" + encodeURIComponent("{}"));
+      model.user.api_key = btoa("&api-key=" + encodeURIComponent(""));
     }
     loginAttempt();
   }

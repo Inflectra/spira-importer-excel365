@@ -548,16 +548,18 @@ function getAssociationType(artifactTypeId, entry) {
       return params.associationEnums.tc2ts;
     }
   }
+  else if (artifactTypeId == ART_ENUMS.requirements) {
+    return params.associationEnums.req2req;
+  }
 }
 
-// effectively a switch to manage which artifact we have and therefore which API call to use with what data
+// effectively a switch to manage which comment we have and therefore which API call to use with what data
 // returns the response from the specific post service to Spira
 // @param: entry - object of single specific entry to send to Spira
 // @param: user - user object
 // @param: projectId - int of the current project
-// @param: artifactId - int of the current artifact
-// @param: parentId - optional int of the relevant parent to attach the artifact too
-function postArtifactToSpira(entry, user, projectId, artifactTypeId, parentId, isComment, isAssociation) {
+// @param: artifactTypeId - int of the current artifact
+function postCommentToSpira(entry, user, projectId, artifactTypeId) {
   //stringify
   var JSON_body = JSON.stringify(entry),
     response = "",
@@ -568,13 +570,112 @@ function postArtifactToSpira(entry, user, projectId, artifactTypeId, parentId, i
 
     // REQUIREMENTS
     case ART_ENUMS.requirements:
-      if (isComment) {
-        postUrl = API_PROJECT_BASE + projectId + '/requirements/' + entry.ArtifactId + "/comments?";
-      }
-      else if (isAssociation) {
+      postUrl = API_PROJECT_BASE + projectId + '/requirements/' + entry.ArtifactId + "/comments?";
+      break;
+
+    // TEST CASES
+    case ART_ENUMS.testCases:
+      postUrl = API_PROJECT_BASE + projectId + '/test-cases/' + entry.ArtifactId + "/comments?";
+      break;
+
+    // INCIDENTS
+    case ART_ENUMS.incidents:
+      postUrl = API_PROJECT_BASE + projectId + '/incidents/' + entry.ArtifactId + "/comments?";
+      //creating comments for incidents requires the POST body to be array-like
+      JSON_body = "[" + JSON_body + "]";
+      break;
+
+    // RELEASES
+    case ART_ENUMS.releases:
+      postUrl = API_PROJECT_BASE + projectId + '/releases/' + entry.ArtifactId + "/comments?";
+      break;
+
+    // TASKS
+    case ART_ENUMS.tasks:
+      postUrl = API_PROJECT_BASE + projectId + '/tasks/' + entry.ArtifactId + "/comments?";
+      break;
+
+    // RISKS
+    case ART_ENUMS.risks:
+      postUrl = API_PROJECT_BASE + projectId + '/risks/' + entry.ArtifactId + "/comments?";
+      break;
+
+    // TEST SETS
+    case ART_ENUMS.testSets:
+      postUrl = API_PROJECT_BASE + projectId + '/test-sets/' + entry.ArtifactId + "/comments?";
+      break;
+  }
+
+  return postUrl ? poster(JSON_body, user, postUrl) : null;
+}
+
+// effectively a switch to manage which association we have and therefore which API call to use with what data
+// returns the response from the specific post service to Spira
+// @param: entry - object of single specific entry to send to Spira
+// @param: user - user object
+// @param: projectId - int of the current project
+// @param: artifactTypeId - int of the current artifact
+function postAssociationToSpira(entry, user, projectId, artifactTypeId) {
+  //stringify
+  var JSON_body = JSON.stringify(entry),
+    response = "",
+    postUrl = "";
+
+  //send JSON object of new item to artifact specific export function
+  switch (artifactTypeId) {
+
+    // REQUIREMENTS
+    case ART_ENUMS.requirements:
+      var associationType = getAssociationType(artifactTypeId, entry);
+      if (associationType == params.associationEnums.req2req) {
         postUrl = API_PROJECT_BASE + projectId + '/associations?';
       }
-      else {
+      break;
+
+    // TEST CASES
+    case ART_ENUMS.testCases:
+      //decide what association to handle
+      var associationType = getAssociationType(artifactTypeId, entry);
+      if (associationType == params.associationEnums.tc2req) {
+        postUrl = API_PROJECT_BASE + projectId + '/requirements/test-cases?';
+      }
+      if (associationType == params.associationEnums.tc2rel) {
+        postUrl = API_PROJECT_BASE + projectId + '/releases/' + entry.ReleaseId + '/test-cases?';
+        //we need to handle this request in a special way
+        JSON_body = '[' + entry.TestCaseId + ']';
+      }
+      if (associationType == params.associationEnums.tc2ts) {
+        postUrl = API_PROJECT_BASE + projectId + '/test-sets/' + entry.TestSetId + '/test-case-mapping/' + entry.TestSetTestCaseId + '?';
+        //we need to handle this request in a special way
+        JSON_body = '';
+      }
+      break;
+  }
+  return postUrl ? poster(JSON_body, user, postUrl) : null;
+}
+
+
+
+
+
+
+// effectively a switch to manage which artifact we have and therefore which API call to use with what data
+// returns the response from the specific post service to Spira
+// @param: entry - object of single specific entry to send to Spira
+// @param: user - user object
+// @param: projectId - int of the current project
+// @param: artifactId - int of the current artifact
+// @param: parentId - optional int of the relevant parent to attach the artifact too
+function postArtifactToSpira(entry, user, projectId, artifactTypeId, parentId) {
+  //stringify
+  var JSON_body = JSON.stringify(entry),
+    response = "",
+    postUrl = "";
+
+  //send JSON object of new item to artifact specific export function
+  switch (artifactTypeId) {
+    // REQUIREMENTS
+    case ART_ENUMS.requirements:
         // url to post initial RQ to ensure it is fully outdented
         if (entry.indentPosition === 0) {
           postUrl = API_PROJECT_BASE + projectId + '/requirements/indent/' + INITIAL_HIERARCHY_OUTDENT + '?';
@@ -585,54 +686,20 @@ function postArtifactToSpira(entry, user, projectId, artifactTypeId, parentId, i
         } else {
           postUrl = API_PROJECT_BASE + projectId + '/requirements/parent/' + parentId + '?';
         }
-      }
       break;
 
     // TEST CASES
     case ART_ENUMS.testCases:
-      if (isComment) {
-        postUrl = API_PROJECT_BASE + projectId + '/test-cases/' + entry.ArtifactId + "/comments?";
-      }
-      else if (isAssociation) {
-        //decide what association to handle
-        var associationType = getAssociationType(artifactTypeId, entry);
-        if (associationType == params.associationEnums.tc2req) {
-          postUrl = API_PROJECT_BASE + projectId + '/requirements/test-cases?';
-        }
-        if (associationType == params.associationEnums.tc2rel) {
-          postUrl = API_PROJECT_BASE + projectId + '/releases/' + entry.ReleaseId + '/test-cases?';
-          //we need to handle this request in a special way
-          JSON_body = '[' + entry.TestCaseId + ']';
-        }
-        if (associationType == params.associationEnums.tc2ts) {
-          postUrl = API_PROJECT_BASE + projectId + '/test-sets/' + entry.TestSetId + '/test-case-mapping/' + entry.TestSetTestCaseId + '?';
-          //we need to handle this request in a special way
-          JSON_body = '';
-        }
-      }
-      else {
         postUrl = API_PROJECT_BASE + projectId + '/test-cases?';
-      }
       break;
 
     // INCIDENTS
     case ART_ENUMS.incidents:
-      if (isComment) {
-        postUrl = API_PROJECT_BASE + projectId + '/incidents/' + entry.ArtifactId + "/comments?";
-        //creating comments for incidents requires the POST body to be array-like
-        JSON_body = "[" + JSON_body + "]";
-      }
-      else {
         postUrl = API_PROJECT_BASE + projectId + '/incidents?';
-      }
       break;
 
     // RELEASES
     case ART_ENUMS.releases:
-      if (isComment) {
-        postUrl = API_PROJECT_BASE + projectId + '/releases/' + entry.ArtifactId + "/comments?";
-      }
-      else {
         // if no parentId then post as a regular release
         if (parentId === -1) {
           postUrl = API_PROJECT_BASE + projectId + '/releases?';
@@ -640,16 +707,11 @@ function postArtifactToSpira(entry, user, projectId, artifactTypeId, parentId, i
         } else {
           postUrl = API_PROJECT_BASE + projectId + '/releases/' + parentId + '?';
         }
-      }
       break;
 
     // TASKS
     case ART_ENUMS.tasks:
-      if (isComment) {
-        postUrl = API_PROJECT_BASE + projectId + '/tasks/' + entry.ArtifactId + "/comments?";
-      } else {
         postUrl = API_PROJECT_BASE + projectId + '/tasks?';
-      }
       break;
 
     // TEST STEPS
@@ -660,22 +722,12 @@ function postArtifactToSpira(entry, user, projectId, artifactTypeId, parentId, i
 
     // RISKS
     case ART_ENUMS.risks:
-      if (isComment) {
-        postUrl = API_PROJECT_BASE + projectId + '/risks/' + entry.ArtifactId + "/comments?";
-      }
-      else {
         postUrl = API_PROJECT_BASE + projectId + '/risks?';
-      }
       break;
 
     // TEST SETS
     case ART_ENUMS.testSets:
-      if (isComment) {
-        postUrl = API_PROJECT_BASE + projectId + '/test-sets/' + entry.ArtifactId + "/comments?";
-      }
-      else {
         postUrl = API_PROJECT_BASE + projectId + '/test-sets?';
-      }
       break;
   }
 
@@ -2218,7 +2270,7 @@ function manageSendingToSpira(entry, user, projectId, artifact, fields, fieldTyp
   if (IS_GOOGLE) {
 
     if (!isUpdate) {
-      data = postArtifactToSpira(entry, user, projectId, artifactTypeIdToSend, parentId, isComment, false);
+      data = postArtifactToSpira(entry, user, projectId, artifactTypeIdToSend, parentId);
     }
     else {
       data = putArtifactToSpira(entry, user, projectId, artifactTypeIdToSend, parentId);
@@ -2257,7 +2309,7 @@ function manageSendingToSpira(entry, user, projectId, artifact, fields, fieldTyp
     //Excel
     if (!isComment && !isAssociation) {
       if (!isUpdate) {
-        return postArtifactToSpira(entry, user, projectId, artifactTypeIdToSend, parentId, isComment, false)
+        return postArtifactToSpira(entry, user, projectId, artifactTypeIdToSend, parentId)
           .then(function (response) {
             output.fromSpira = response.body;
 
@@ -2324,18 +2376,9 @@ function manageSendingToSpira(entry, user, projectId, artifact, fields, fieldTyp
     }
     else if (isComment) {
       //comment creation
-      return postArtifactToSpira(entry, user, projectId, artifactTypeIdToSend, parentId, isComment, false)
+      return postCommentToSpira(entry, user, projectId, artifactTypeIdToSend)
         .then(function (response) {
           output.fromSpira = response.body;
-
-          // // get the id/subType id of the newly created artifact
-          // var artifactIdField = getIdFieldName(fields, fieldTypeEnums, entry.isSubType);
-          // output.newId = output.fromSpira[artifactIdField];
-
-          // // update the output parent ID to the new id only if the artifact has a subtype and this entry is NOT a subtype
-          // if (artifact.hasSubType && !entry.isSubType) {
-          //   output.parentId = output.newId;
-          // }
           return output;
         })
         .catch(function (error) {
@@ -2356,18 +2399,9 @@ function manageSendingToSpira(entry, user, projectId, artifact, fields, fieldTyp
     }
     else {
       //isAssociation
-      return postArtifactToSpira(entry, user, projectId, artifactTypeIdToSend, parentId, false, true)
+      return postAssociationToSpira(entry, user, projectId, artifactTypeIdToSend)
         .then(function (response) {
           output.fromSpira = response.body;
-
-          // // get the id/subType id of the newly created artifact
-          // var artifactIdField = getIdFieldName(fields, fieldTypeEnums, entry.isSubType);
-          // output.newId = output.fromSpira[artifactIdField];
-
-          // // update the output parent ID to the new id only if the artifact has a subtype and this entry is NOT a subtype
-          // if (artifact.hasSubType && !entry.isSubType) {
-          //   output.parentId = output.newId;
-          // }
           return output;
         })
         .catch(function (error) {
@@ -2859,11 +2893,7 @@ function createEntryFromRow(row, model, fieldTypeEnums, artifactIsHierarchical, 
 // @param: row - a 'row' of data that contains a single object representing all fields
 // @param: model - full model with info about fields, dropdowns, users, etc
 // @param: fieldTypeEnums - object of all field types with enums
-// @param: artifactIsHierarchical - bool to tell function if this artifact has hierarchy (eg RQ and RL)
-// @param: lastIndentPosition - int used for calculating relative indents for hierarchical artifacts
-// @param: fieldsToFilter - enum used for selecting fields to not add to object - defaults to using all if omitted
-// @param: isUpdate - bool to flag id this is an update operation. If false, it is a creation operation
-// @param: isComment - bool to flag if we will return a comment entry (true) or custom/standard (false)
+// @param: originId - the ID of the artifact that originated this association
 function createAssociationEntryFromRow(row, model, fieldTypeEnums, originId) {
 
   var fields = model.fields,
@@ -2874,6 +2904,7 @@ function createAssociationEntryFromRow(row, model, fieldTypeEnums, originId) {
 
   //Starting get the data from the row
   sourceTypeId = model.currentArtifact.id;
+
   //get all the data we need from each row
   for (var index = 0; index < row.length; index++) {
 
@@ -2884,114 +2915,44 @@ function createAssociationEntryFromRow(row, model, fieldTypeEnums, originId) {
     }
 
     if (row[index] && fields[index].association) {
-      if (fields[index].association == params.associationEnums.req2req) {
-        //Requirement to Requirement association
-        //depending on the user's language, the console can misinterpret commas as points - this fixes it
-        var associationText = (row[index] + '').replace('.', ',');
-        var associationIds = (associationText).split(',');
+      var associationType = fields[index].association;
 
-        //work every chunk of data
-        associationIds.forEach(function (item) {
-          destTypeId.push(params.artifactEnums.requirements);
-          destId.push(item);
-        });
+      //depending on the user's language, the console can misinterpret commas as points - this fixes it
+      var associationText = (row[index] + '').replace('.', ',');
+      var associationIds = (associationText).split(',');
 
-        //build the entry object (return object)
-        destId.forEach(function entryBuilder(item, pos) {
-          var singleEntry = {};
-          if (sourceId) {
-            singleEntry.SourceArtifactId = sourceId;
-          }
-          else if (originId) { //if we just created this artifact, its ID is not in the spreadsheet yet
-            singleEntry.SourceArtifactId = originId;
-          }
+      //work every chunk of data
+      associationIds.forEach(function (item) {
+        if (associationType == params.associationEnums.req2req) { destTypeId.push(params.artifactEnums.requirements); }
+        destId.push(item);
+      });
+
+      //build the entry object (return object)
+      destId.forEach(function entryBuilder(item, pos) {
+        var singleEntry = {};
+        if (sourceId) {
+          if (associationType == params.associationEnums.req2req) { singleEntry.SourceArtifactId = sourceId; }
+          if (associationType == params.associationEnums.tc2req || associationType == params.associationEnums.tc2rel) { singleEntry.TestCaseId = sourceId; }
+          if (associationType == params.associationEnums.tc2ts) { singleEntry.TestSetTestCaseId = sourceId; }
+        }
+        else if (originId) { //if we just created this artifact, its ID is not in the spreadsheet yet
+          if (associationType == params.associationEnums.req2req) { singleEntry.SourceArtifactId = originId; }
+          if (associationType == params.associationEnums.tc2req || associationType == params.associationEnums.tc2rel) { singleEntry.TestCaseId = originId; }
+          if (associationType == params.associationEnums.tc2ts) { singleEntry.TestSetTestCaseId = originId; }
+        }
+        if (associationType == params.associationEnums.req2req) {
           singleEntry.SourceArtifactTypeId = sourceTypeId;
           singleEntry.DestArtifactId = Number(item);
           singleEntry.DestArtifactTypeId = destTypeId[pos];
           //association is always "related to"
           singleEntry.ArtifactLinkTypeId = Number("1");
-          //append to the export array
-          finalEntry.push(singleEntry);
+        } else if (associationType == params.associationEnums.tc2req) { singleEntry.RequirementId = Number(item); }
+        else if (associationType == params.associationEnums.tc2rel) { singleEntry.ReleaseId = Number(item); }
+        else if (associationType == params.associationEnums.tc2ts) { singleEntry.TestSetId = Number(item); }
 
-        });
-      }
-      else if (fields[index].association == params.associationEnums.tc2req) {
-        //TestCase to Requirement association
-        //depending on the user's language, the console can misinterpret commas as points - this fixes it
-        var associationText = (row[index] + '').replace('.', ',');
-        var associationIds = (associationText).split(',');
-
-        //work every chunk of data
-        associationIds.forEach(function (item) {
-          destId.push(item);
-        });
-        //build the entry object (return object)
-        destId.forEach(function entryBuilder(item, pos) {
-          var singleEntry = {};
-          if (sourceId) {
-            singleEntry.TestCaseId = sourceId;
-          }
-          else if (originId) {
-            //if we just created this artifact, its ID is not in the spreadsheet yet
-            singleEntry.TestCaseId = originId;
-          }
-          singleEntry.RequirementId = Number(item);
-          finalEntry.push(singleEntry);
-        });
-
-      }
-
-      else if (fields[index].association == params.associationEnums.tc2rel) {
-        //TestCase to Requirement association
-        //depending on the user's language, the console can misinterpret commas as points - this fixes it
-        var associationText = (row[index] + '').replace('.', ',');
-        var associationIds = (associationText).split(',');
-
-        //work every chunk of data
-        associationIds.forEach(function (item) {
-          destId.push(item);
-        });
-        //build the entry object (return object)
-        destId.forEach(function entryBuilder(item, pos) {
-          var singleEntry = {};
-          if (sourceId) {
-            singleEntry.TestCaseId = sourceId;
-          }
-          else if (originId) {
-            //if we just created this artifact, its ID is not in the spreadsheet yet
-            singleEntry.TestCaseId = originId;
-          }
-
-          singleEntry.ReleaseId = Number(item);
-          finalEntry.push(singleEntry);
-        });
-      }
-      else if (fields[index].association == params.associationEnums.tc2ts) {
-        //TestCase to Requirement association
-        //depending on the user's language, the console can misinterpret commas as points - this fixes it
-        var associationText = (row[index] + '').replace('.', ',');
-        var associationIds = (associationText).split(',');
-
-        //work every chunk of data
-        associationIds.forEach(function (item) {
-          destId.push(item);
-        });
-        //build the entry object (return object)
-        destId.forEach(function entryBuilder(item, pos) {
-          var singleEntry = {};
-          if (sourceId) {
-            singleEntry.TestSetTestCaseId = sourceId;
-          }
-          else if (originId) {
-            //if we just created this artifact, its ID is not in the spreadsheet yet
-            singleEntry.TestSetTestCaseId = originId;
-          }
-
-          singleEntry.TestSetId = Number(item);
-          finalEntry.push(singleEntry);
-        });
-      }
-
+        //append to the export array
+        finalEntry.push(singleEntry);
+      });
     }
   }
   return finalEntry;
