@@ -22,3 +22,17 @@ Run the command setx JS_DEBUG <PackageFullName> with the full name you just got
 ## Troubleshooting
 
 *Error: Sorry, we can't load the add-in. Please make sure you have network and/or Internet connectivity.*: That means your dev server is not started. To start it, open a new Command Prompt, point it to your folder, and run the command **npm run dev-server**. Keep the console opened while you are working.
+
+## Deploying
+1. Validate - run `npm run validate`
+2. Build - run `npm run build`. This will generate files in the \dist folder. These, and the manifest.xml, are the actual distributed files. Nothing else.
+
+## Testing the addin
+Overall, we will be following the steps for [windows](https://docs.microsoft.com/en-us/office/dev/add-ins/testing/create-a-network-shared-folder-catalog-for-task-pane-and-content-add-ins) and the [web](https://docs.microsoft.com/en-us/office/dev/add-ins/testing/sideload-office-add-ins-for-testing).
+
+1. Run the validate and build steps above
+2. Make a copy of the manifest.xml file and change active urls (either pointing to localhost or files.inflectra.com) so that the base URL is `https://files.inflectra.com/office365/excel-staging/`
+3. Find a shared network location to place the manifest XML and paste the file there
+4. Generate the TrustNetworkShareCatalog.reg file as described in the windows guide above. Run if on a Windows machine, then reboot.
+5. then task a web admin with replacing the files in `https://files.inflectra.com/office365/excel-staging/` with all the files generated at build in the `dist` folder
+6. follow the steps to load the addin into Excel via Windows or the web
