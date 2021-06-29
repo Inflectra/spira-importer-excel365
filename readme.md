@@ -27,7 +27,7 @@ Run the command setx JS_DEBUG <PackageFullName> with the full name you just got
 1. Validate - run `npm run validate`
 2. Build - run `npm run build`. This will generate files in the \dist folder. These, and the manifest.xml, are the actual distributed files. Nothing else.
 
-## Testing the addin
+## Testing the addin - for testers
 Overall, we will be following the steps for [windows](https://docs.microsoft.com/en-us/office/dev/add-ins/testing/create-a-network-shared-folder-catalog-for-task-pane-and-content-add-ins) and the [web](https://docs.microsoft.com/en-us/office/dev/add-ins/testing/sideload-office-add-ins-for-testing).
 
 1. Run the validate and build steps above

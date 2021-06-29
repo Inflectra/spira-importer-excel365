@@ -281,7 +281,7 @@
                 </li>
                 <li>
                     <p><b>Enter your RSS token</b></p>
-                    <small>You can find or generate this from your user profile page inside Spira. Make sure to include
+                    <small>You can find or generate this from your user profile page inside Spira - <a href="http://spiradoc.inflectra.com/HowTo-Guides/Users-profile-management/#how-to-get-or-make-your-rss-token-or-api-key">read how to do so here</a>. Make sure to include
                         the curly braces - {ExampleRSS}</small>
                 </li>
             </ol>
@@ -302,10 +302,9 @@
                         <small>This button will prompt you to pick a product and artifact to LOAD FROM Spira loaded into
                             the spreadsheet (on the current active sheet). Exporting data in this way can be helpful to
                             share with colleagues who are not using Spira. Please note that this will bring over 100% of
-                            the artifacts in that product so it may take some time. Optionally, after exporting the data
-                            from Spira, you can change the available fields and import the updated data back to Spira,
-                            hitting the button 'Update Spira'. Please note that this option only allows you to update
-                            the received data, not create new artifacts.</small>
+                            the artifacts in that product so it may take some time.</small>
+                    </p>
+                    <p><small>Optionally, after getting data from Spira, you can make changes, then <b>update the data in Spira</b>, hitting the button 'Update Spira'. Please note that this option only allows you to update the received data, not create new artifacts.</small>
                     </p>
                 </li>
                 <li>
@@ -319,25 +318,23 @@
                 </li>
                 <li>
                     <p>
-                        <b>Advanced Mode (optional)</b>
-                        <small>This mode allows you to create new comments and associate some artifacts. It's possible to associate: </small>
-                        <br>
-                            <small><li>Requirements to Requirements</li></small>
-                            <small><li>TestCases to Requirements</li></small>
-                            <small><li>TestCases to Releases</li></small>
-                            <small><li>TestCases to TestSets</li></small>
-                            <br>
-                        <small>To create a new comment, simply enter the text under the column "New Comment". When you send to / update Spira, this text will 
-                            be saved as a new comment in the artifact.</small>
-                            <small><p>To associate artifacts, find the column of the artifact type you want to associate
-                                to (e.g.: "Linked Requirement") and enter the ID(s) of the artifact(s) to associate to. You can associate multiple artifacts
-                                at a time using a comma-separated list of IDs, e.g.: 335,336,337.</p></small>
+                        <b>Logout</b>
+                        <small>Close your connection with Spira and take you back to the add-in's login page</small>
                     </p>
                 </li>
                 <li>
                     <p>
-                        <b>Logout</b>
-                        <small>Close your connection with Spira and take you back to the add-in's login page</small>
+                        <b>Advanced Mode (optional)</b>
+                        <small>This mode allows you to create new comments and associate artifacts.</small>
+                        <p><small>To <b>associate artifacts</b>, find the column of the artifact type you want to associate to (e.g.: "Linked Requirement") and enter the ID(s) of the artifact(s) to associate to. You can associate multiple artifacts at a time using a comma-separated list of IDs, e.g.: 335,336,337. It's possible to associate: </small></p>
+                        <ul>
+                            <small><li>Requirements to Requirements</li></small>
+                            <small><li>TestCases to Requirements</li></small>
+                            <small><li>TestCases to Releases</li></small>
+                            <small><li>TestCases to TestSets</li></small>
+                        </ul>
+                        <p><small>To <b>create a new comment</b>, simply enter the text under the column "New Comment". When you send to / update Spira, this text will 
+                            be saved as a new comment in the artifact.</small></p>
                     </p>
                 </li>
             </ul>
@@ -369,12 +366,12 @@
                 start the export process. The add-in gets every entry of that artifact in the chosen product so it may
                 take some time.</p>
 
-            <p><i>Updating data in Spira (optional):</i> once you have the data from Spira in the spreadsheet, you can
-                update the available fields and then click on 'Update Spira' to make the changes reflect in Spira.</p>
-
             <p><b>Sending data to Spira</b>: before you can enter data into the sheet click "Prepare Sheet" to create a
-                template for that product and artifact. Once the sheet is ready click the Send button to add that data
-                to Spira.</p>
+                    template for that product and artifact. Once the sheet is ready click the Send button to add that data
+                    to Spira.</p>
+
+            <p><b>Updating data in Spira (advanced):</b> once you have the data from Spira in the spreadsheet, you can
+                update the available fields and then click on 'Update Spira' to make the changes reflect in Spira. Each row will be sent in full to Spira - if you blank out a cell, that value will be blanked out in Excel. NOTE: you cannot moving artifacts by updating (for example, you cannot move requirements in the hierarchy, or test steps within or between test cases)</p>
 
             <h4>Fields: working with required fields</h4>
             <ul class="list">
@@ -386,7 +383,7 @@
                 </li>
                 <li>
                     <p>
-                        <small>For test steps, required fields are shown in black, but not bold text.</small>
+                        <small><b>For test steps</b>, required fields are shown in black, but not bold text.</small>
                     </p>
                 </li>
             </ul>

@@ -128,12 +128,12 @@
 .helpBox {
     position: absolute;
     max-width: 80%;
-    border: 1px solid rgb(87, 87, 87);
-    background-color: rgb(255, 255, 133);
+    border: 1px solid rgb(180, 180, 180);
+    background-color: rgb(255, 255, 200);
     border-radius: 8px;
     left: 10%;
-    top: 40px;
-    padding: 15px;
+    top: 30px;
+    padding: 8px;
     visibility: hidden;
     z-index: 10;
 }
