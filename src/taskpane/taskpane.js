@@ -11,7 +11,7 @@ var model = new Data();
 var uiSelection = new tempDataStore();
 
 // if devmode enabled, set the required fields and show the dev button
-var devMode = false;
+var devMode = true;
 var isGoogle = false;
 
 /*
@@ -108,6 +108,7 @@ Office.onReady(info => {
  */
 
 function setDevStuff(devMode) {
+  var mode = 'bg';
   if (devMode) {
     document.getElementById("btn-dev").classList.remove("hidden");
     if (isGoogle) {
@@ -115,9 +116,16 @@ function setDevStuff(devMode) {
       // model.user.userName = "administrator";
       // model.user.api_key = btoa("&api-key=" + encodeURIComponent("{10E5D4F2-2188-40F5-8707-252B99B0606A}"));
     } else {
-      model.user.url = "";
-      model.user.userName = "administrator";
-      model.user.api_key = btoa("&api-key=" + encodeURIComponent(""));
+      if (mode == 'BG' || mode == 'bg') {
+        model.user.url = "https://internal-bruno.spiraservice.net/";
+        model.user.userName = "administrator";
+        model.user.api_key = btoa("&api-key=" + encodeURIComponent("{11690512-0A3C-4AD8-AAD8-2EA1543BEC01}"));
+      }
+      if (mode == 'int' || mode == 'INT') {
+        model.user.url = "https://internal-testing.spiraservice.net/";
+        model.user.userName = "bgruber";
+        model.user.api_key = btoa("&api-key=" + encodeURIComponent("{6E3CE1FA-D31B-4889-A0B6-F28176A01B8B}"));
+      }
     }
     loginAttempt();
   }
@@ -697,7 +705,7 @@ function createTemplate(shouldContinue) {
     clearSheet();
     showLoadingSpinner();
     manageTemplateBtnState();
-
+    
     // all data should already be loaded (as otherwise template button is disabled)
     // but check again that all data is present before kicking off template creation
     // if so, kicks off template creation, otherwise waits and tries again
@@ -807,7 +815,7 @@ function updateSpiraAttempt() {
         .withSuccessHandler(sendToSpiraComplete)
         .sendToSpira(model, params.fieldType, true);
     } else {
-       msOffice.sendToSpira(model, params.fieldType, true)
+      msOffice.sendToSpira(model, params.fieldType, true)
         .then((response) => sendToSpiraComplete(response))
         .catch((error) => errorImpExp(error));
     }
@@ -819,25 +827,25 @@ function updateSpiraAttempt() {
 }
 
 function sendToSpiraComplete(log) {
-    hideLoadingSpinner();
-    if (devMode) console.log(log);
+  hideLoadingSpinner();
+  if (devMode) console.log(log);
 
-    //if array (which holds error responses) is present, and errors present
-    if (log.errorCount) {
-      var errorMessages = log.entries
-        .filter(function (entry) { return entry.error; })
-        .map(function (entry) { return entry.message; });
+  //if array (which holds error responses) is present, and errors present
+  if (log.errorCount) {
+    var errorMessages = log.entries
+      .filter(function (entry) { return entry.error; })
+      .map(function (entry) { return entry.message; });
 
+  }
+  //runs the export success function, passes a boolean flag, if there are errors the flag is true.
+  if (log && log.status) {
+    if (isGoogle) {
+      google.script.run.operationComplete(log.status);
+    } else {
+      msOffice.operationComplete(log.status);
     }
-    //runs the export success function, passes a boolean flag, if there are errors the flag is true.
-    if (log && log.status) {
-      if (isGoogle) {
-        google.script.run.operationComplete(log.status);
-      } else {
-        msOffice.operationComplete(log.status);
-      }
-    }
-  
+  }
+
 }
 
 
@@ -1327,9 +1335,11 @@ function errorPopUp(type, err) {
   } else {
     msOffice.error(type, err);
     //sets the UI to correspond to this mode
+    if(err){
     artifactUpdateUI(UI_MODE.errorMode);
-    console.error("SpiraPlan Import/Export Plugin encountered an error:", err.status ? err.status : "", err.response ? err.response.text : "", err.description ? err.description : "")
-    console.info("SpiraPlan Import/Export Plugin: full error is... ", err)
+    console.error("SpiraPlan Import/Export Plugin encountered an error:", err.status ? err.status : "", err.response ? err.response.text : "", err.description ? err.description : "");
+    console.info("SpiraPlan Import/Export Plugin: full error is... ", err);
+    }
   }
   hideLoadingSpinner();
 }

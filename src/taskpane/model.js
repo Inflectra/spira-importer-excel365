@@ -52,7 +52,7 @@ var params = {
         arr: 13, // used for comma separated lists in a single cell (eg linked Ids)
         folder: 14 // don't think in reality this will be need
     },
-    
+
     //enums for association between artifact types we handle in the add-in
     associationEnums: {
         req2req: 1,
@@ -67,11 +67,15 @@ var params = {
         { field: 'testCases', name: 'Test Cases', id: 2, hasFolders: true, hasSubType: true, subTypeId: 7, subTypeName: "TestSteps" },
         { field: 'incidents', name: 'Incidents', id: 3 },
         { field: 'releases', name: 'Releases', id: 4, hierarchical: true },
-        { field: 'testRuns', name: 'Test Runs', id: 5, disabled: true, hidden: true},
+        { field: 'testRuns', name: 'Test Runs', id: 5, disabled: true, hidden: true },
         { field: 'tasks', name: 'Tasks', id: 6, hasFolders: true },
         { field: 'testSteps', name: 'Test Steps', id: 7, disabled: true, hidden: true, isSubType: true },
         { field: 'testSets', name: 'Test Sets', id: 8, hasFolders: true },
         { field: 'risks', name: 'Risks', id: 14 }
+    ],
+    //special cases enum
+    specialCases: [
+        { artifactId: 2, parameter: 'TestStepId', field: 'Description', target: "Call TC:" }
     ]
 };
 
@@ -119,10 +123,11 @@ var templateFields = {
         { field: "OwnerId", name: "Owner", type: params.fieldType.user },
         { field: "ComponentId", name: "Component", type: params.fieldType.component },
         { field: "CreationDate", name: "Creation Date", type: params.fieldType.date },
-        { field: "Text", name: "New Comment", type: params.fieldType.text, isComment: true, isAdvanced: true},
+        { field: "Text", name: "New Comment", type: params.fieldType.text, isComment: true, isAdvanced: true },
         { field: "Association", name: "Linked Requirement", type: params.fieldType.text, isAdvanced: true, association: params.associationEnums.req2req },
-        { field: "ConcurrencyDate", name: "Concurrency Date", type: params.fieldType.text ,isReadOnly: true, isHidden: true },
-        { field: "IndentLevel", name: "Indent Level", type: params.fieldType.text , isReadOnly: true, isHidden: true },
+        { field: "ConcurrencyDate", name: "Concurrency Date", type: params.fieldType.text, isReadOnly: true, isHidden: true },
+        { field: "IndentLevel", name: "Indent Level", type: params.fieldType.text, isReadOnly: true, isHidden: true },
+        { field: "Summary", name: "Summary", type: params.fieldType.bool, isReadOnly: true, isHidden: true }
     ],
 
     releases: [
@@ -156,9 +161,9 @@ var templateFields = {
         { field: "EndDate", name: "End Date", type: params.fieldType.date, required: true },
         { field: "ResourceCount", name: "Resources", type: params.fieldType.num },
         { field: "DaysNonWorking", name: "Non Working Days", type: params.fieldType.int },
-        { field: "CreationDate", name: "Creation Date", type: params.fieldType.date },
-        { field: "Text", name: "New Comment", type: params.fieldType.text, isComment: true, isAdvanced: true},
-        { field: "ConcurrencyDate", name: "Concurrency Date", type: params.fieldType.text ,isReadOnly: true, isHidden: true },
+        { field: "CreationDate", name: "Creation Date", type: params.fieldType.date, isReadOnly: true, isHidden: true },
+        { field: "Text", name: "New Comment", type: params.fieldType.text, isComment: true, isAdvanced: true },
+        { field: "ConcurrencyDate", name: "Concurrency Date", type: params.fieldType.text, isReadOnly: true, isHidden: true },
     ],
 
     tasks: [
@@ -206,48 +211,51 @@ var templateFields = {
                 isProjectBased: true
             }
         },
-        { field: "CreationDate", name: "Creation Date", type: params.fieldType.date},
+        { field: "CreationDate", name: "Creation Date", type: params.fieldType.date },
         { field: "StartDate", name: "Start Date", type: params.fieldType.date },
-        { field: "EndDate", name: "End Date", type: params.fieldType.date},
+        { field: "EndDate", name: "End Date", type: params.fieldType.date },
         { field: "EstimatedEffort", name: "Estimated Effort (in mins)", type: params.fieldType.int },
         { field: "ActualEffort", name: "Actual Effort (in mins)", type: params.fieldType.int },
         { field: "ProjectedEffort", name: "Projected Effort (in mins)", type: params.fieldType.int },
         { field: "RemainingEffort", name: "Remaining Effort (in mins)", type: params.fieldType.int },
         { field: "RequirementId", name: "RequirementId", type: params.fieldType.int },
-        { field: "ProjectId", name: "Project ID", type: params.fieldType.int ,isReadOnly: true, isHidden: true },
-        { field: "Text", name: "New Comment", type: params.fieldType.text, isComment: true, isAdvanced: true},
-        { field: "ConcurrencyDate", name: "Concurrency Date", type: params.fieldType.text , isReadOnly: true, isHidden: true },
+        { field: "ProjectId", name: "Project ID", type: params.fieldType.int, isReadOnly: true, isHidden: true },
+        { field: "Text", name: "New Comment", type: params.fieldType.text, isComment: true, isAdvanced: true },
+        { field: "ConcurrencyDate", name: "Concurrency Date", type: params.fieldType.text, isReadOnly: true, isHidden: true },
     ],
     testSets: [
         { field: "TestSetId", name: "ID", type: params.fieldType.id },
         { field: "Name", name: "Name", type: params.fieldType.text, required: true },
         { field: "Description", name: "Description", type: params.fieldType.text, required: true },
-        { field: "ReleaseId", name: "Release", type: params.fieldType.release },
-        {field: "TestRunTypeId", name: "Run Type", type: params.fieldType.drop, required: true, 
-        values: [
-            { id: 1, name: "Manual" },
-            { id: 2, name: "Automated" }
-        ]
+        { field: "ReleaseId", name: "Scheduled Release", type: params.fieldType.release },
+        {
+            field: "TestRunTypeId", name: "Run Type", type: params.fieldType.drop, required: true,
+            values: [
+                { id: 1, name: "Manual" },
+                { id: 2, name: "Automated" }
+            ]
         },
-        {field: "TestSetStatusId", name: "Status", type: params.fieldType.drop, required: true, 
-        values: [
-            { id: 1, name: "Not Started" },
-            { id: 2, name: "In Progress" },
-            { id: 3, name: "Completed" },
-            { id: 4, name: "Blocked" },
-            { id: 5, name: "Deferred" }
-        ]
+        {
+            field: "TestSetStatusId", name: "Status", type: params.fieldType.drop, required: true,
+            values: [
+                { id: 1, name: "Not Started" },
+                { id: 2, name: "In Progress" },
+                { id: 3, name: "Completed" },
+                { id: 4, name: "Blocked" },
+                { id: 5, name: "Deferred" }
+            ]
         },
-        {field: "RecurrenceId", name: "Recurrence", type: params.fieldType.drop, 
-        values: [
-            { id: 0, name: "One Time" },
-            { id: 1, name: "Hourly" },
-            { id: 2, name: "Daily" },
-            { id: 3, name: "Weekly" },
-            { id: 4, name: "Monthly" },
-            { id: 5, name: "Quarterly" },
-            { id: 6, name: "Yearly" }
-        ]
+        {
+            field: "RecurrenceId", name: "Recurrence", type: params.fieldType.drop,
+            values: [
+                { id: 0, name: "One Time" },
+                { id: 1, name: "Hourly" },
+                { id: 2, name: "Daily" },
+                { id: 3, name: "Weekly" },
+                { id: 4, name: "Monthly" },
+                { id: 5, name: "Quarterly" },
+                { id: 6, name: "Yearly" }
+            ]
         },
         { field: "CreatorId", name: "Creator", type: params.fieldType.user },
         { field: "OwnerId", name: "Owner", type: params.fieldType.user },
@@ -263,9 +271,9 @@ var templateFields = {
         },
         { field: "CreationDate", name: "Creation Date", type: params.fieldType.date },
         { field: "PlannedDate", name: "Planned Date", type: params.fieldType.date },
-        { field: "Text", name: "New Comment", type: params.fieldType.text, isComment: true, isAdvanced: true},
-        { field: "ExecutionDate", name: "Execution Date", type: params.fieldType.date,isReadOnly: true, isHidden: true },
-        { field: "ConcurrencyDate", name: "Concurrency Date", type: params.fieldType.text ,isReadOnly: true, isHidden: true },
+        { field: "Text", name: "New Comment", type: params.fieldType.text, isComment: true, isAdvanced: true },
+        { field: "ExecutionDate", name: "Execution Date", type: params.fieldType.date, isReadOnly: true, isHidden: true },
+        { field: "ConcurrencyDate", name: "Concurrency Date", type: params.fieldType.text, isReadOnly: true, isHidden: true },
     ],
     incidents: [
         { field: "IncidentId", name: "Incident ID", type: params.fieldType.id },
@@ -309,13 +317,13 @@ var templateFields = {
         { field: "ResolvedReleaseId", name: "Planned Release", type: params.fieldType.release },
         { field: "VerifiedReleaseId", name: "Verified Release", type: params.fieldType.release },
         { field: "ComponentIds", name: "Component", type: params.fieldType.component, isMulti: true },
-        { field: "CreationDate", name: "Date Detected", type: params.fieldType.date },
+        { field: "CreationDate", name: "Creation Date", type: params.fieldType.date },
         { field: "StartDate", name: "Start Date", type: params.fieldType.date },
         { field: "ClosedDate", name: "Closed On", type: params.fieldType.date },
         { field: "EstimatedEffort", name: "Estimated Effort (mins)", type: params.fieldType.int },
         { field: "ActualEffort", name: "Actual Effort (mins)", type: params.fieldType.int },
-        { field: "Text", name: "New Comment", type: params.fieldType.text, isComment: true, isAdvanced: true},
-        { field: "ConcurrencyDate", name: "Concurrency Date", type: params.fieldType.text ,isReadOnly: true, isHidden: true },
+        { field: "Text", name: "New Comment", type: params.fieldType.text, isComment: true, isAdvanced: true },
+        { field: "ConcurrencyDate", name: "Concurrency Date", type: params.fieldType.text, isReadOnly: true, isHidden: true },
     ],
 
     testCases: [
@@ -369,10 +377,11 @@ var templateFields = {
         { field: "Release", name: "Release(s)", type: params.fieldType.text, isAdvanced: true, association: params.associationEnums.tc2rel },
         { field: "TestSet", name: "Test Set(s)", type: params.fieldType.text, isAdvanced: true, association: params.associationEnums.tc2ts },
         { field: "ComponentIds", name: "Test Case Component", type: params.fieldType.component, isMulti: true },
-        { field: "CreationDate", name: "Test Case Creation Date", type: params.fieldType.text ,isReadOnly: true },
-        { field: "Text", name: "New Comment", type: params.fieldType.text, isComment: true, isAdvanced: true},
-        { field: "ConcurrencyDate", name: "Test Case Conc. Date", type: params.fieldType.text ,isReadOnly: true, isHidden: true },
-        { field: "ConcurrencyDate", name: "Test Step Conc. Date", type: params.fieldType.text, isReadOnly: true , isSubTypeField: true, isHidden: true }
+        { field: "CreationDate", name: "Test Case Creation Date", type: params.fieldType.text, isReadOnly: true },
+        { field: "Text", name: "New Comment", type: params.fieldType.text, isComment: true, isAdvanced: true },
+        { field: "ConcurrencyDate", name: "Test Case Conc. Date", type: params.fieldType.text, isReadOnly: true, isHidden: true },
+        { field: "ConcurrencyDate", name: "Test Step Conc. Date", type: params.fieldType.text, isReadOnly: true, isSubTypeField: true, isHidden: true },
+        { field: "ExecutionStatusId", name: "ExecutionStatusId", type: params.fieldType.text, isReadOnly: true, isHidden: true }
     ],
 
     risks: [
@@ -416,15 +425,15 @@ var templateFields = {
                 isActive: "Active"
             }
         },
-        { field: "CreatorId", name: "Creator", type: params.fieldType.user },
+        { field: "CreatorId", name: "Creator", type: params.fieldType.user, required: true },
         { field: "OwnerId", name: "Owner", type: params.fieldType.user },
         { field: "ComponentId", name: "Component", type: params.fieldType.component },
-        { field: "CreationDate", name: "Creation Date", type: params.fieldType.date },
+        { field: "CreationDate", name: "Creation Date", type: params.fieldType.date, isReadOnly: true, isHidden: true},
         { field: "ClosedDate", name: "Closed Date", type: params.fieldType.date },
         { field: "ReviewDate", name: "Review Date", type: params.fieldType.date },
         { field: "RiskExposure", name: "Risk Exposure", type: params.fieldType.int, isReadOnly: true, isHidden: true },
-        { field: "Text", name: "New Comment", type: params.fieldType.text, isComment: true, isAdvanced: true},
-        { field: "ConcurrencyDate", name: "Concurrency Date", type: params.fieldType.text ,isReadOnly: true, isHidden: true },
+        { field: "Text", name: "New Comment", type: params.fieldType.text, isComment: true, isAdvanced: true },
+        { field: "ConcurrencyDate", name: "Concurrency Date", type: params.fieldType.text, isReadOnly: true, isHidden: true },
     ],
 };
 
