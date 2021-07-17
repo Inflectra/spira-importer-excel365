@@ -697,7 +697,7 @@ function createTemplate(shouldContinue) {
     clearSheet();
     showLoadingSpinner();
     manageTemplateBtnState();
-
+    
     // all data should already be loaded (as otherwise template button is disabled)
     // but check again that all data is present before kicking off template creation
     // if so, kicks off template creation, otherwise waits and tries again
@@ -807,7 +807,7 @@ function updateSpiraAttempt() {
         .withSuccessHandler(sendToSpiraComplete)
         .sendToSpira(model, params.fieldType, true);
     } else {
-       msOffice.sendToSpira(model, params.fieldType, true)
+      msOffice.sendToSpira(model, params.fieldType, true)
         .then((response) => sendToSpiraComplete(response))
         .catch((error) => errorImpExp(error));
     }
@@ -819,25 +819,25 @@ function updateSpiraAttempt() {
 }
 
 function sendToSpiraComplete(log) {
-    hideLoadingSpinner();
-    if (devMode) console.log(log);
+  hideLoadingSpinner();
+  if (devMode) console.log(log);
 
-    //if array (which holds error responses) is present, and errors present
-    if (log.errorCount) {
-      var errorMessages = log.entries
-        .filter(function (entry) { return entry.error; })
-        .map(function (entry) { return entry.message; });
+  //if array (which holds error responses) is present, and errors present
+  if (log.errorCount) {
+    var errorMessages = log.entries
+      .filter(function (entry) { return entry.error; })
+      .map(function (entry) { return entry.message; });
 
+  }
+  //runs the export success function, passes a boolean flag, if there are errors the flag is true.
+  if (log && log.status) {
+    if (isGoogle) {
+      google.script.run.operationComplete(log.status);
+    } else {
+      msOffice.operationComplete(log.status);
     }
-    //runs the export success function, passes a boolean flag, if there are errors the flag is true.
-    if (log && log.status) {
-      if (isGoogle) {
-        google.script.run.operationComplete(log.status);
-      } else {
-        msOffice.operationComplete(log.status);
-      }
-    }
-  
+  }
+
 }
 
 
@@ -1327,9 +1327,11 @@ function errorPopUp(type, err) {
   } else {
     msOffice.error(type, err);
     //sets the UI to correspond to this mode
+    if(err){
     artifactUpdateUI(UI_MODE.errorMode);
-    console.error("SpiraPlan Import/Export Plugin encountered an error:", err.status ? err.status : "", err.response ? err.response.text : "", err.description ? err.description : "")
-    console.info("SpiraPlan Import/Export Plugin: full error is... ", err)
+    console.error("SpiraPlan Import/Export Plugin encountered an error:", err.status ? err.status : "", err.response ? err.response.text : "", err.description ? err.description : "");
+    console.info("SpiraPlan Import/Export Plugin: full error is... ", err);
+    }
   }
   hideLoadingSpinner();
 }
