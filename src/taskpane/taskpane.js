@@ -11,7 +11,7 @@ var model = new Data();
 var uiSelection = new tempDataStore();
 
 // if devmode enabled, set the required fields and show the dev button
-var devMode = true;
+var devMode = false;
 var isGoogle = false;
 
 /*
@@ -108,24 +108,16 @@ Office.onReady(info => {
  */
 
 function setDevStuff(devMode) {
-  var mode = 'bg';
   if (devMode) {
     document.getElementById("btn-dev").classList.remove("hidden");
     if (isGoogle) {
-      // model.user.url = "https://staging.spiraservice.net";
-      // model.user.userName = "administrator";
-      // model.user.api_key = btoa("&api-key=" + encodeURIComponent("{10E5D4F2-2188-40F5-8707-252B99B0606A}"));
+      model.user.url = "https://staging.spiraservice.net";
+      model.user.userName = "administrator";
+      model.user.api_key = btoa("&api-key=" + encodeURIComponent("{10E5D4F2-2188-40F5-8707-252B99B0606A}"));
     } else {
-      if (mode == 'BG' || mode == 'bg') {
-        model.user.url = "https://internal-bruno.spiraservice.net/";
-        model.user.userName = "administrator";
-        model.user.api_key = btoa("&api-key=" + encodeURIComponent("{11690512-0A3C-4AD8-AAD8-2EA1543BEC01}"));
-      }
-      if (mode == 'int' || mode == 'INT') {
-        model.user.url = "https://internal-testing.spiraservice.net/";
-        model.user.userName = "bgruber";
-        model.user.api_key = btoa("&api-key=" + encodeURIComponent("{6E3CE1FA-D31B-4889-A0B6-F28176A01B8B}"));
-      }
+      model.user.url = "";
+      model.user.userName = "";
+      model.user.api_key = btoa("&api-key=" + encodeURIComponent(""));
     }
     loginAttempt();
   }
