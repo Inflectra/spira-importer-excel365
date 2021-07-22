@@ -122,7 +122,7 @@ var templateFields = {
         { field: "AuthorId", name: "Author", type: params.fieldType.user },
         { field: "OwnerId", name: "Owner", type: params.fieldType.user },
         { field: "ComponentId", name: "Component", type: params.fieldType.component },
-        { field: "CreationDate", name: "Creation Date", type: params.fieldType.date },
+        { field: "CreationDate", name: "Creation Date", type: params.fieldType.date,isReadOnly: true, isHidden: true },
         { field: "Text", name: "New Comment", type: params.fieldType.text, isComment: true, isAdvanced: true },
         { field: "Association", name: "Linked Requirement", type: params.fieldType.text, isAdvanced: true, association: params.associationEnums.req2req },
         { field: "ConcurrencyDate", name: "Concurrency Date", type: params.fieldType.text, isReadOnly: true, isHidden: true },
@@ -211,7 +211,7 @@ var templateFields = {
                 isProjectBased: true
             }
         },
-        { field: "CreationDate", name: "Creation Date", type: params.fieldType.date },
+        { field: "CreationDate", name: "Creation Date", type: params.fieldType.date, isReadOnly: true, isHidden: true },
         { field: "StartDate", name: "Start Date", type: params.fieldType.date },
         { field: "EndDate", name: "End Date", type: params.fieldType.date },
         { field: "EstimatedEffort", name: "Estimated Effort (in mins)", type: params.fieldType.int },
@@ -269,7 +269,7 @@ var templateFields = {
                 isProjectBased: true
             }
         },
-        { field: "CreationDate", name: "Creation Date", type: params.fieldType.date },
+        { field: "CreationDate", name: "Creation Date", type: params.fieldType.date, isReadOnly: true, isHidden: true },
         { field: "PlannedDate", name: "Planned Date", type: params.fieldType.date },
         { field: "Text", name: "New Comment", type: params.fieldType.text, isComment: true, isAdvanced: true },
         { field: "ExecutionDate", name: "Execution Date", type: params.fieldType.date, isReadOnly: true, isHidden: true },
@@ -317,13 +317,14 @@ var templateFields = {
         { field: "ResolvedReleaseId", name: "Planned Release", type: params.fieldType.release },
         { field: "VerifiedReleaseId", name: "Verified Release", type: params.fieldType.release },
         { field: "ComponentIds", name: "Component", type: params.fieldType.component, isMulti: true },
-        { field: "CreationDate", name: "Creation Date", type: params.fieldType.date },
+        { field: "CreationDate", name: "Creation Date", type: params.fieldType.date, isReadOnly: true, isHidden: true },
         { field: "StartDate", name: "Start Date", type: params.fieldType.date },
         { field: "ClosedDate", name: "Closed On", type: params.fieldType.date },
         { field: "EstimatedEffort", name: "Estimated Effort (mins)", type: params.fieldType.int },
         { field: "ActualEffort", name: "Actual Effort (mins)", type: params.fieldType.int },
         { field: "Text", name: "New Comment", type: params.fieldType.text, isComment: true, isAdvanced: true },
         { field: "ConcurrencyDate", name: "Concurrency Date", type: params.fieldType.text, isReadOnly: true, isHidden: true },
+        { field: "RemainingEffort", name: "RemainingEffort", type: params.fieldType.text, isReadOnly: true, isHidden: true }
     ],
 
     testCases: [
@@ -332,6 +333,7 @@ var templateFields = {
         { field: "Name", name: "Test Case Name", type: params.fieldType.text, required: true, blocksSubType: true },
         { field: "Description", name: "Test Case Description", type: params.fieldType.text, blocksSubType: true },
         { field: "Description", name: "Test Step Description", type: params.fieldType.text, isSubTypeField: true, requiredForSubType: true, extraDataField: "LinkedTestCaseId", extraDataPrefix: "TC" },
+        { field: "Position", name: "Position", type: params.fieldType.text, isSubTypeField: true, isReadOnly: true, isHidden: true },
         { field: "ExpectedResult", name: "Test Step Expected Result", type: params.fieldType.text, isSubTypeField: true, requiredForSubType: true },
         { field: "SampleData", name: "Test Step Sample Data", type: params.fieldType.text, isSubTypeField: true },
         {
@@ -363,6 +365,7 @@ var templateFields = {
         },
         { field: "AuthorId", name: "Author", type: params.fieldType.user },
         { field: "OwnerId", name: "Test Case Owner", type: params.fieldType.user },
+        { field: "ProjectId", name: "ProjectId", type: params.fieldType.text, isReadOnly: true, isHidden: true },
         {
             field: "TestCaseFolderId", name: "Test Case Folder", type: params.fieldType.drop, values: [],
             bespoke: {
@@ -377,7 +380,7 @@ var templateFields = {
         { field: "Release", name: "Release(s)", type: params.fieldType.text, isAdvanced: true, association: params.associationEnums.tc2rel },
         { field: "TestSet", name: "Test Set(s)", type: params.fieldType.text, isAdvanced: true, association: params.associationEnums.tc2ts },
         { field: "ComponentIds", name: "Test Case Component", type: params.fieldType.component, isMulti: true },
-        { field: "CreationDate", name: "Test Case Creation Date", type: params.fieldType.text, isReadOnly: true },
+        { field: "CreationDate", name: "Test Case Creation Date", type: params.fieldType.text, isReadOnly: true, isHidden: true },
         { field: "Text", name: "New Comment", type: params.fieldType.text, isComment: true, isAdvanced: true },
         { field: "ConcurrencyDate", name: "Test Case Conc. Date", type: params.fieldType.text, isReadOnly: true, isHidden: true },
         { field: "ConcurrencyDate", name: "Test Step Conc. Date", type: params.fieldType.text, isReadOnly: true, isSubTypeField: true, isHidden: true },
@@ -399,19 +402,19 @@ var templateFields = {
             }
         },
         {
-            field: "RiskImpactId", name: "Impact", type: params.fieldType.drop,
+            field: "RiskProbabilityId", name: "Probability", type: params.fieldType.drop,
             bespoke: {
-                url: "/risks/impacts",
-                idField: "RiskImpactId",
+                url: "/risks/probabilities",
+                idField: "RiskProbabilityId",
                 nameField: "Name",
                 isActive: "Active"
             }
         },
         {
-            field: "RiskProbabilityId", name: "Probability", type: params.fieldType.drop,
+            field: "RiskImpactId", name: "Impact", type: params.fieldType.drop,
             bespoke: {
-                url: "/risks/probabilities",
-                idField: "RiskProbabilityId",
+                url: "/risks/impacts",
+                idField: "RiskImpactId",
                 nameField: "Name",
                 isActive: "Active"
             }

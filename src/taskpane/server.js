@@ -2951,6 +2951,10 @@ function convertLocalToUTC(originalDate) {
   var d = new Date();
   var offsetMinutes = d.getTimezoneOffset();
   var utcDate = new Date(originalDate.getTime() + offsetMinutes * 60000);
+  //special cases: when just a date value is added in Excel (i.e.: the time itself does not matter), we keep the same date entered in the spreadsheet
+  if (utcDate.getHours() == 0 && utcDate.getMinutes() == 0) {
+    return originalDate.toISOString();
+  }
   return utcDate.toISOString();
 }
 
