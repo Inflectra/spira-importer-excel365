@@ -124,7 +124,7 @@ var templateFields = {
         { field: "ComponentId", name: "Component", type: params.fieldType.component },
         { field: "CreationDate", name: "Creation Date", type: params.fieldType.date,isReadOnly: true, isHidden: true },
         { field: "Text", name: "New Comment", type: params.fieldType.text, isComment: true, isAdvanced: true },
-        { field: "Association", name: "Linked Requirement", type: params.fieldType.text, isAdvanced: true, association: params.associationEnums.req2req },
+        { field: "Association", name: "New Linked Requirement(s)", type: params.fieldType.text, isAdvanced: true, association: params.associationEnums.req2req },
         { field: "ConcurrencyDate", name: "Concurrency Date", type: params.fieldType.text, isReadOnly: true, isHidden: true },
         { field: "IndentLevel", name: "Indent Level", type: params.fieldType.text, isReadOnly: true, isHidden: true },
         { field: "Summary", name: "Summary", type: params.fieldType.bool, isReadOnly: true, isHidden: true }
@@ -273,6 +273,7 @@ var templateFields = {
         { field: "PlannedDate", name: "Planned Date", type: params.fieldType.date },
         { field: "Text", name: "New Comment", type: params.fieldType.text, isComment: true, isAdvanced: true },
         { field: "ExecutionDate", name: "Execution Date", type: params.fieldType.date, isReadOnly: true, isHidden: true },
+        { field: "ProjectId", name: "ProjectId", type: params.fieldType.int, isReadOnly: true, isHidden: true },
         { field: "ConcurrencyDate", name: "Concurrency Date", type: params.fieldType.text, isReadOnly: true, isHidden: true },
     ],
     incidents: [
@@ -377,14 +378,15 @@ var templateFields = {
             }
         },
         { field: "Requirement", name: "Requirement(s)", type: params.fieldType.text, isAdvanced: true, association: params.associationEnums.tc2req },
-        { field: "Release", name: "Release(s)", type: params.fieldType.text, isAdvanced: true, association: params.associationEnums.tc2rel },
-        { field: "TestSet", name: "Test Set(s)", type: params.fieldType.text, isAdvanced: true, association: params.associationEnums.tc2ts },
+        { field: "Release", name: "New Associated Release(s)", type: params.fieldType.text, isAdvanced: true, association: params.associationEnums.tc2rel },
+        { field: "TestSet", name: "New Associated Test Set(s)", type: params.fieldType.text, isAdvanced: true, association: params.associationEnums.tc2ts },
         { field: "ComponentIds", name: "Test Case Component", type: params.fieldType.component, isMulti: true },
         { field: "CreationDate", name: "Test Case Creation Date", type: params.fieldType.text, isReadOnly: true, isHidden: true },
         { field: "Text", name: "New Comment", type: params.fieldType.text, isComment: true, isAdvanced: true },
         { field: "ConcurrencyDate", name: "Test Case Conc. Date", type: params.fieldType.text, isReadOnly: true, isHidden: true },
         { field: "ConcurrencyDate", name: "Test Step Conc. Date", type: params.fieldType.text, isReadOnly: true, isSubTypeField: true, isHidden: true },
-        { field: "ExecutionStatusId", name: "ExecutionStatusId", type: params.fieldType.text, isReadOnly: true, isHidden: true }
+        { field: "ExecutionStatusId", name: "ExecutionStatusId", type: params.fieldType.text, isReadOnly: true, isHidden: true },
+        { field: "IsSuspect", name: "IsSuspect", type: params.fieldType.bool, isReadOnly: true, isHidden: true }
     ],
 
     risks: [

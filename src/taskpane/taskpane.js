@@ -11,7 +11,7 @@ var model = new Data();
 var uiSelection = new tempDataStore();
 
 // if devmode enabled, set the required fields and show the dev button
-var devMode = false;
+var devMode = true;
 var isGoogle = false;
 
 /*
@@ -115,9 +115,14 @@ function setDevStuff(devMode) {
       model.user.userName = "administrator";
       model.user.api_key = btoa("&api-key=" + encodeURIComponent("{10E5D4F2-2188-40F5-8707-252B99B0606A}"));
     } else {
-      model.user.url = "";
+      model.user.url = "https://internal-bruno.spiraservice.net/";
       model.user.userName = "administrator";
-      model.user.api_key = btoa("&api-key=" + encodeURIComponent("{}"));
+      model.user.api_key = btoa("&api-key=" + encodeURIComponent("{11690512-0A3C-4AD8-AAD8-2EA1543BEC01}"));
+      // model.user.url = "https://internal-testing.spiraservice.net/";
+      // model.user.userName = "administrator";
+      // model.user.api_key = btoa("&api-key=" + encodeURIComponent("{1773F6A3-C92A-46E8-9792-700F5650E6EB}"));
+
+
     }
     loginAttempt();
   }
@@ -806,7 +811,7 @@ function updateSpiraAttempt() {
         .withSuccessHandler(sendToSpiraComplete)
         .sendToSpira(model, params.fieldType, true);
     } else {
-       msOffice.sendToSpira(model, params.fieldType, true)
+      msOffice.sendToSpira(model, params.fieldType, true)
         .then((response) => sendToSpiraComplete(response))
         .catch((error) => errorImpExp(error));
     }
@@ -818,25 +823,25 @@ function updateSpiraAttempt() {
 }
 
 function sendToSpiraComplete(log) {
-    hideLoadingSpinner();
-    if (devMode) console.log(log);
+  hideLoadingSpinner();
+  if (devMode) console.log(log);
 
-    //if array (which holds error responses) is present, and errors present
-    if (log.errorCount) {
-      var errorMessages = log.entries
-        .filter(function (entry) { return entry.error; })
-        .map(function (entry) { return entry.message; });
+  //if array (which holds error responses) is present, and errors present
+  if (log.errorCount) {
+    var errorMessages = log.entries
+      .filter(function (entry) { return entry.error; })
+      .map(function (entry) { return entry.message; });
 
+  }
+  //runs the export success function, passes a boolean flag, if there are errors the flag is true.
+  if (log && log.status) {
+    if (isGoogle) {
+      google.script.run.operationComplete(log.status);
+    } else {
+      msOffice.operationComplete(log.status);
     }
-    //runs the export success function, passes a boolean flag, if there are errors the flag is true.
-    if (log && log.status) {
-      if (isGoogle) {
-        google.script.run.operationComplete(log.status);
-      } else {
-        msOffice.operationComplete(log.status);
-      }
-    }
-  
+  }
+
 }
 
 
@@ -1327,7 +1332,10 @@ function errorPopUp(type, err) {
     msOffice.error(type, err);
     //sets the UI to correspond to this mode
     artifactUpdateUI(UI_MODE.errorMode);
-    console.error("SpiraPlan Import/Export Plugin encountered an error:", err.status ? err.status : "", err.response ? err.response.text : "", err.description ? err.description : "")
+
+    if (err != null) {
+      console.error("SpiraPlan Import/Export Plugin encountered an error:", err.status ? err.status : "", err.response ? err.response.text : "", err.description ? err.description : "")
+    }
     console.info("SpiraPlan Import/Export Plugin: full error is... ", err)
   }
   hideLoadingSpinner();

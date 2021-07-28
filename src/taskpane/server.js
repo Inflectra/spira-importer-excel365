@@ -404,16 +404,16 @@ function getArtifacts(user, projectId, artifactTypeId, startRow, numberOfRows, a
 
   switch (artifactTypeId) {
     case ART_ENUMS.requirements:
-      fullURL += "/requirements?starting_row=" + startRow + "&number_of_rows=" + numberOfRows + "&";
+      fullURL += "/requirements?starting_row=" + startRow + "&number_of_rows=" + numberOfRows + "&sort_field=RequirementId&sort_direction=ASC&";
       response = fetcher(user, fullURL);
       break;
     case ART_ENUMS.testCases:
-      fullURL += "/test-cases?starting_row=" + startRow + "&number_of_rows=" + numberOfRows + "&";
+      fullURL += "/test-cases?starting_row=" + startRow + "&number_of_rows=" + numberOfRows + "&sort_field=TestCaseId&sort_direction=ASC&";
       response = fetcher(user, fullURL);
       break;
     case ART_ENUMS.testSteps:
       if (artifactId) {
-        fullURL += "/test-cases/" + artifactId + "/test-steps?";
+        fullURL += "/test-cases/" + artifactId + "/test-steps?&";
         response = fetcher(user, fullURL);
       }
       break;
@@ -422,7 +422,7 @@ function getArtifacts(user, projectId, artifactTypeId, startRow, numberOfRows, a
       response = fetcher(user, fullURL);
       break;
     case ART_ENUMS.releases:
-      fullURL += "/releases/search?start_row=" + startRow + "&number_rows=" + numberOfRows + "&";
+      fullURL += "/releases/search?start_row=" + startRow + "&number_rows=" + numberOfRows + "&sort_field=ReleaseId&sort_direction=ASC&";
       var rawResponse = poster("", user, fullURL);
       response = IS_GOOGLE ? JSON.parse(rawResponse) : rawResponse; // this particular return needs to be parsed here
       break;
@@ -777,7 +777,7 @@ function putArtifactToSpira(entry, user, projectId, artifactTypeId, parentId) {
         putUrl = API_PROJECT_BASE + projectId + '/releases?';
         // we should have a parent Id set so add this RQ as its child
       } else {
-        putUrl = API_PROJECT_BASE + projectId + '/releases?';// + parentId + '?';
+        putUrl = API_PROJECT_BASE + projectId + '/releases?';
       }
       break;
 
@@ -1591,6 +1591,24 @@ function clearErrorMessages(sheetData, isUpdate) {
   return sheetData;
 }
 
+// returns the artifact IDs containing validation problems
+// @param: sheetData - the sheet data object
+// returns the filtered sheetData object
+
+function getValidationsFromEntries(entries, sheetData, response) {
+  var artifactIds = [];
+  entries.forEach(function isValidation(item, index) {
+    if(index < response.entries.length){
+
+    if ('validationMessage' in item || 'error' in response.entries[index]) {
+      //if this is a invalid entry, appends its ID to the array
+      artifactIds.push(sheetData[index][0]);
+    }
+  }
+  });
+  return artifactIds;
+}
+
 /*
  * ================
  * SENDING TO SPIRA
@@ -1649,20 +1667,21 @@ async function sendToSpira(model, fieldTypeEnums, isUpdate) {
               sheetData = clearErrorMessages(sheetData, isUpdate);
               //use this variable to save the new artifact entries
               var artifactEntries;
-
+              var validations = [];
               //First, send the artifact entries for Spira
               var entriesForExport = createExportEntries(sheetData, model, fieldTypeEnums, fields, artifact, artifactIsHierarchical, isUpdate);
-              return sendExportEntriesExcel(entriesForExport, '', '', sheetData, sheet, sheetRange, model, fieldTypeEnums, fields, artifact, context, isUpdate).then(function (response) {
+              return sendExportEntriesExcel(entriesForExport, '', '', sheetData, sheet, sheetRange, model, fieldTypeEnums, fields, artifact, context, isUpdate, '').then(function (response) {
+                validations = getValidationsFromEntries(entriesForExport, sheetData, response);
                 entriesLog = response;
                 artifactEntries = response.entries;
                 //Then, send the comments entry for Spira
                 var commentEntriesForExport = createExportCommentEntries(sheetData, model, fieldTypeEnums, artifact, artifactIsHierarchical, artifactEntries);
-                return sendExportEntriesExcel('', commentEntriesForExport, '', sheetData, sheet, sheetRange, model, fieldTypeEnums, fields, artifact, context, isUpdate);
+                return sendExportEntriesExcel('', commentEntriesForExport, '', sheetData, sheet, sheetRange, model, fieldTypeEnums, fields, artifact, context, isUpdate, validations);
               }).then(function (responseComments) {
                 commentsLog = responseComments;
                 //Finally, send the associations
                 var associationEntriesForExport = createExportAssociationEntries(sheetData, model, fieldTypeEnums, artifact, artifactEntries);
-                return sendExportEntriesExcel('', '', associationEntriesForExport, sheetData, sheet, sheetRange, model, fieldTypeEnums, fields, artifact, context, isUpdate);
+                return sendExportEntriesExcel('', '', associationEntriesForExport, sheetData, sheet, sheetRange, model, fieldTypeEnums, fields, artifact, context, isUpdate, validations);
               }).then(function (responseAssociations) { associationsLog = responseAssociations; }).catch(function (err) {
                 reject()
               }).finally(function () {
@@ -1927,7 +1946,7 @@ function sendExportEntriesGoogle(entriesForExport, sheetData, sheet, sheetRange,
 // DIFFERENT TO GOOGLE: this uses js ES6 a-sync and a-wait for its function and subfunction
 // check we have some entries and with no errors
 // Create and show a message to tell the user what is going on
-async function sendExportEntriesExcel(entriesForExport, commentEntriesForExport, associationEntriesForExport, sheetData, sheet, sheetRange, model, fieldTypeEnums, fields, artifact, context, isUpdate) {
+async function sendExportEntriesExcel(entriesForExport, commentEntriesForExport, associationEntriesForExport, sheetData, sheet, sheetRange, model, fieldTypeEnums, fields, artifact, context, isUpdate, validations) {
   if (!entriesForExport.length && !commentEntriesForExport.length && !associationEntriesForExport.length) {
     popupShow('There are no entries to send to Spira', 'Check Sheet')
     return "nothing to send";
@@ -1981,26 +2000,30 @@ async function sendExportEntriesExcel(entriesForExport, commentEntriesForExport,
 
     // loop through comment objects to send
     async function sendSingleCommentEntry(j) {
-      await manageSendingToSpira(commentEntriesForExport[j], model.user, model.currentProject.id, artifact, fields, fieldTypeEnums, log.parentId, isUpdate, true, false)
-        .then(function (response) {
-          // update the parent ID for a subtypes based on the successful API call
-          if (artifact.hasSubType) {
-            log.parentId = response.parentId;
-          }
-          log = processSendToSpiraResponse(j, response, commentEntriesForExport, artifact, log, true, false);
-        })
+      if (!validations.includes(commentEntriesForExport[j].ArtifactId)) { //if this is a valid entry
+        await manageSendingToSpira(commentEntriesForExport[j], model.user, model.currentProject.id, artifact, fields, fieldTypeEnums, log.parentId, isUpdate, true, false)
+          .then(function (response) {
+            // update the parent ID for a subtypes based on the successful API call
+            if (artifact.hasSubType) {
+              log.parentId = response.parentId;
+            }
+            log = processSendToSpiraResponse(j, response, commentEntriesForExport, artifact, log, true, false);
+          })
+      }
     }
 
     // loop through association objects to send
     async function sendSingleAssociationEntry(k) {
-      await manageSendingToSpira(associationEntriesForExport[k], model.user, model.currentProject.id, artifact, fields, fieldTypeEnums, log.parentId, isUpdate, false, true)
-        .then(function (response) {
-          // update the parent ID for a subtypes based on the successful API call
-          if (artifact.hasSubType) {
-            log.parentId = response.parentId;
-          }
-          log = processSendToSpiraResponse(k, response, associationEntriesForExport, artifact, log, false, true);
-        })
+      if (!validations.includes(associationEntriesForExport[k].SourceArtifactId)) { //if this is a valid entry
+        await manageSendingToSpira(associationEntriesForExport[k], model.user, model.currentProject.id, artifact, fields, fieldTypeEnums, log.parentId, isUpdate, false, true)
+          .then(function (response) {
+            // update the parent ID for a subtypes based on the successful API call
+            if (artifact.hasSubType) {
+              log.parentId = response.parentId;
+            }
+            log = processSendToSpiraResponse(k, response, associationEntriesForExport, artifact, log, false, true);
+          })
+      }
     }
 
 
@@ -2072,34 +2095,35 @@ function updateSheetWithExportResults(entriesLog, commentsLog, associationsLog, 
         value = sheetData[row][col];
 
       // we may have more rows than entries - because the entries can be stopped early (eg when an error is found on a hierarchical artifact)
-      if (entriesLog.entries.length > row) {
-        //check for comments error
-        if (fields[col].isComment && commentsLog) {
-          if (commentsLog.entries[row]) {
-            if (commentsLog.entries[row].error) {
-              bgColor = model.colors.warning;
+      if (entriesLog != null) {
+        if (entriesLog.entries.length > row) {
+          //check for comments error
+          if (fields[col].isComment && commentsLog != null) {
+            if (commentsLog.entries[row]) {
+              if (commentsLog.entries[row].error) {
+                bgColor = model.colors.warning;
+              }
             }
           }
-        }
-        //check for associations error
-        else if (fields[col].association && associationsLog.entries) {
-          if (associationsLog.entries[associationCounter]) {
-            if (associationsLog.entries[associationCounter].error) {
-              bgColor = model.colors.warning;
-              associationNote = 'Error: ' + associationsLog.entries[associationCounter].message;
+          //check for associations error
+          else if (fields[col].association && associationsLog != null && associationsLog.entries != null) {
+            if (associationsLog.entries[associationCounter]) {
+              if (associationsLog.entries[associationCounter].error) {
+                bgColor = model.colors.warning;
+                associationNote = 'Error: ' + associationsLog.entries[associationCounter].message;
+              }
             }
           }
-        }
-        else {
-          // first handle when we are dealing with data that has been sent to Spira
-          var isSubType = (entriesLog.entries[row].details && entriesLog.entries[row].details.entry && entriesLog.entries[row].details.entry.isSubType) ? entriesLog.entries[row].details.entry.isSubType : false;
+          else {
+            // first handle when we are dealing with data that has been sent to Spira
+            var isSubType = (entriesLog.entries[row].details && entriesLog.entries[row].details.entry && entriesLog.entries[row].details.entry.isSubType) ? entriesLog.entries[row].details.entry.isSubType : false;
 
-          bgColor = setFeedbackBgColor(sheetData[row][col], entriesLog.entries[row].error, fields[col], fieldTypeEnums, artifact, model.colors);
-          value = setFeedbackValue(sheetData[row][col], entriesLog.entries[row].error, fields[col], fieldTypeEnums, entriesLog.entries[row].newId || "", isSubType, col);
-          note = setFeedbackNote(sheetData[row][col], entriesLog.entries[row].error, fields[col], fieldTypeEnums, entriesLog.entries[row].message, value, isUpdate);
+            bgColor = setFeedbackBgColor(sheetData[row][col], entriesLog.entries[row].error, fields[col], fieldTypeEnums, artifact, model.colors);
+            value = setFeedbackValue(sheetData[row][col], entriesLog.entries[row].error, fields[col], fieldTypeEnums, entriesLog.entries[row].newId || "", isSubType, col);
+            note = setFeedbackNote(sheetData[row][col], entriesLog.entries[row].error, fields[col], fieldTypeEnums, entriesLog.entries[row].message, value, isUpdate);
+          }
         }
       }
-
       if (IS_GOOGLE) {
         rowBgColors.push(bgColor);
         rowNotes.push(note);
@@ -2811,7 +2835,7 @@ function createEntryFromRow(row, model, fieldTypeEnums, artifactIsHierarchical, 
               // for Excel, dates are returned as days since 1900 - so we need to adjust this for JS date formats
               const DAYS_BETWEEN_1900_1970 = 25567 + 2;
               const dateInMs = (row[index] - DAYS_BETWEEN_1900_1970) * 86400 * 1000;
-              value = convertLocalToUTC(new Date(dateInMs));
+              value = convertLocalToUTC(new Date(dateInMs), dateInMs);
             }
             customType = "DateTimeValue";
           }
@@ -2947,14 +2971,16 @@ function createEntryFromRow(row, model, fieldTypeEnums, artifactIsHierarchical, 
 }
 
 //Converts a local time to UTC time
-function convertLocalToUTC(originalDate) {
+function convertLocalToUTC(convertedDate, originalDate) {
+  originalDate = new Date(originalDate).toUTCString();
   var d = new Date();
   var offsetMinutes = d.getTimezoneOffset();
-  var utcDate = new Date(originalDate.getTime() + offsetMinutes * 60000);
+  var utcDate = new Date(convertedDate.getTime() + offsetMinutes * 60000);
   //special cases: when just a date value is added in Excel (i.e.: the time itself does not matter), we keep the same date entered in the spreadsheet
-  if (utcDate.getHours() == 0 && utcDate.getMinutes() == 0) {
-    return originalDate.toISOString();
-  }
+  // if (utcDate.getHours() == 0 && utcDate.getMinutes() == 0) {
+  //   console.log('retornei special ' + convertedDate.toISOString());
+  //   return convertedDate.toISOString();
+  // }
   return utcDate.toISOString();
 }
 
