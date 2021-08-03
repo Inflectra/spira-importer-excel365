@@ -124,7 +124,7 @@ var templateFields = {
         { field: "ComponentId", name: "Component", type: params.fieldType.component },
         { field: "CreationDate", name: "Creation Date", type: params.fieldType.date,isReadOnly: true, isHidden: true },
         { field: "Text", name: "New Comment", type: params.fieldType.text, isComment: true, isAdvanced: true },
-        { field: "Association", name: "New Linked Requirement(s)", type: params.fieldType.text, isAdvanced: true, association: params.associationEnums.req2req },
+        { field: "Association", name: "New Associated Requirement(s)", type: params.fieldType.text, isAdvanced: true, association: params.associationEnums.req2req },
         { field: "ConcurrencyDate", name: "Concurrency Date", type: params.fieldType.text, isReadOnly: true, isHidden: true },
         { field: "IndentLevel", name: "Indent Level", type: params.fieldType.text, isReadOnly: true, isHidden: true },
         { field: "Summary", name: "Summary", type: params.fieldType.bool, isReadOnly: true, isHidden: true }
@@ -216,7 +216,7 @@ var templateFields = {
         { field: "EndDate", name: "End Date", type: params.fieldType.date },
         { field: "EstimatedEffort", name: "Estimated Effort (in mins)", type: params.fieldType.int },
         { field: "ActualEffort", name: "Actual Effort (in mins)", type: params.fieldType.int },
-        { field: "ProjectedEffort", name: "Projected Effort (in mins)", type: params.fieldType.int },
+        { field: "ProjectedEffort", name: "Projected Effort (in mins)", type: params.fieldType.int, isReadOnly: true },
         { field: "RemainingEffort", name: "Remaining Effort (in mins)", type: params.fieldType.int },
         { field: "RequirementId", name: "RequirementId", type: params.fieldType.int },
         { field: "ProjectId", name: "Project ID", type: params.fieldType.int, isReadOnly: true, isHidden: true },
@@ -226,7 +226,7 @@ var templateFields = {
     testSets: [
         { field: "TestSetId", name: "ID", type: params.fieldType.id },
         { field: "Name", name: "Name", type: params.fieldType.text, required: true },
-        { field: "Description", name: "Description", type: params.fieldType.text, required: true },
+        { field: "Description", name: "Description", type: params.fieldType.text},
         { field: "ReleaseId", name: "Scheduled Release", type: params.fieldType.release },
         {
             field: "TestRunTypeId", name: "Run Type", type: params.fieldType.drop, required: true,
@@ -297,18 +297,18 @@ var templateFields = {
             }
         },
         {
-            field: "SeverityId", name: "Severity", type: params.fieldType.drop, values: [],
-            bespoke: {
-                url: "/incidents/severities",
-                idField: "SeverityId",
-                nameField: "Name",
-            }
-        },
-        {
             field: "PriorityId", name: "Priority", type: params.fieldType.drop, values: [],
             bespoke: {
                 url: "/incidents/priorities",
                 idField: "PriorityId",
+                nameField: "Name",
+            }
+        },
+        {
+            field: "SeverityId", name: "Severity", type: params.fieldType.drop, values: [],
+            bespoke: {
+                url: "/incidents/severities",
+                idField: "SeverityId",
                 nameField: "Name",
             }
         },
@@ -377,7 +377,7 @@ var templateFields = {
                 isProjectBased: true
             }
         },
-        { field: "Requirement", name: "Requirement(s)", type: params.fieldType.text, isAdvanced: true, association: params.associationEnums.tc2req },
+        { field: "Requirement", name: "New Associated Requirement(s)", type: params.fieldType.text, isAdvanced: true, association: params.associationEnums.tc2req },
         { field: "Release", name: "New Associated Release(s)", type: params.fieldType.text, isAdvanced: true, association: params.associationEnums.tc2rel },
         { field: "TestSet", name: "New Associated Test Set(s)", type: params.fieldType.text, isAdvanced: true, association: params.associationEnums.tc2ts },
         { field: "ComponentIds", name: "Test Case Component", type: params.fieldType.component, isMulti: true },

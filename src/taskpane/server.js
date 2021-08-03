@@ -1594,17 +1594,16 @@ function clearErrorMessages(sheetData, isUpdate) {
 // returns the artifact IDs containing validation problems
 // @param: sheetData - the sheet data object
 // returns the filtered sheetData object
-
 function getValidationsFromEntries(entries, sheetData, response) {
   var artifactIds = [];
   entries.forEach(function isValidation(item, index) {
-    if(index < response.entries.length){
+    if (index < response.entries.length) {
 
-    if ('validationMessage' in item || 'error' in response.entries[index]) {
-      //if this is a invalid entry, appends its ID to the array
-      artifactIds.push(sheetData[index][0]);
+      if ('validationMessage' in item || 'error' in response.entries[index]) {
+        //if this is a invalid entry, appends its ID to the array
+        artifactIds.push(sheetData[index][0]);
+      }
     }
-  }
   });
   return artifactIds;
 }
@@ -1728,6 +1727,23 @@ function isSpecialCase(rowToPrep, model, fieldTypeEnums, fields, artifact, artif
 
 }
 
+//function that verifies if a test Step has a valid TestCase parent
+function isValidParent(entriesForExport) {
+  for (let index = entriesForExport.length; index > 0; index--) {
+    //if this is not a test step, we found the parent index
+    if (!entriesForExport[index - 1].isSubType) {
+      if (entriesForExport[index - 1].validationMessage) {
+        //this is an invalid parent
+        return false;
+      }
+      else {
+        //this is a valid parent
+        return true;
+      }
+    }
+  }
+  return true;
+}
 
 
 
@@ -1776,8 +1792,19 @@ function createExportEntries(sheetData, model, fieldTypeEnums, fields, artifact,
             lastIndentPosition = entry.indentPosition;
           }
         }
-        if (entry) { entriesForExport.push(entry); }
+        //treating special Test Case update issues
 
+        if (artifact.id == params.artifactEnums.testCases && entry.isSubType) {
+          //if this is a testStep, check if the parent is valid
+          var validParent = isValidParent(entriesForExport);
+          if (!validParent) {
+            //if the parent is not valid, mark that as an error
+            entry = {};
+            entry.validationMessage = 'Invalid TestCase parent. Please check your data.';
+          }
+        }
+
+        if (entry) { entriesForExport.push(entry); }
       }
       else {
         //we are going to skip this entry
@@ -1924,7 +1951,7 @@ function sendExportEntriesGoogle(entriesForExport, sheetData, sheet, sheetRange,
     // we need the calls to be synchronous because we need to do the status and ID of the preceding entry for hierarchical artifacts
     for (var i = 0; i < entriesForExport.length; i++) {
       if (!log.doNotContinue) {
-        log = checkSingleEntryForErrors(entriesForExport[i], log, artifact);
+        log = checkSingleEntryForErrors(entriesForExport[i], log, artifact, isUpdate);
         if (log.entries.length && log.entries[i] && log.entries[i].error) {
           // do nothing
         } else {
@@ -2107,23 +2134,47 @@ function updateSheetWithExportResults(entriesLog, commentsLog, associationsLog, 
           }
           //check for associations error
           else if (fields[col].association && associationsLog != null && associationsLog.entries != null) {
-            if (associationsLog.entries[associationCounter]) {
-              if (associationsLog.entries[associationCounter].error) {
-                bgColor = model.colors.warning;
-                associationNote = 'Error: ' + associationsLog.entries[associationCounter].message;
+            //we've reached an association field. First, we need to counter how many associations we have here
+
+            var associationText = sheetData[row][col];
+            var associationSize = 0;
+
+            //get the association field size
+            if ((associationText + '') != '') {
+              associationText = (associationText + '').replace('.', ',');
+              associationText = associationText.replace(/\s/g, '');
+              if (!isInt(associationText)) {
+                { //in this case, we must have a comma-separated string
+                  var associationIds = (associationText + '').split(',');
+                  var associationSize = associationIds.length;
+                }
               }
+              else {
+                associationSize = 1;
+              }
+            }
+            associationNote = '';
+            for (var index = 0; index < associationSize; index++) {
+              if (associationsLog.entries[index]) {
+                if (associationsLog.entries[index].error) {
+                  bgColor = model.colors.warning;
+                  associationNote = associationNote + '(' + (index + 1) + ')' + ' Error: ' + associationsLog.entries[associationCounter].message + ' ';
+                }
+              }
+              //keeping track of associations - they're not directly related to the row number
+              associationCounter++;
             }
           }
           else {
             // first handle when we are dealing with data that has been sent to Spira
             var isSubType = (entriesLog.entries[row].details && entriesLog.entries[row].details.entry && entriesLog.entries[row].details.entry.isSubType) ? entriesLog.entries[row].details.entry.isSubType : false;
-
             bgColor = setFeedbackBgColor(sheetData[row][col], entriesLog.entries[row].error, fields[col], fieldTypeEnums, artifact, model.colors);
             value = setFeedbackValue(sheetData[row][col], entriesLog.entries[row].error, fields[col], fieldTypeEnums, entriesLog.entries[row].newId || "", isSubType, col);
             note = setFeedbackNote(sheetData[row][col], entriesLog.entries[row].error, fields[col], fieldTypeEnums, entriesLog.entries[row].message, value, isUpdate);
           }
         }
       }
+
       if (IS_GOOGLE) {
         rowBgColors.push(bgColor);
         rowNotes.push(note);
@@ -2142,8 +2193,6 @@ function updateSheetWithExportResults(entriesLog, commentsLog, associationsLog, 
         cellRange.values = [[value]];
 
       }
-      //keeping track of associations - they're not directly related to the row number
-      if (fields[col].association) { associationCounter++; }
     }
     if (IS_GOOGLE) {
       bgColors.push(rowBgColors);
@@ -2168,7 +2217,7 @@ function updateSheetWithExportResults(entriesLog, commentsLog, associationsLog, 
   }
 }
 
-function checkSingleEntryForErrors(singleEntry, log, artifact) {
+function checkSingleEntryForErrors(singleEntry, log, artifact, isUpdate) {
   var response = {};
   // skip if there was an error validating the sheet row
   if (singleEntry.validationMessage) {
@@ -2177,7 +2226,7 @@ function checkSingleEntryForErrors(singleEntry, log, artifact) {
     log.errorCount++;
 
     // stop if the artifact is hierarchical because we don't know what side effects there could be to any further items.
-    if (artifact.hierarchical) {
+    if (artifact.hierarchical && isUpdate) {
       log.doNotContinue = true;
       response.message += " - no further entries were sent.";
       // make sure to push the response so that the client can process error message
@@ -2285,6 +2334,9 @@ function setFeedbackNote(cell, error, field, fieldTypeEnums, message, value, isU
       //however, special subtype IDs can be blank, that's not an error
       if (!SUBTYPE_IDS.includes(field.field)) {
         return "Error: you can't send new data to Spira when updating. Please use the 'Send data to Spira' option."
+      }
+      else {
+        return ',Error: ' + message;
       }
     }
     else {
@@ -2658,17 +2710,16 @@ function commentHasProblems(artifact) {
   return problem;
 }
 
+//checks if the text corresponds to a valid string
+function isInt(value) {
+  return !isNaN(value) && (function (x) { return (x | 0) === x; })(parseFloat(value))
+}
 
 //checks if the text we have for associations is a valid number OR a valid comma-separated string
 // returns a string - empty if no errors present (to evaluate to false), or an error message object otherwise
 // @ param: - row to inspect - object with different properties for different checks required
 //          - artifact - the artifact object model
 function associationHasProblems(row, artifact) {
-
-  function isInt(value) {
-    //checks if the text corresponds to a valid string
-    return !isNaN(value) && (function (x) { return (x | 0) === x; })(parseFloat(value))
-  }
 
   var problem = null;
 
@@ -2976,11 +3027,6 @@ function convertLocalToUTC(convertedDate, originalDate) {
   var d = new Date();
   var offsetMinutes = d.getTimezoneOffset();
   var utcDate = new Date(convertedDate.getTime() + offsetMinutes * 60000);
-  //special cases: when just a date value is added in Excel (i.e.: the time itself does not matter), we keep the same date entered in the spreadsheet
-  // if (utcDate.getHours() == 0 && utcDate.getMinutes() == 0) {
-  //   console.log('retornei special ' + convertedDate.toISOString());
-  //   return convertedDate.toISOString();
-  // }
   return utcDate.toISOString();
 }
 
@@ -3024,8 +3070,9 @@ function createAssociationEntryFromRow(row, model, fieldTypeEnums, originId) {
 
       //depending on the user's language, the console can misinterpret commas as points - this fixes it
       var associationText = (row[index] + '').replace('.', ',');
+      //removing spaces from the inputs, since it can cause errors
+      associationText = associationText.replace(/\s/g, '');
       var associationIds = (associationText).split(',');
-
       //work every chunk of data
       associationIds.forEach(function (item) {
         if (associationType == params.associationEnums.req2req) { destTypeId.push(params.artifactEnums.requirements); }
