@@ -2183,8 +2183,14 @@ function updateSheetWithExportResults(entriesLog, commentsLog, associationsLog, 
         var cellRange = sheet.getCell(row + 1, col);
         if (note) rowNotes.push(note);
         if (associationNote) {
-          var comments = context.workbook.comments;
-          comments.add(cellRange, associationNote);
+          //Handling Excel bug: Some versions does not accept adding comments. In these cases, we write the text in the cell
+          try {
+            var comments = context.workbook.comments;
+            comments.add(cellRange, associationNote);
+          }
+          catch (err) {
+            value = sheetData[row][col] + ' - ' + associationNote;
+          }
         }
         if (bgColor) {
           cellRange.set({ format: { fill: { color: bgColor } } });
