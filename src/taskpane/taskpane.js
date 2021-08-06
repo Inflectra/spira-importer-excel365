@@ -115,6 +115,12 @@ function setDevStuff(devMode) {
       model.user.userName = "administrator";
       model.user.api_key = btoa("&api-key=" + encodeURIComponent("{10E5D4F2-2188-40F5-8707-252B99B0606A}"));
     } else {
+      model.user.url = "";
+      model.user.userName = "administrator";
+      model.user.api_key = btoa("&api-key=" + encodeURIComponent("{}"));
+      // model.user.url = "https://internal-testing.spiraservice.net/";
+      // model.user.userName = "administrator";
+      // model.user.api_key = btoa("&api-key=" + encodeURIComponent("{1773F6A3-C92A-46E8-9792-700F5650E6EB}"));
 
 
     }
