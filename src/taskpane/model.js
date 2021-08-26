@@ -1,11 +1,23 @@
 /*
  *
+ * =============
+ * GENERAL SETUP
+ * =============
+ *
+ */
+var IS_GOOGLE = typeof UrlFetchApp != "undefined";
+
+/*
+ *
  * ==============================
  * MICROSOFT EXCEL SPECIFIC SETUP
  * ==============================
- *
+ * Please comment/uncomment this block of code for Google Sheets/Excel
  */
 export { params, templateFields, tempDataStore, Data };
+// ===END OF EXCEL SPECIFIC CODE===
+
+
 
 /*
  *
@@ -122,7 +134,7 @@ var templateFields = {
         { field: "AuthorId", name: "Author", type: params.fieldType.user },
         { field: "OwnerId", name: "Owner", type: params.fieldType.user },
         { field: "ComponentId", name: "Component", type: params.fieldType.component },
-        { field: "CreationDate", name: "Creation Date", type: params.fieldType.date,isReadOnly: true, isHidden: true },
+        { field: "CreationDate", name: "Creation Date", type: params.fieldType.date, isReadOnly: true, isHidden: true },
         { field: "Text", name: "New Comment", type: params.fieldType.text, isComment: true, isAdvanced: true },
         { field: "Association", name: "New Associated Requirement(s)", type: params.fieldType.text, isAdvanced: true, association: params.associationEnums.req2req },
         { field: "ConcurrencyDate", name: "Concurrency Date", type: params.fieldType.text, isReadOnly: true, isHidden: true },
@@ -226,7 +238,7 @@ var templateFields = {
     testSets: [
         { field: "TestSetId", name: "ID", type: params.fieldType.id },
         { field: "Name", name: "Name", type: params.fieldType.text, required: true },
-        { field: "Description", name: "Description", type: params.fieldType.text},
+        { field: "Description", name: "Description", type: params.fieldType.text },
         { field: "ReleaseId", name: "Scheduled Release", type: params.fieldType.release },
         {
             field: "TestRunTypeId", name: "Run Type", type: params.fieldType.drop, required: true,
@@ -433,7 +445,7 @@ var templateFields = {
         { field: "CreatorId", name: "Creator", type: params.fieldType.user, required: true },
         { field: "OwnerId", name: "Owner", type: params.fieldType.user },
         { field: "ComponentId", name: "Component", type: params.fieldType.component },
-        { field: "CreationDate", name: "Creation Date", type: params.fieldType.date, isReadOnly: true, isHidden: true},
+        { field: "CreationDate", name: "Creation Date", type: params.fieldType.date, isReadOnly: true, isHidden: true },
         { field: "ClosedDate", name: "Closed Date", type: params.fieldType.date },
         { field: "ReviewDate", name: "Review Date", type: params.fieldType.date },
         { field: "RiskExposure", name: "Risk Exposure", type: params.fieldType.int, isReadOnly: true, isHidden: true },

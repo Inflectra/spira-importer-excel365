@@ -12,7 +12,7 @@ var uiSelection = new tempDataStore();
 
 // if devmode enabled, set the required fields and show the dev button
 var devMode = false;
-var isGoogle = false;
+var isGoogle = typeof UrlFetchApp != "undefined";
 
 /*
 Global Variable to control if advanced options should be enabled to the user
@@ -43,8 +43,8 @@ var UI_MODE = {
 
 // Google Sheets specific code to run at first launch
 (function () {
-  if (typeof google != "undefined") {
-    isGoogle = true;
+  if (isGoogle) {
+
     // for dev mode only - comment out or set to false to disable any UI dev features
     setDevStuff(devMode);
 
@@ -57,19 +57,14 @@ var UI_MODE = {
 })();
 
 
-
-
-
-
-
-
 /*
  *
  * ==============================
  * MICROSOFT EXCEL SPECIFIC SETUP
  * ==============================
- *
+ * Please comment/uncomment this block of code for Google Sheets/Excel
  */
+
 import { params, templateFields, Data, tempDataStore } from './model.js';
 import * as msOffice from './server.js';
 
@@ -92,11 +87,7 @@ Office.onReady(info => {
 
 
 
-
-
-
-
-
+/* ==============================
 
 
 /*
@@ -110,10 +101,9 @@ Office.onReady(info => {
 function setDevStuff(devMode) {
   if (devMode) {
     document.getElementById("btn-dev").classList.remove("hidden");
-    model.user.url = "";
+    model.user.url = "https:";
     model.user.userName = "administrator";
     model.user.api_key = btoa("&api-key=" + encodeURIComponent("{}"));
-
     loginAttempt();
   }
 }
@@ -215,16 +205,43 @@ function clearSheet(shouldClear) {
   var shouldClearToUse = typeof shouldClear !== 'undefined' ? shouldClear : true;
   if (shouldClearToUse) {
     if (isGoogle) {
-      google.script.run.clearAll();
+      google.script.run
+        .withSuccessHandler(newTemplateHandler)
+        .clearAll();
+      return true;
     } else {
       msOffice.clearAll()
         .then((response) => document.getElementById("panel-confirm").classList.add("offscreen"))
         .catch((error) => errorExcel(error));
     }
   }
+  else { return false; }
 }
 
+//Handles the first step 
+function newTemplateHandler(shouldContinue) {
+  if (shouldContinue) {
+    showLoadingSpinner();
+    manageTemplateBtnState();
 
+    // all data should already be loaded (as otherwise template button is disabled)
+    // but check again that all data is present before kicking off template creation
+    // if so, kicks off template creation, otherwise waits and tries again
+
+    if (allGetsSucceeded()) {
+      templateLoader();
+      // otherwise, run an interval loop (should never get called as template button should be disabled)
+    } else {
+      var checkGetsSuccess = setInterval(attemptTemplateLoader, 1500);
+      function attemptTemplateLoader() {
+        if (allGetsSucceeded()) {
+          templateLoader();
+          clearInterval(checkGetsSuccess);
+        }
+      }
+    }
+  }
+}
 
 // resets the sidebar following logout
 function resetSidebar() {
@@ -308,7 +325,6 @@ function setDropdown(selectId, array, firstMessage) {
 }
 
 
-
 function isModelDifferentToSelection() {
   if (model.isTemplateLoaded) {
     var projectHasChanged = model.currentProject.id !== getSelectedProject().id;
@@ -318,12 +334,6 @@ function isModelDifferentToSelection() {
     return false;
   }
 }
-
-
-
-
-
-
 
 
 
@@ -415,12 +425,6 @@ function populateProjects(projects) {
   showPanel("decide");
   hideLoadingSpinner();
 }
-
-
-
-
-
-
 
 
 
@@ -677,10 +681,16 @@ function manageTemplateBtnState() {
 function createTemplateAttempt() {
   var message = 'The active sheet will be replaced. Continue?'
   //warn the user data will be erased
-  showPanel("confirm");
-  document.getElementById("message-confirm").innerHTML = message;
-  document.getElementById("btn-confirm-ok").onclick = () => createTemplate(true);
-  document.getElementById("btn-confirm-cancel").onclick = () => hidePanel("confirm");
+  if (isGoogle) {
+    google.script.run
+      .withSuccessHandler(clearSheet)
+      .warn(message);
+  } else {
+    showPanel("confirm");
+    document.getElementById("message-confirm").innerHTML = message;
+    document.getElementById("btn-confirm-ok").onclick = () => createTemplate(true);
+    document.getElementById("btn-confirm-cancel").onclick = () => hidePanel("confirm");
+  }
 }
 
 
@@ -711,6 +721,8 @@ function createTemplate(shouldContinue) {
   }
 }
 
+
+
 function getFromSpiraAttempt() {
   // first update state to reflect user intent
   model.isGettingDataAttempt = true;
@@ -723,7 +735,7 @@ function getFromSpiraAttempt() {
       google.script.run
         .withFailureHandler(errorImpExp)
         .withSuccessHandler(getFromSpiraComplete)
-        .getFromSpiraGoogle(model, params.fieldType);
+        .getFromSpiraGoogle(model, params.fieldType, advancedMode);
     } else {
       msOffice.getFromSpiraExcel(model, params.fieldType)
         .then((response) => getFromSpiraComplete(response))
@@ -737,17 +749,20 @@ function getFromSpiraAttempt() {
   artifactUpdateUI(UI_MODE.getData);
 }
 
+
+
+
 function getFromSpiraComplete(log) {
-  if (devMode) console.log(log);
-  //if array (which holds error responses) is present, and errors present
-  if (log && log.errorCount) {
-    errorMessages = log.entries
-      .filter(function (entry) { return entry.error; })
-      .map(function (entry) { return entry.message; });
-  }
-  else {
-    manageTemplateBtnState();
-  }
+  if (devMode) //console.log(log);
+    //if array (which holds error responses) is present, and errors present
+    if (log && log.errorCount) {
+      errorMessages = log.entries
+        .filter(function (entry) { return entry.error; })
+        .map(function (entry) { return entry.message; });
+    }
+    else {
+      manageTemplateBtnState();
+    }
   hideLoadingSpinner();
 
   //runs the export success function, passes a boolean flag, if there are errors the flag is true.
@@ -813,6 +828,10 @@ function updateSpiraAttempt() {
 }
 
 function sendToSpiraComplete(log) {
+
+  if (isGoogle && log) {
+    log = JSON.parse(log);
+  }
   hideLoadingSpinner();
   if (devMode) console.log(log);
 
@@ -1064,6 +1083,9 @@ function getCustomsSuccess(data) {
     );
   model.artifactGetRequestsMade++;
 }
+
+
+
 // starts GET request to Spira for project users properties
 // @param: user - the user object of the logged in user
 // @param: templateId - int of the reqested template
@@ -1245,6 +1267,17 @@ function templateLoader() {
     });
   }
 
+  if (isGoogle) {
+    if (!advancedMode) {
+      //if not in advanced mode, ignore the fields only available for that mode
+      fields = fields.filter(function (item) {
+        if (!item.isAdvanced) {
+          return item;
+        }
+      })
+    }
+  }
+
   // collate standard fields and custom fields
   model.fields = fields.concat(customs);
 
@@ -1258,8 +1291,8 @@ function templateLoader() {
   if (isGoogle) {
     google.script.run
       .withSuccessHandler(templateLoaderSuccess)
-      .withFailureHandler(errorUnknown)
-      .templateLoader(model, params.fieldType, advancedMode);
+      .withFailureHandler(errorImpExp)
+      .templateLoader(model, params.fieldType);
   } else {
     msOffice.templateLoader(model, params.fieldType, advancedMode)
       .then(response => templateLoaderSuccess(response))
@@ -1318,6 +1351,7 @@ function errorPopUp(type, err) {
     google.script.run.error(type);
     //sets the UI to correspond to this mode
     artifactUpdateUI(UI_MODE.errorMode);
+    hideLoadingSpinner();
   } else {
     msOffice.error(type, err);
     //sets the UI to correspond to this mode
