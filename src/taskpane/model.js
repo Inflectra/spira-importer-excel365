@@ -83,7 +83,7 @@ var params = {
         { field: 'tasks', name: 'Tasks', id: 6, hasFolders: true },
         { field: 'testSteps', name: 'Test Steps', id: 7, disabled: true, hidden: true, isSubType: true },
         { field: 'testSets', name: 'Test Sets', id: 8, hasFolders: true },
-        { field: 'risks', name: 'Risks', id: 14 }
+        { field: 'risks', name: 'Risks', id: 14 },
     ],
     //special cases enum
     specialCases: [
@@ -260,7 +260,6 @@ var templateFields = {
         {
             field: "RecurrenceId", name: "Recurrence", type: params.fieldType.drop,
             values: [
-                { id: 0, name: "One Time" },
                 { id: 1, name: "Hourly" },
                 { id: 2, name: "Daily" },
                 { id: 3, name: "Weekly" },

@@ -47,9 +47,9 @@ var IS_GOOGLE = typeof UrlFetchApp != "undefined";
  * Please uncomment/comment this block of code for Google Sheets/Excel
  */
 
-  //Import Model (data.js.html)
-  var importModel = HtmlService.createHtmlOutputFromFile('data.js').getContent();
-  eval(importModel.replace('<script>', '').replace('</script>', ''));
+//Import Model (data.js.html)
+var importModel = HtmlService.createHtmlOutputFromFile('data.js').getContent();
+eval(importModel.replace('<script>', '').replace('</script>', ''));
 
 /* ===END OF GOOGLE SPECIFIC CODE===
 
@@ -237,7 +237,8 @@ function clearAll() {
     sheet.clear();
 
     // clears data validations and notes from the entire sheet
-    var range = sheet.getRange(1, 1, lastRow, lastColumn);
+    var range = sheet.getRange(1, 1, sheet.getMaxRows() - 1, lastColumn);
+    range.clearDataValidations();
     range.clearDataValidations().clearNote();
 
     //unhide columns
@@ -845,6 +846,8 @@ function putArtifactToSpira(entry, user, projectId, artifactTypeId, parentId) {
       putUrl = API_PROJECT_BASE + projectId + '/test-sets/?';
       break;
   }
+  console.log('JSON_body');
+  console.log(JSON_body);
   return putUrl ? putUpdater(JSON_body, user, putUrl) : null;
 }
 
@@ -1140,11 +1143,14 @@ function contentValidationSetter(sheet, model, fieldTypeEnums, context) {
       case fieldTypeEnums.drop:
       case fieldTypeEnums.multi:
         var fieldList = model.fields[index].values;
-
+        //Google needs to handle displayOverride is a special way
+        /*if(IS_GOOGLE && model.fields[index].displayOverride)  {
+          list.push(model.fields[index].displayOverride.values);
+        }*/
         for (var i = 0; i < fieldList.length; i++) {
           list.push(setListItemDisplayName(fieldList[i]));
         }
-        setDropdownValidation(sheet, columnNumber, nonHeaderRows, list, false);
+        setDropdownValidation(sheet, columnNumber, nonHeaderRows, list, true);
         break;
 
       // USER fields are dropdowns with the values coming from a project wide set list
@@ -1233,7 +1239,7 @@ function setDateValidation(sheet, columnNumber, rowLength, allowInvalid) {
     // create the validation rule
     var rule = SpreadsheetApp.newDataValidation()
       .requireDate()
-      .setAllowInvalid(true)
+      .setAllowInvalid(false)
       .setHelpText('Must be a valid date')
       .build();
     range.setDataValidation(rule);
@@ -1282,9 +1288,9 @@ function setPositiveIntValidation(sheet, columnNumber, rowLength, allowInvalid) 
     // create the validation rule
     //must be a valid number greater than -1 (also excludes 1.1.0 style numbers)
     var rule = SpreadsheetApp.newDataValidation()
-      .requireNumberGreaterThan(-1)
-      .setAllowInvalid(allowInvalid)
-      .setHelpText('Must be a positive number')
+      .requireNumberGreaterThanOrEqualTo(-1)
+      .setAllowInvalid(true)
+      //.setHelpText('Must be a positive number')
       .build();
     range.setDataValidation(rule);
 
@@ -1327,11 +1333,12 @@ function setIntegerValidation(sheet, columnNumber, rowLength, allowInvalid) {
     // create the validation rule
     //must be a valid number greater than -1 (also excludes 1.1.0 style numbers)
     var rule = SpreadsheetApp.newDataValidation()
-      .requireNumberGreaterThan(0)
+      .requireNumberGreaterThanOrEqualTo(0)
       .setAllowInvalid(allowInvalid)
-      .setHelpText('Must be a whole number')
+      .setHelpText('Must be a whole number!')
       .build();
     range.setDataValidation(rule);
+    range.setNumberFormat('#');
 
   } else {
     var range = sheet.getRangeByIndexes(1, columnNumber - 1, rowLength, 1);
@@ -1372,11 +1379,12 @@ function setNumberValidation(sheet, columnNumber, rowLength, allowInvalid) {
     // create the validation rule
     //must be a valid number greater than -1 (also excludes 1.1.0 style numbers)
     var rule = SpreadsheetApp.newDataValidation()
-      .requireNumberGreaterThan(0)
+      .requireNumberGreaterThanOrEqualTo(0)
       .setAllowInvalid(allowInvalid)
-      .setHelpText('Must be a number')
+      .setHelpText('Must be a number!')
       .build();
     range.setDataValidation(rule);
+    range.setNumberFormat('####.##');
 
   } else {
     var range = sheet.getRangeByIndexes(1, columnNumber - 1, rowLength, 1);
@@ -1556,32 +1564,32 @@ function hideColumn(sheet, columnNumber, rowLength, bgColor) {
 
 function resetSheetColors(model, fieldTypeEnums, currentSheet) {
 
-	if (IS_GOOGLE) {
+  if (IS_GOOGLE) {
 
-		var fields = model.fields;
-		var columnCount = Object.keys(fields).length + 1;
-		var rowCount = currentSheet.getLastRow();
-		if (rowCount == 0) { rowCount = 1; } //avoid errors
+    var fields = model.fields;
+    var columnCount = Object.keys(fields).length + 1;
+    var rowCount = currentSheet.getLastRow();
+    if (rowCount == 0) { rowCount = 1; } //avoid errors
 
-		//reset each column color schema (depending on property type)
-		for (var j = 1; j < columnCount; j++) {
-			var isHidden = fields[j - 1].isHidden;
-			if (!isHidden) {
-				var subColumnRange = currentSheet.getRange(2, j, rowCount, 1);
-				var fieldType = fields[j - 1].type;
-				var isReadOnly = fields[j - 1].isReadOnly;
+    //reset each column color schema (depending on property type)
+    for (var j = 1; j < columnCount; j++) {
+      var isHidden = fields[j - 1].isHidden;
+      if (!isHidden) {
+        var subColumnRange = currentSheet.getRange(2, j, rowCount, 1);
+        var fieldType = fields[j - 1].type;
+        var isReadOnly = fields[j - 1].isReadOnly;
 
-				if (fieldType == fieldTypeEnums.id || fieldType == fieldTypeEnums.subId || isReadOnly) {
-					subColumnRange.setBackground(model.colors.bgReadOnly);
-					subColumnRange.clearNote();
-				}
-				else {
-					subColumnRange.setBackground(model.colors.header);
-					subColumnRange.clearNote();
-				}
-			}
-		}
-	}
+        if (fieldType == fieldTypeEnums.id || fieldType == fieldTypeEnums.subId || isReadOnly) {
+          subColumnRange.setBackground(model.colors.bgReadOnly);
+          subColumnRange.clearNote();
+        }
+        else {
+          subColumnRange.setBackground(model.colors.header);
+          subColumnRange.clearNote();
+        }
+      }
+    }
+  }
   else {
     Excel.run(function (ctx) {
       var fields = model.fields;
@@ -1751,10 +1759,14 @@ async function sendToSpira(model, fieldTypeEnums, isUpdate) {
       var artifactEntries;
       //First, send the artifact entries for Spira
       var entriesForExport = createExportEntries(sheetData, model, fieldTypeEnums, fields, artifact, artifactIsHierarchical, isUpdate);
-
+      console.log('entriesForExport');
+      console.log(entriesForExport);
       var entriesLog = sendExportEntriesGoogle(entriesForExport, '', '', sheetData, sheet, sheetRange, model, fieldTypeEnums, fields, artifact, isUpdate, '');
-
+      console.log('entriesLog');
+      console.log(entriesLog);
       var validations = getValidationsFromEntries(entriesForExport, sheetData, entriesLog);
+      console.log('validations');
+      console.log(validations);
       artifactEntries = entriesLog.entries;
 
       //Then, send the comments entry for Spira
@@ -2063,7 +2075,8 @@ function sendExportEntriesGoogle(entriesForExport, commentEntriesForExport, asso
         entriesForExport[i][ART_PARENT_IDS[artifact.id]] = log.parentId;
       }
       var logResponse = manageSendingToSpira(entriesForExport[i], model.user, model.currentProject.id, artifact, fields, fieldTypeEnums, log.parentId, isUpdate, false, false);
-
+      console.log('logResponse');
+      console.log(logResponse);
       // update the parent ID for a subtypes based on the successful API call
       if (artifact.hasSubType && !entriesForExport[i].isSubType) {
         log.parentId = logResponse.newId;
@@ -2111,14 +2124,23 @@ function sendExportEntriesGoogle(entriesForExport, commentEntriesForExport, asso
     // We use a function rather than a loop so that we can more readily use promises to chain things together and make the calls happen synchronously
     // we need the calls to be synchronous because we need to do the status and ID of the preceding entry for hierarchical artifacts
     for (var i = 0; i < entriesForExport.length; i++) {
-
-      if (!log.doNotContinue) {
-        log = checkSingleEntryForErrors(entriesForExport[i], log, artifact, isUpdate);
-        if (log.entries.length && log.entries[i] && log.entries[i].error) {
-          // do nothing
-        } else {
-          sendSingleEntry(i);
+      if (!entriesForExport[i].skip) {
+        if (!log.doNotContinue) {
+          log = checkSingleEntryForErrors(entriesForExport[i], log, artifact, isUpdate);
+          if (log.entries.length && log.entries[i] && log.entries[i].error) {
+            // do nothing
+          } else {
+            sendSingleEntry(i);
+          }
         }
+      }
+      else {
+        var skip = {
+          "skip": true
+        };
+        log.entries.push(skip);
+        log.successCount++;
+
       }
     }
 
@@ -2593,6 +2615,8 @@ function manageSendingToSpira(entry, user, projectId, artifact, fields, fieldTyp
     if (!isComment && !isAssociation) {
       if (isUpdate) {
         data = putArtifactToSpira(entry, user, projectId, artifactTypeIdToSend, parentId);
+        console.log('data');
+        console.log(data);
       }
       else {
         data = postArtifactToSpira(entry, user, projectId, artifactTypeIdToSend, parentId);
@@ -3932,7 +3956,7 @@ function matchArtifactsToFields(artifacts, artifactMeta, fields, fieldTypeEnums,
         // a field can have display overrides - if one of these overrides is in the artifact field specified, then this is returned instead of the lookup - used specifically to make sure RQ Epics show as Epics 
         if (field.displayOverride && field.displayOverride.field && field.displayOverride.values && field.displayOverride.values.includes(art[field.displayOverride.field])) {
           if (IS_GOOGLE) {
-            return '';
+            return art[field.displayOverride.field];
           }
           else {
             return art[field.displayOverride.field];

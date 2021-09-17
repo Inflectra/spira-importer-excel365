@@ -65,25 +65,25 @@ var UI_MODE = {
  * Please comment/uncomment this block of code for Google Sheets/Excel
  */
 
-import { params, templateFields, Data, tempDataStore } from './model.js';
-import * as msOffice from './server.js';
+// import { params, templateFields, Data, tempDataStore } from './model.js';
+// import * as msOffice from './server.js';
 
-export { showPanel, hidePanel };
+// export { showPanel, hidePanel };
 
 
-// MS Excel specific code to run at first launch
-Office.onReady(info => {
-  if (info.host === Office.HostType.Excel) {
-    // on init make sure to run any required startup functions
-    setEventListeners();
-    // for dev mode only - comment out or set to false to disable any UI dev features
-    setDevStuff(devMode);
+// // MS Excel specific code to run at first launch
+// Office.onReady(info => {
+//   if (info.host === Office.HostType.Excel) {
+//     // on init make sure to run any required startup functions
+//     setEventListeners();
+//     // for dev mode only - comment out or set to false to disable any UI dev features
+//     setDevStuff(devMode);
 
-    // dom specific changes
-    document.body.classList.add('ms-office');
-    document.getElementById("help-connection-google").style.display = "none";
-  }
-});
+//     // dom specific changes
+//     document.body.classList.add('ms-office');
+//     document.getElementById("help-connection-google").style.display = "none";
+//   }
+// });
 
 
 
@@ -878,6 +878,7 @@ function updateTemplateAttempt() {
 // manage showing the correct help section to the user
 // @param: choice - string. suffix for items to select (eg if id = help-section-fields, choice = "fields")
 function showChosenHelpSection(choice) {
+  console.log('it did run');
   // does not use a dynamic list using queryselectorall and node list because Excel does not support this
   // hide all sections and then only show the one the user wants
   document.getElementById("help-section-login").classList.add("hidden");
