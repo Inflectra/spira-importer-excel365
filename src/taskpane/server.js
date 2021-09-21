@@ -846,8 +846,7 @@ function putArtifactToSpira(entry, user, projectId, artifactTypeId, parentId) {
       putUrl = API_PROJECT_BASE + projectId + '/test-sets/?';
       break;
   }
-  console.log('JSON_body');
-  console.log(JSON_body);
+
   return putUrl ? putUpdater(JSON_body, user, putUrl) : null;
 }
 
@@ -1338,7 +1337,7 @@ function setIntegerValidation(sheet, columnNumber, rowLength, allowInvalid) {
       .setHelpText('Must be a whole number!')
       .build();
     range.setDataValidation(rule);
-    range.setNumberFormat('#');
+    range.setNumberFormat('0');
 
   } else {
     var range = sheet.getRangeByIndexes(1, columnNumber - 1, rowLength, 1);
@@ -1759,14 +1758,9 @@ async function sendToSpira(model, fieldTypeEnums, isUpdate) {
       var artifactEntries;
       //First, send the artifact entries for Spira
       var entriesForExport = createExportEntries(sheetData, model, fieldTypeEnums, fields, artifact, artifactIsHierarchical, isUpdate);
-      console.log('entriesForExport');
-      console.log(entriesForExport);
       var entriesLog = sendExportEntriesGoogle(entriesForExport, '', '', sheetData, sheet, sheetRange, model, fieldTypeEnums, fields, artifact, isUpdate, '');
-      console.log('entriesLog');
-      console.log(entriesLog);
       var validations = getValidationsFromEntries(entriesForExport, sheetData, entriesLog);
-      console.log('validations');
-      console.log(validations);
+
       artifactEntries = entriesLog.entries;
 
       //Then, send the comments entry for Spira
@@ -1911,6 +1905,9 @@ function createExportEntries(sheetData, model, fieldTypeEnums, fields, artifact,
         },
           // create entry used to populate all relevant data for this row
           entry = {};
+
+        console.log('rowChecks');
+        console.log(rowChecks);
 
         // first check for errors
         var hasProblems = rowHasProblems(rowChecks, isUpdate);
@@ -2075,8 +2072,6 @@ function sendExportEntriesGoogle(entriesForExport, commentEntriesForExport, asso
         entriesForExport[i][ART_PARENT_IDS[artifact.id]] = log.parentId;
       }
       var logResponse = manageSendingToSpira(entriesForExport[i], model.user, model.currentProject.id, artifact, fields, fieldTypeEnums, log.parentId, isUpdate, false, false);
-      console.log('logResponse');
-      console.log(logResponse);
       // update the parent ID for a subtypes based on the successful API call
       if (artifact.hasSubType && !entriesForExport[i].isSubType) {
         log.parentId = logResponse.newId;
@@ -2615,8 +2610,6 @@ function manageSendingToSpira(entry, user, projectId, artifact, fields, fieldTyp
     if (!isComment && !isAssociation) {
       if (isUpdate) {
         data = putArtifactToSpira(entry, user, projectId, artifactTypeIdToSend, parentId);
-        console.log('data');
-        console.log(data);
       }
       else {
         data = postArtifactToSpira(entry, user, projectId, artifactTypeIdToSend, parentId);
@@ -2904,7 +2897,7 @@ function rowCountRequiredFieldsByType(row, fields, forSubType) {
       if (fields[i].requiredForSubType && row[i]) {
         count++;
       }
-    } else if (fields[i].required && row[i]) {
+    } else if ((fields[i].required && row[i]) || (fields[i].required && row[i] == '0')) {
       count++;
     }
 
@@ -3126,10 +3119,16 @@ function createEntryFromRow(row, model, fieldTypeEnums, artifactIsHierarchical, 
 
         // INT fields
         case fieldTypeEnums.int:
-          // only set the value if a number has been returned
-          if (!isNaN(row[index])) {
-            value = row[index];
+          if (IS_GOOGLE) {
+            value = row[index].toFixed(0);
             customType = "IntegerValue";
+          } else {
+
+            // only set the value if a number has been returned
+            if (!isNaN(row[index])) {
+              value = row[index];
+              customType = "IntegerValue";
+            }
           }
           break;
 

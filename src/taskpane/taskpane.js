@@ -878,7 +878,6 @@ function updateTemplateAttempt() {
 // manage showing the correct help section to the user
 // @param: choice - string. suffix for items to select (eg if id = help-section-fields, choice = "fields")
 function showChosenHelpSection(choice) {
-  console.log('it did run');
   // does not use a dynamic list using queryselectorall and node list because Excel does not support this
   // hide all sections and then only show the one the user wants
   document.getElementById("help-section-login").classList.add("hidden");

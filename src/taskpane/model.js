@@ -397,7 +397,10 @@ var templateFields = {
         { field: "ConcurrencyDate", name: "Test Case Conc. Date", type: params.fieldType.text, isReadOnly: true, isHidden: true },
         { field: "ConcurrencyDate", name: "Test Step Conc. Date", type: params.fieldType.text, isReadOnly: true, isSubTypeField: true, isHidden: true },
         { field: "ExecutionStatusId", name: "ExecutionStatusId", type: params.fieldType.text, isReadOnly: true, isHidden: true },
-        { field: "IsSuspect", name: "IsSuspect", type: params.fieldType.bool, isReadOnly: true, isHidden: true }
+        { field: "IsSuspect", name: "IsSuspect", type: params.fieldType.bool, isReadOnly: true, isHidden: true },
+        { field: "EstimatedDuration", name: "EstimatedDuration", type: params.fieldType.text, isReadOnly: true, isHidden: true },
+        { field: "AutomationEngineId", name: "AutomationEngineId", type: params.fieldType.text, isReadOnly: true, isHidden: true }, 
+        { field: "ExecutionStatusId", name: "ExecutionStatusId", type: params.fieldType.text, isReadOnly: true, isSubTypeField: true, isHidden: true }
     ],
 
     risks: [
