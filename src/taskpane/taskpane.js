@@ -1366,6 +1366,7 @@ function errorPopUp(type, err) {
 }
 
 function errorNetwork(err) {
+  hideLoadingSpinner();
   errorPopUp("network", err);
 }
 function errorImpExp(err) {

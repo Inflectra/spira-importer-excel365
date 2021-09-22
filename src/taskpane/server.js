@@ -322,11 +322,16 @@ function fetcher(currentUser, fetcherURL) {
 
   //call Google fetch function (UrlFetchApp) if using google
   if (IS_GOOGLE) {
-    var response = UrlFetchApp.fetch(fullUrl, params);
-    //returns parsed JSON
-    //unparsed response contains error codes if needed
-    return JSON.parse(response);
-
+    try{
+      var response = UrlFetchApp.fetch(fullUrl, params);
+      //returns parsed JSON
+      //unparsed response contains error codes if needed
+      return JSON.parse(response);
+    }
+    catch(err){
+      error('network',err);
+      throw 'network error!';
+    }
     //for v6 API in Spira you HAVE to send a Content-Type header
   } else {
     return superagent
@@ -1906,9 +1911,6 @@ function createExportEntries(sheetData, model, fieldTypeEnums, fields, artifact,
           // create entry used to populate all relevant data for this row
           entry = {};
 
-        console.log('rowChecks');
-        console.log(rowChecks);
-
         // first check for errors
         var hasProblems = rowHasProblems(rowChecks, isUpdate);
         if (hasProblems) {
@@ -3120,7 +3122,12 @@ function createEntryFromRow(row, model, fieldTypeEnums, artifactIsHierarchical, 
         // INT fields
         case fieldTypeEnums.int:
           if (IS_GOOGLE) {
-            value = row[index].toFixed(0);
+            if (row[index] != '' || row[index] == '0') {
+              value = parseFloat(row[index]).toFixed(0);
+            }
+            else{
+              value = '';
+            }
             customType = "IntegerValue";
           } else {
 

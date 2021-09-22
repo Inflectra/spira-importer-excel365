@@ -228,7 +228,7 @@ var templateFields = {
         { field: "EndDate", name: "End Date", type: params.fieldType.date },
         { field: "EstimatedEffort", name: "Estimated Effort (in mins)", type: params.fieldType.int },
         { field: "ActualEffort", name: "Actual Effort (in mins)", type: params.fieldType.int },
-        { field: "ProjectedEffort", name: "Projected Effort (in mins)", type: params.fieldType.int, isReadOnly: true },
+        { field: "ProjectedEffort", name: "Projected Effort (in mins)", type: params.fieldType.int, isReadOnly: true, isHidden: true},
         { field: "RemainingEffort", name: "Remaining Effort (in mins)", type: params.fieldType.int },
         { field: "RequirementId", name: "RequirementId", type: params.fieldType.int },
         { field: "ProjectId", name: "Project ID", type: params.fieldType.int, isReadOnly: true, isHidden: true },
@@ -286,6 +286,8 @@ var templateFields = {
         { field: "ExecutionDate", name: "Execution Date", type: params.fieldType.date, isReadOnly: true, isHidden: true },
         { field: "ProjectId", name: "ProjectId", type: params.fieldType.int, isReadOnly: true, isHidden: true },
         { field: "ConcurrencyDate", name: "Concurrency Date", type: params.fieldType.text, isReadOnly: true, isHidden: true },
+        { field: "AutomationHostId", name: "AutomationHostId", type: params.fieldType.text, isReadOnly: true, isHidden: true },
+        { field: "TestConfigurationSetId", name: "TestConfigurationSetId", type: params.fieldType.text, isReadOnly: true, isHidden: true }
     ],
     incidents: [
         { field: "IncidentId", name: "Incident ID", type: params.fieldType.id },
