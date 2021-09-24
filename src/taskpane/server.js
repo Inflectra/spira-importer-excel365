@@ -322,14 +322,14 @@ function fetcher(currentUser, fetcherURL) {
 
   //call Google fetch function (UrlFetchApp) if using google
   if (IS_GOOGLE) {
-    try{
+    try {
       var response = UrlFetchApp.fetch(fullUrl, params);
       //returns parsed JSON
       //unparsed response contains error codes if needed
       return JSON.parse(response);
     }
-    catch(err){
-      error('network',err);
+    catch (err) {
+      error('network', err);
       throw 'network error!';
     }
     //for v6 API in Spira you HAVE to send a Content-Type header
@@ -1247,6 +1247,7 @@ function setDateValidation(sheet, columnNumber, rowLength, allowInvalid) {
       .setHelpText('Must be a valid date')
       .build();
     range.setDataValidation(rule);
+    range.setNumberFormat('mm/dd/yy');
 
   } else {
     var range = sheet.getRangeByIndexes(1, columnNumber - 1, rowLength, 1);
@@ -3125,7 +3126,7 @@ function createEntryFromRow(row, model, fieldTypeEnums, artifactIsHierarchical, 
             if (row[index] != '' || row[index] == '0') {
               value = parseFloat(row[index]).toFixed(0);
             }
-            else{
+            else {
               value = '';
             }
             customType = "IntegerValue";
@@ -3536,7 +3537,14 @@ function processSendToSpiraResponse(i, sentToSpira, entriesForExport, artifact, 
               response.message = regExp2[regExp2.length - 1];
             }
             catch (err2) {
-              response.message = "Update attempt failed. Please check your data.";
+              try {
+                var serverReply3 = sentToSpira.errorMessage;
+                var regExp3 = new RegExp(/'[^']*'/i).exec(serverReply3);
+                response.message = regExp3[regExp3.length - 1];
+              }
+              catch (err3) {
+                response.message = "Update attempt failed. Please check your data.";
+              }
             }
           }
         }
