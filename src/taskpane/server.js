@@ -2563,7 +2563,7 @@ function setFeedbackNote(cell, error, field, fieldTypeEnums, message, value, isU
 // @param: isSubType - bool if row is subtype or not - false on error as there will be no id to add anyway
 function setFeedbackValue(cell, error, field, fieldTypeEnums, newId, isSubType, col) {
   // when there is an error we don't change any of the cell data
-  if (error) {
+  if (error && !(col == 0 && cell == -1)) {
     return cell;
 
     // handle successful entries - ie add ids into right place
