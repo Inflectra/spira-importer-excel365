@@ -80,7 +80,7 @@ var API_PROJECT_BASE = '/services/v6_0/RestService.svc/projects/',
   },
   INITIAL_HIERARCHY_OUTDENT = -20,
   GET_PAGINATION_SIZE = 100,
-  EXCEL_MAX_ROWS = 1000,
+  EXCEL_MAX_ROWS = 100000,
   FIELD_MANAGEMENT_ENUMS = {
     all: 1,
     standard: 2,
@@ -1766,7 +1766,6 @@ async function sendToSpira(model, fieldTypeEnums, isUpdate) {
       var entriesForExport = createExportEntries(sheetData, model, fieldTypeEnums, fields, artifact, artifactIsHierarchical, isUpdate);
       var entriesLog = sendExportEntriesGoogle(entriesForExport, '', '', sheetData, sheet, sheetRange, model, fieldTypeEnums, fields, artifact, isUpdate, '');
       var validations = getValidationsFromEntries(entriesForExport, sheetData, entriesLog);
-
       artifactEntries = entriesLog.entries;
 
       //Then, send the comments entry for Spira
@@ -1976,7 +1975,12 @@ function createExportCommentEntries(sheetData, model, fieldTypeEnums, artifact, 
       var entry = {};
       // first check for errors
       var hasProblems = commentHasProblems(artifact);
-      var sourceID = artifactEntries[rowToPrep].newId;
+      var sourceID = 0;
+      if (artifactEntries[rowToPrep]) {
+        if ('newId' in artifactEntries[rowToPrep]) {
+          sourceID = artifactEntries[rowToPrep].newId;
+        }
+      }
 
       if (hasProblems) {
         entry.validationMessage = hasProblems;
@@ -2004,7 +2008,12 @@ function createExportAssociationEntries(sheetData, model, fieldTypeEnums, artifa
     } else {
       // create entry used to populate the comment field for this row
       var entry = [];
-      var sourceID = artifactEntries[rowToPrep].newId;
+      var sourceID = 0;
+      if (artifactEntries[rowToPrep]) {
+        if ('newId' in artifactEntries[rowToPrep]) {
+          sourceID = artifactEntries[rowToPrep].newId;
+        }
+      }
 
       // first check for errors
       var hasProblems = null; //associationHasProblems(sheetData[rowToPrep], model.fields);
@@ -2305,6 +2314,7 @@ function updateSheetWithExportResults(entriesLog, commentsLog, associationsLog, 
     notes = [],
     values = [];
   var associationCounter = 0;
+
   // first handle cell formatting
   for (var row = 0; row < entriesForExport.length; row++) {
     var rowBgColors = [],
@@ -2329,6 +2339,7 @@ function updateSheetWithExportResults(entriesLog, commentsLog, associationsLog, 
           }
           //check for associations error
           else if (fields[col].association && associationsLog != null && associationsLog.entries != null) {
+
             //we've reached an association field. First, we need to counter how many associations we have here
 
             var associationText = sheetData[row][col];
@@ -2348,10 +2359,11 @@ function updateSheetWithExportResults(entriesLog, commentsLog, associationsLog, 
                 associationSize = 1;
               }
             }
+
             associationNote = '';
             for (var index = 0; index < associationSize; index++) {
-              if (associationsLog.entries[index]) {
-                if (associationsLog.entries[index].error) {
+              if (associationsLog.entries[associationCounter]) {
+                if (associationsLog.entries[associationCounter].error) {
                   bgColor = model.colors.warning;
                   associationNote = associationNote + '(' + (index + 1) + ')' + ' Error: ' + associationsLog.entries[associationCounter].message + ' ';
                 }
