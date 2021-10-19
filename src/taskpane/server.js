@@ -80,7 +80,7 @@ var API_PROJECT_BASE = '/services/v6_0/RestService.svc/projects/',
   },
   INITIAL_HIERARCHY_OUTDENT = -20,
   GET_PAGINATION_SIZE = 100,
-  EXCEL_MAX_ROWS = 100000,
+  EXCEL_MAX_ROWS = 10000,
   FIELD_MANAGEMENT_ENUMS = {
     all: 1,
     standard: 2,
@@ -1769,11 +1769,11 @@ async function sendToSpira(model, fieldTypeEnums, isUpdate) {
       artifactEntries = entriesLog.entries;
 
       //Then, send the comments entry for Spira
-      var commentEntriesForExport = createExportCommentEntries(sheetData, model, fieldTypeEnums, artifact, artifactIsHierarchical, artifactEntries);
+      var commentEntriesForExport = createExportCommentEntries(sheetData, model, fieldTypeEnums, artifact, artifactIsHierarchical, artifactEntries, entriesLog);
       var commentsLog = sendExportEntriesGoogle('', commentEntriesForExport, '', sheetData, sheet, sheetRange, model, fieldTypeEnums, fields, artifact, isUpdate, validations);
 
       //Finally, send the associations
-      var associationEntriesForExport = createExportAssociationEntries(sheetData, model, fieldTypeEnums, artifact, artifactEntries);
+      var associationEntriesForExport = createExportAssociationEntries(sheetData, model, fieldTypeEnums, artifact, artifactEntries, entriesLog);
       var associationsLog = sendExportEntriesGoogle('', '', associationEntriesForExport, sheetData, sheet, sheetRange, model, fieldTypeEnums, fields, artifact, isUpdate, validations);
       var finalLog = updateSheetWithExportResults(entriesLog, commentsLog, associationsLog, entriesForExport, sheetData, sheet, sheetRange, model, fieldTypeEnums, fields, artifact, isUpdate);
       return JSON.stringify(finalLog);
@@ -1958,7 +1958,7 @@ function createExportEntries(sheetData, model, fieldTypeEnums, fields, artifact,
 //2.2 Comment fields (if any) - Sent through the artifact comment API function (POST)
 // loop to create artifact comment objects from each row taken from the spreadsheet
 // vars needed: sheetData, artifact, fields, model, fieldTypeEnums, artifactIsHierarchical,
-function createExportCommentEntries(sheetData, model, fieldTypeEnums, artifact, artifactIsHierarchical, artifactEntries) {
+function createExportCommentEntries(sheetData, model, fieldTypeEnums, artifact, artifactIsHierarchical, artifactEntries, entriesLog) {
 
   var lastIndentPosition = null,
     entriesForExport = [],
@@ -1988,6 +1988,16 @@ function createExportCommentEntries(sheetData, model, fieldTypeEnums, artifact, 
       } else {
         entry = createEntryFromRow(sheetData[rowToPrep], model, fieldTypeEnums, artifactIsHierarchical, lastIndentPosition, "", isUpdate, isComment, sourceID);
       }
+
+      //checking if the parent has any problem
+      //if so, skip this entry
+      if (!entriesLog.entries[rowToPrep]) {
+        entry.skip = true;
+      }
+      else if (entriesLog.entries[rowToPrep].error) {
+        entry.skip = true;
+      }
+
       entriesForExport.push(entry);
     }
   }
@@ -1997,7 +2007,7 @@ function createExportCommentEntries(sheetData, model, fieldTypeEnums, artifact, 
 //2.3 Association fields (if any) - Sent through the artifact association API function (POST)
 // loop to create artifact association objects from each row taken from the spreadsheet
 // vars needed: sheetData, artifact, fields, model, fieldTypeEnums, artifactIsHierarchical
-function createExportAssociationEntries(sheetData, model, fieldTypeEnums, artifact, artifactEntries) {
+function createExportAssociationEntries(sheetData, model, fieldTypeEnums, artifact, artifactEntries, entriesLog) {
   var entriesForExport = [];
 
   //in the function logics, associations are always update (we already have the ArtifactIDs)
@@ -2023,26 +2033,37 @@ function createExportAssociationEntries(sheetData, model, fieldTypeEnums, artifa
       } else {
         entry = createAssociationEntryFromRow(sheetData[rowToPrep], model, fieldTypeEnums, sourceID);
       }
-      //append each entry to the export object
-      entry.forEach(function appendItems(item) {
-        //double check to make sure this is a valid entry:
-        if (artifact.id == ART_ENUMS.requirements && item.DestArtifactId) {
-          //if valid, append to the array
-          entriesForExport.push(item);
-        }
-        else if (artifact.id == ART_ENUMS.testCases && item.RequirementId) {
-          //if valid, append to the array
-          entriesForExport.push(item);
-        }
-        else if (artifact.id == ART_ENUMS.testCases && item.ReleaseId) {
-          //if valid, append to the array
-          entriesForExport.push(item);
-        }
-        else if (artifact.id == ART_ENUMS.testCases && item.TestSetId) {
-          //if valid, append to the array
-          entriesForExport.push(item);
-        }
-      });
+      //checking if the parent has any problem
+      //if so, skip this entry
+      if (!entriesLog.entries[rowToPrep]) {
+        entry.skip = true;
+        entriesForExport.push(entry);
+      }
+      else if (entriesLog.entries[rowToPrep].error) {
+        entry.skip = true;
+        entriesForExport.push(entry);
+      } else {
+        //append each entry to the export object
+        entry.forEach(function appendItems(item) {
+          //double check to make sure this is a valid entry:
+          if ((artifact.id == ART_ENUMS.requirements && item.DestArtifactId) || (item.skip)) {
+            //if valid, append to the array
+            entriesForExport.push(item);
+          }
+          else if ((artifact.id == ART_ENUMS.testCases && item.RequirementId) || (item.skip)) {
+            //if valid, append to the array
+            entriesForExport.push(item);
+          }
+          else if ((artifact.id == ART_ENUMS.testCases && item.ReleaseId) || (item.skip)) {
+            //if valid, append to the array
+            entriesForExport.push(item);
+          }
+          else if ((artifact.id == ART_ENUMS.testCases && item.TestSetId) || (item.skip)) {
+            //if valid, append to the array
+            entriesForExport.push(item);
+          }
+        });
+      }
     }
   }
   return entriesForExport;
@@ -2102,7 +2123,7 @@ function sendExportEntriesGoogle(entriesForExport, commentEntriesForExport, asso
 
     // loop through comment objects to send
     function sendSingleCommentEntry(j) {
-      if (!validations.includes(commentEntriesForExport[j].ArtifactId)) { //if this is a valid entry
+      if (!validations.includes(commentEntriesForExport[j].ArtifactId) && !(commentEntriesForExport[j].skip)) { //if this is a valid entry
         var logResponse = manageSendingToSpira(commentEntriesForExport[j], model.user, model.currentProject.id, artifact, fields, fieldTypeEnums, log.parentId, isUpdate, true, false);
         // update the parent ID for a subtypes based on the successful API call
         if (artifact.hasSubType) {
@@ -2114,7 +2135,7 @@ function sendExportEntriesGoogle(entriesForExport, commentEntriesForExport, asso
 
     // loop through association objects to send
     function sendSingleAssociationEntry(k) {
-      if (!validations.includes(associationEntriesForExport[k].SourceArtifactId)) { //if this is a valid entry
+      if (!validations.includes(associationEntriesForExport[k].SourceArtifactId) && !(associationEntriesForExport[k].skip)) { //if this is a valid entry
         var logResponse = manageSendingToSpira(associationEntriesForExport[k], model.user, model.currentProject.id, artifact, fields, fieldTypeEnums, log.parentId, isUpdate, false, true)
         // update the parent ID for a subtypes based on the successful API call
         if (artifact.hasSubType) {
@@ -2557,6 +2578,9 @@ function setFeedbackNote(cell, error, field, fieldTypeEnums, message, value, isU
       else {
         return ',Error: ' + message;
       }
+    }
+    else if(!isUpdate && cell != ''){
+      return ' Error: row previously added to Spira. Skipped to avoid duplicates.';
     }
     else {
       return value + ',' + message;
