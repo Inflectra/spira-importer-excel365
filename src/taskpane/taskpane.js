@@ -11,7 +11,7 @@ var model = new Data();
 var uiSelection = new tempDataStore();
 
 // if devmode enabled, set the required fields and show the dev button
-var devMode = false;
+var devMode = true;
 var isGoogle = typeof UrlFetchApp != "undefined";
 
 /*
@@ -27,6 +27,7 @@ var advancedMode = false;
 //ENUMS
 
 var UI_MODE = {
+  initialState: 0,
   newProject: 1,
   newArtifact: 2,
   getData: 3,
@@ -42,19 +43,19 @@ var UI_MODE = {
  */
 
 // Google Sheets specific code to run at first launch
-(function () {
-  if (isGoogle) {
+// (function () {
+//   if (isGoogle) {
 
-    // for dev mode only - comment out or set to false to disable any UI dev features
-    setDevStuff(devMode);
+//     // for dev mode only - comment out or set to false to disable any UI dev features
+//     setDevStuff(devMode);
 
-    // add event listeners to the dom
-    setEventListeners();
+//     // add event listeners to the dom
+//     setEventListeners();
 
-    // dom specific changes
-    document.getElementById("help-connection-excel").style.display = "none";
-  }
-})();
+//     // dom specific changes
+//     document.getElementById("help-connection-excel").style.display = "none";
+//   }
+// })();
 
 
 /*
@@ -65,25 +66,25 @@ var UI_MODE = {
  * Please comment/uncomment this block of code for Google Sheets/Excel
  */
 
-// import { params, templateFields, Data, tempDataStore } from './model.js';
-// import * as msOffice from './server.js';
+import { params, templateFields, Data, tempDataStore } from './model.js';
+import * as msOffice from './server.js';
 
-// export { showPanel, hidePanel };
+export { showPanel, hidePanel };
 
 
-// // MS Excel specific code to run at first launch
-// Office.onReady(info => {
-//   if (info.host === Office.HostType.Excel) {
-//     // on init make sure to run any required startup functions
-//     setEventListeners();
-//     // for dev mode only - comment out or set to false to disable any UI dev features
-//     setDevStuff(devMode);
+// MS Excel specific code to run at first launch
+Office.onReady(info => {
+  if (info.host === Office.HostType.Excel) {
+    // on init make sure to run any required startup functions
+    setEventListeners();
+    // for dev mode only - comment out or set to false to disable any UI dev features
+    setDevStuff(devMode);
 
-//     // dom specific changes
-//     document.body.classList.add('ms-office');
-//     document.getElementById("help-connection-google").style.display = "none";
-//   }
-// });
+    // dom specific changes
+    document.body.classList.add('ms-office');
+    document.getElementById("help-connection-google").style.display = "none";
+  }
+});
 
 
 
@@ -101,9 +102,10 @@ var UI_MODE = {
 function setDevStuff(devMode) {
   if (devMode) {
     document.getElementById("btn-dev").classList.remove("hidden");
-    model.user.url = "https:";
+    model.user.url = "";
     model.user.userName = "administrator";
     model.user.api_key = btoa("&api-key=" + encodeURIComponent("{}"));
+
     loginAttempt();
   }
 }
@@ -381,6 +383,7 @@ function loginAttempt() {
 
 // login function that starts the intial data creation
 function login() {
+  artifactUpdateUI(UI_MODE.initialState);
   showLoadingSpinner();
   // call server side function to get projects
   // also serves as authentication check, if the user credentials aren't correct it will throw a network error
@@ -560,6 +563,24 @@ function artifactUpdateUI(mode) {
 
   switch (mode) {
 
+    case UI_MODE.initialState:
+      //when re-starting session
+
+      document.getElementById('main-guide-1-fromSpira').style.fontWeight = 'bold';
+      document.getElementById("main-guide-1").classList.remove("pale");
+
+      document.getElementById('main-guide-2').style.fontWeight = 'normal';
+      document.getElementById("main-guide-2").classList.add("pale");
+      document.getElementById("btn-fromSpira").disabled = true;
+
+      document.getElementById('main-guide-3').style.fontWeight = 'normal';
+      document.getElementById("btn-updateToSpira").disabled = true;
+
+      document.getElementById('btn-fromSpira').classList.remove('ms-Button--default');
+      document.getElementById('btn-fromSpira').classList.add('ms-Button--primary');
+
+      break;
+
     case UI_MODE.newProject:
       //when selecting a new project
       document.getElementById("main-guide-1").classList.remove("pale");
@@ -640,19 +661,32 @@ function manageTemplateBtnState() {
       if (allGetsSucceeded()) {
 
         if (!document.getElementById("btn-updateToSpira").disabled) {
+          //Send to Spira is active - click on Get from Spira
           //sets the UI to allow update
           document.getElementById("btn-fromSpira").disabled = false;
+
           document.getElementById("main-guide-2").classList.add("pale");
           document.getElementById("main-guide-3").classList.remove("pale");
           document.getElementById("message-fetching-data").style.visibility = "hidden";
         }
         else {
+          //Send to Spira is NOT active - project is selected
           document.getElementById("btn-toSpira").disabled = false;
           document.getElementById("btn-fromSpira").disabled = false;
+          document.getElementById("btn-updateToSpira").disabled = true;
+
+          document.getElementById('btn-fromSpira').classList.remove('ms-Button--default');
+          document.getElementById('btn-fromSpira').classList.add('ms-Button--primary');
 
           document.getElementById("message-fetching-data").style.visibility = "hidden";
+
           document.getElementById("main-guide-1").classList.add("pale");
           document.getElementById("main-guide-2").classList.remove("pale");
+          document.getElementById("main-guide-3").classList.add("pale");
+
+          document.getElementById('main-guide-1-fromSpira').style.fontWeight = 'normal';
+          document.getElementById('main-guide-2').style.fontWeight = 'bold';
+          document.getElementById('main-guide-3').style.fontWeight = 'normal';
         }
 
         clearInterval(checkGetsSuccess);

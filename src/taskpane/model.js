@@ -44,7 +44,8 @@ var params = {
         testSets: 8,
         risks: 14
     },
-
+    
+    dataSheetName: "database",
 
     // enums for different types of field - match custom field prop types where relevant
     fieldType: {
@@ -72,6 +73,12 @@ var params = {
         tc2rel: 3,
         tc2ts: 4
     },
+    associationTextLabels: {
+        1: "[Req. to Req.]",
+        2: "[TestCase to Req.]",
+        3: "[TestCase to Rel.]",
+        4: "[TestCase to TestSet]",
+    },
 
     // enums and various metadata for all artifacts potentially used by the system
     artifacts: [
@@ -88,7 +95,12 @@ var params = {
     //special cases enum
     specialCases: [
         { artifactId: 2, parameter: 'TestStepId', field: 'Description', target: "Call TC:" }
-    ]
+    ],
+    //enum for result column
+    resultColumns: {
+        Requirements: 14,
+        'Test Cases': 18,
+    },
 };
 
 // each artifact has all its standard fields listed, along with important metadata - display name, field type, hard coded values set by system
@@ -137,6 +149,7 @@ var templateFields = {
         { field: "CreationDate", name: "Creation Date", type: params.fieldType.date, isReadOnly: true, isHidden: true },
         { field: "Text", name: "New Comment", type: params.fieldType.text, isComment: true, isAdvanced: true },
         { field: "Association", name: "New Associated Requirement(s)", type: params.fieldType.text, isAdvanced: true, association: params.associationEnums.req2req },
+        { field: "Result", name: "Advanced 'Send to Spira' Log", type: params.fieldType.text, isReadOnly: true, isComments: true, isAdvanced: true},
         { field: "ConcurrencyDate", name: "Concurrency Date", type: params.fieldType.text, isReadOnly: true, isHidden: true },
         { field: "IndentLevel", name: "Indent Level", type: params.fieldType.text, isReadOnly: true, isHidden: true },
         { field: "Summary", name: "Summary", type: params.fieldType.bool, isReadOnly: true, isHidden: true }
@@ -393,9 +406,10 @@ var templateFields = {
         { field: "Requirement", name: "New Associated Requirement(s)", type: params.fieldType.text, isAdvanced: true, association: params.associationEnums.tc2req },
         { field: "Release", name: "New Associated Release(s)", type: params.fieldType.text, isAdvanced: true, association: params.associationEnums.tc2rel },
         { field: "TestSet", name: "New Associated Test Set(s)", type: params.fieldType.text, isAdvanced: true, association: params.associationEnums.tc2ts },
+        { field: "Text", name: "New Comment", type: params.fieldType.text, isComment: true, isAdvanced: true },
+        { field: "Result", name: "Advanced 'Send to Spira' Log", type: params.fieldType.text, isReadOnly: true, isComments: true, isAdvanced: true},
         { field: "ComponentIds", name: "Test Case Component", type: params.fieldType.component, isMulti: true },
         { field: "CreationDate", name: "Test Case Creation Date", type: params.fieldType.text, isReadOnly: true, isHidden: true },
-        { field: "Text", name: "New Comment", type: params.fieldType.text, isComment: true, isAdvanced: true },
         { field: "ConcurrencyDate", name: "Test Case Conc. Date", type: params.fieldType.text, isReadOnly: true, isHidden: true },
         { field: "ConcurrencyDate", name: "Test Step Conc. Date", type: params.fieldType.text, isReadOnly: true, isSubTypeField: true, isHidden: true },
         { field: "ExecutionStatusId", name: "ExecutionStatusId", type: params.fieldType.text, isReadOnly: true, isHidden: true },
