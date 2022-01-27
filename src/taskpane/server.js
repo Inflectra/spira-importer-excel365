@@ -812,6 +812,14 @@ function putArtifactToSpira(entry, user, projectId, artifactTypeId, parentId) {
  *
  */
 
+/*
+ *
+ * ==============
+ * ERROR MESSAGES
+ * ==============
+ *
+ */
+
 // Error notification function
 // Assigns string value and routes error call from client.js.html
 // @param: type - string identifying the message to be displayed
@@ -823,12 +831,14 @@ function error(type, err) {
     message = 'There was an input error. Please check that your entries are correct.';
   } else if (type == "network") {
     message = 'Network error. Please check your username, url, and password. If correct make sure you have the correct permissions.';
-    details = err ? `<br><br>STATUS: ${err.status ? err.status : "unknown"}<br>MESSAGE: ${err.response ? err.response.text : "unknown"}` : "";
+    details = err ? `<br><br><b>STATUS:</b> ${err.status ? err.status : "unknown"}<br><br><b>MESSAGE:</b> ${err.stack ? err.stack : "unknown"}` : "";
   } else if (type == 'excel') {
     message = 'Excel reported an error!';
     details = err ? `<br><br>Description: ${err.description}` : "";
   } else if (type == 'unknown' || err == 'unknown') {
     message = 'Unkown error. Please try again later or contact your system administrator';
+  } else if (type == 'sheet') {
+    message = 'There was a problem while retrieving data from the active spreadsheet. Please check the details below and try again. <br><br><b>Details:</b><br>' + err;
   } else {
     message = 'Unkown error. Please try again later or contact your system administrator';
   }
