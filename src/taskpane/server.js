@@ -384,11 +384,10 @@ function fetcher(currentUser, fetcherURL) {
 }
 
 
-
 // Gets projects accessible by current logged in user
 // This function is called on initial log in and therefore also acts as user validation
 // @param: currentUser - object with details about the current user
-function getProjects(currentUser) {
+async function getProjects(currentUser) {
   var fetcherURL = API_PROJECT_BASE_NO_SLASH + '?';
   return fetcher(currentUser, fetcherURL);
 }
@@ -456,12 +455,22 @@ function getBespoke(currentUser, templateId, projectId, artifactName, field) {
 
 
 
-// Gets releases for selected project
+// Gets ACTIVE releases for selected project
 // @param: currentUser - object with details about the current user
 // @param: projectId - int id for current project
 function getReleases(currentUser, projectId) {
   var fetcherURL = API_PROJECT_BASE + projectId + '/releases?';
-  return fetcher(currentUser, fetcherURL);
+
+  fetcher(currentUser, fetcherURL).then(function (response) {
+
+    var activeReleases = response.body.filter(function (release) {
+      if (release.Active) {
+        return release;
+      }
+    });
+    
+    return activeReleases;
+  });
 }
 
 
@@ -916,7 +925,7 @@ function error(type, err) {
     message = 'There was an input error. Please check that your entries are correct.';
   } else if (type == "network") {
     message = 'Network error. Please check your username, url, and password. If correct make sure you have the correct permissions.';
-    details = err ? `<br><br>STATUS: ${err.status ? err.status : "unknown"}<br>MESSAGE: ${err.response ? err.response.text : "unknown"}` : "";
+    details = err ? `<br><br><b>STATUS:</b> ${err.status ? err.status : "unknown"}<br><br><b>MESSAGE:</b> ${err.stack ? err.stack : "unknown"}` : "";
   } else if (type == 'excel') {
     message = 'Excel reported an error!';
     details = err ? `<br><br>Description: ${err.description}` : "";
@@ -1219,6 +1228,7 @@ function dataBaseValidationSetter(mainSheetName, model, fieldTypeEnums, context)
 
       // RELEASE fields are dropdowns with the values coming from a project wide set list
       case fieldTypeEnums.release:
+
         for (var l = 0; l < model.projectReleases.length; l++) {
           list.push(setListItemDisplayName(model.projectReleases[l]));
         }
@@ -3812,7 +3822,6 @@ function getFromSpiraGoogle(model, fieldTypeEnums, advancedMode) {
       return a.indentLevel < b.indentLevel ? -1 : 1;
     });
   }
-
 
   // 4. if artifact has subtype that needs to be retrieved separately, do so
   if (model.currentArtifact.hasSubType) {
