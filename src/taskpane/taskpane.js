@@ -112,7 +112,7 @@ function setDevStuff(devMode) {
     document.getElementById("btn-dev").classList.remove("hidden");
     model.user.url = "";
     model.user.userName = "administrator";
-    model.user.api_key = btoa("&api-key=" + encodeURIComponent("{}"));
+    model.user.api_key = btoa("&api-key=" + encodeURIComponent(""));
 
     loginAttempt();
   }
