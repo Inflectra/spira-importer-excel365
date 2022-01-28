@@ -11,7 +11,7 @@ var model = new Data();
 var uiSelection = new tempDataStore();
 
 // if devmode enabled, set the required fields and show the dev button
-var devMode = true;
+var devMode = false;
 var isGoogle = false;
 
 /*
@@ -110,9 +110,9 @@ Office.onReady(info => {
 function setDevStuff(devMode) {
   if (devMode) {
     document.getElementById("btn-dev").classList.remove("hidden");
-    model.user.url = "https://internal-bruno.spiraservice.net/";
+    model.user.url = "";
     model.user.userName = "administrator";
-    model.user.api_key = btoa("&api-key=" + encodeURIComponent("{fsdfsd}"));
+    model.user.api_key = btoa("&api-key=" + encodeURIComponent(""));
 
     loginAttempt();
   }
