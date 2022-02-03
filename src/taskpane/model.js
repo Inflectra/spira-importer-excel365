@@ -49,21 +49,34 @@ var params = {
 
     // enums for different types of field - match custom field prop types where relevant
     fieldType: {
-        text: 1,
-        int: 2,
-        num: 3,
-        bool: 4,
-        date: 5,
-        drop: 6,
-        multi: 7,
-        user: 8,
+        text: 101,
+        int: 102,
+        num:103,
+        bool: 104,
+        date: 105,
+        drop: 106,
+        multi: 107,
+        user: 108,
         // following types don't exist as custom property types as set by Spira - but useful for defining standard field types here
-        id: 9,
-        subId: 10,
-        component: 11, // project level field
-        release: 12, // project level field
-        arr: 13, // used for comma separated lists in a single cell (eg linked Ids)
-        folder: 14 // don't think in reality this will be need
+        id: 109,
+        subId: 110,
+        component: 111, // project level field
+        release: 112, // project level field
+        arr: 113, // used for comma separated lists in a single cell (eg linked Ids)
+        folder: 114, // don't think in reality this will be need
+        //custom properties (6.13+)
+        customText: 1,
+        customInteger: 2,
+        customDecimal: 3,
+        customBoolean: 4,
+        customDate: 5,
+        customList: 6,
+        customMultiList: 7,
+        customUser: 8,
+        customPassword: 9,
+        customRelease: 10,
+        customDateAndTime: 11,
+        customAutomationHost: 12,
     },
 
     //enums for association between artifact types we handle in the add-in
@@ -488,6 +501,7 @@ function Data() {
 
     this.currentProject = '';
     this.projectComponents = [];
+    this.projectActiveReleases = [];
     this.projectReleases = [];
     this.projectUsers = [];
     this.indentCharacter = ">";
@@ -522,6 +536,7 @@ function Data() {
 function tempDataStore() {
     this.currentProject = '';
     this.projectComponents = [];
+    this.projectActiveReleases = [];
     this.projectReleases = [];
     this.projectUsers = [];
 

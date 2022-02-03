@@ -111,6 +111,14 @@ var API_PROJECT_BASE = '/services/v6_0/RestService.svc/projects/',
     6: "Data sent! Since you are using the advanced mode, any errors related to comments and/or associations will be marked as red in the spreadsheet. To send more data over, clear the sheet first."
   },
   CUSTOM_PROP_TYPE_ENUM = {
+    101: "StringValue",
+    102: "IntegerValue",
+    103: "DecimalValue",
+    104: "BooleanValue",
+    105: "DateTimeValue",
+    106: "IntegerValue",
+    107: "IntegerListValue",
+    108: "IntegerValue",
     1: "StringValue",
     2: "IntegerValue",
     3: "DecimalValue",
@@ -118,8 +126,11 @@ var API_PROJECT_BASE = '/services/v6_0/RestService.svc/projects/',
     5: "DateTimeValue",
     6: "IntegerValue",
     7: "IntegerListValue",
-    8: "IntegerValue"
-
+    8: "IntegerValue",
+    9: "StringValue",
+    10: "IntegerValue",
+    11: "DateTimeValue",
+    12: "IntegerValue"
   },
   INLINE_STYLING = "style='font-family: sans-serif'",
   ART_PARENT_IDS = {
@@ -455,22 +466,12 @@ function getBespoke(currentUser, templateId, projectId, artifactName, field) {
 
 
 
-// Gets ACTIVE releases for selected project
+// Gets releases for selected project
 // @param: currentUser - object with details about the current user
 // @param: projectId - int id for current project
 function getReleases(currentUser, projectId) {
   var fetcherURL = API_PROJECT_BASE + projectId + '/releases?';
-
-  fetcher(currentUser, fetcherURL).then(function (response) {
-
-    var activeReleases = response.body.filter(function (release) {
-      if (release.Active) {
-        return release;
-      }
-    });
-    
-    return activeReleases;
-  });
+  return fetcher(currentUser, fetcherURL);
 }
 
 
@@ -1181,9 +1182,18 @@ function contentValidationSetter(sheet, model, fieldTypeEnums, context) {
       case fieldTypeEnums.int:
         setIntegerValidation(sheet, columnNumber, nonHeaderRows, false);
         break;
+      case fieldTypeEnums.customInteger:
+        setIntegerValidation(sheet, columnNumber, nonHeaderRows, false);
+        break;
+      case fieldTypeEnums.customAutomationHost:
+        setIntegerValidation(sheet, columnNumber, nonHeaderRows, false);
+        break;
 
       // NUM fields are handled as decimals by Excel though
       case fieldTypeEnums.num:
+        setNumberValidation(sheet, columnNumber, nonHeaderRows, false);
+        break;
+      case fieldTypeEnums.customDecimal:
         setNumberValidation(sheet, columnNumber, nonHeaderRows, false);
         break;
 
@@ -1191,8 +1201,21 @@ function contentValidationSetter(sheet, model, fieldTypeEnums, context) {
       case fieldTypeEnums.date:
         setDateValidation(sheet, columnNumber, nonHeaderRows, false);
         break;
+      case fieldTypeEnums.customDate:
+        setDateValidation(sheet, columnNumber, nonHeaderRows, false);
+        break;
+      case fieldTypeEnums.customDateAndTime:
+        setDateTimeValidation(sheet, columnNumber, nonHeaderRows, false);
+        break;
 
+      //TEXT types validation
       case fieldTypeEnums.text:
+        setTextValidation(sheet, columnNumber, nonHeaderRows, false);
+        break;
+      case fieldTypeEnums.customText:
+        setTextValidation(sheet, columnNumber, nonHeaderRows, false);
+        break;
+      case fieldTypeEnums.customPassword:
         setTextValidation(sheet, columnNumber, nonHeaderRows, false);
         break;
 
@@ -1214,7 +1237,6 @@ function dataBaseValidationSetter(mainSheetName, model, fieldTypeEnums, context)
   for (var index = 0; index < model.fields.length; index++) {
     var columnNumber = index + 1,
       list = [];
-
     switch (model.fields[index].type) {
       // DROPDOWNS and MULTIDROPDOWNS are both treated as simple dropdowns (Sheets does not have multi selects)
       case fieldTypeEnums.drop:
@@ -1228,7 +1250,13 @@ function dataBaseValidationSetter(mainSheetName, model, fieldTypeEnums, context)
 
       // RELEASE fields are dropdowns with the values coming from a project wide set list
       case fieldTypeEnums.release:
+        for (var l = 0; l < model.projectActiveReleases.length; l++) {
+          list.push(setListItemDisplayName(model.projectActiveReleases[l]));
+        }
+        setDropdownValidation(mainSheetName, columnNumber, list, false, context);
+        break;
 
+      case fieldTypeEnums.customRelease:
         for (var l = 0; l < model.projectReleases.length; l++) {
           list.push(setListItemDisplayName(model.projectReleases[l]));
         }
@@ -1242,9 +1270,22 @@ function dataBaseValidationSetter(mainSheetName, model, fieldTypeEnums, context)
         setDropdownValidation(mainSheetName, columnNumber, list, false, context);
         break;
 
+      case fieldTypeEnums.customBoolean:
+        // 'True' and 'False' don't work as dropdown choices
+        list.push("Yes", "No");
+        setDropdownValidation(mainSheetName, columnNumber, list, false, context);
+        break;
+
 
       // USER fields are dropdowns with the values coming from a project wide set list
       case fieldTypeEnums.user:
+        for (var j = 0; j < model.projectUsers.length; j++) {
+          list.push(setListItemDisplayName(model.projectUsers[j]));
+        }
+        setDropdownValidation(mainSheetName, columnNumber, list, false, context);
+        break;
+
+      case fieldTypeEnums.customUser:
         for (var j = 0; j < model.projectUsers.length; j++) {
           list.push(setListItemDisplayName(model.projectUsers[j]));
         }
@@ -1363,6 +1404,53 @@ function setDateValidation(sheet, columnNumber, rowLength, allowInvalid) {
     };
     //now set the cell format to dates
     range.numberFormatLocal = "dd-mmm-yyyy";
+  }
+}
+
+// create dateTime validation on set column based on specified values
+// @param: sheet - the sheet object
+// @param: columnNumber - int of the column to validate
+// @param: rowLength - int of the number of rows for range (global param)
+// @param: allowInvalid - bool to state whether to restrict any values to those in validation or not
+function setDateTimeValidation(sheet, columnNumber, rowLength, allowInvalid) {
+  if (IS_GOOGLE) {
+    // create range
+    var range = sheet.getRange(2, columnNumber, rowLength);
+
+    // create the validation rule
+    var rule = SpreadsheetApp.newDataValidation()
+      .requireDate()
+      .setAllowInvalid(false)
+      .setHelpText('Must be a valid date')
+      .build();
+    range.setDataValidation(rule);
+    range.setNumberFormat('mm/dd/yy hh:mm:ss am/pm');
+
+  } else {
+    var range = sheet.getRangeByIndexes(1, columnNumber - 1, rowLength, 1);
+    range.dataValidation.clear();
+
+    var greaterThan2000Rule = {
+      date: {
+        formula1: "2000-01-01",
+        operator: Excel.DataValidationOperator.greaterThan
+      }
+    };
+    range.dataValidation.rule = greaterThan2000Rule;
+
+    range.dataValidation.prompt = {
+      message: "Please enter a date.",
+      showPrompt: true,
+      title: "Valid dates only."
+    };
+    range.dataValidation.errorAlert = {
+      message: "Sorry, only dates are allowed",
+      showAlert: true,
+      style: "Stop",
+      title: "Invalid date entered"
+    };
+    //now set the cell format to dates
+    range.numberFormatLocal = "dd-mmm-yyyy hh:mm:ss am/pm";
   }
 }
 
@@ -3261,9 +3349,34 @@ function createEntryFromRow(row, model, fieldTypeEnums, artifactIsHierarchical, 
             }
           }
           break;
+        case fieldTypeEnums.customInteger:
+          if (IS_GOOGLE) {
+            if (row[index] != '' || row[index] == '0') {
+              value = parseFloat(row[index]).toFixed(0);
+            }
+            else {
+              value = '';
+            }
+            customType = "IntegerValue";
+          } else {
+
+            // only set the value if a number has been returned
+            if (!isNaN(row[index])) {
+              value = row[index];
+              customType = "IntegerValue";
+            }
+          }
+          break;
 
         // DECIMAL fields
         case fieldTypeEnums.num:
+          // only set the value if a number has been returned
+          if (!isNaN(row[index])) {
+            value = row[index];
+            customType = "DecimalValue";
+          }
+          break;
+        case fieldTypeEnums.customDecimal:
           // only set the value if a number has been returned
           if (!isNaN(row[index])) {
             value = row[index];
@@ -3282,6 +3395,17 @@ function createEntryFromRow(row, model, fieldTypeEnums, artifactIsHierarchical, 
             customType = "BooleanValue";
           }
           break;
+        case fieldTypeEnums.customBoolean:
+          // 'True' and 'False' don't work as dropdown choices, so have to convert back
+          if (row[index] == "Yes") {
+            value = true;
+            customType = "BooleanValue";
+          } else if (row[index] == "No") {
+            value = false;
+            customType = "BooleanValue";
+          }
+          break;
+
 
         // DATES - parse the data and add prefix/suffix for WCF
         case fieldTypeEnums.date:
@@ -3297,7 +3421,32 @@ function createEntryFromRow(row, model, fieldTypeEnums, artifactIsHierarchical, 
             customType = "DateTimeValue";
           }
           break;
-
+        case fieldTypeEnums.customDate:
+          if (row[index]) {
+            if (IS_GOOGLE) {
+              value = row[index];
+            } else {
+              // for Excel, dates are returned as days since 1900 - so we need to adjust this for JS date formats
+              const DAYS_BETWEEN_1900_1970 = 25567 + 2;
+              const dateInMs = (row[index] - DAYS_BETWEEN_1900_1970) * 86400 * 1000;
+              value = convertLocalToUTC(new Date(dateInMs), dateInMs);
+            }
+            customType = "DateTimeValue";
+          }
+          break;
+        case fieldTypeEnums.customDateAndTime:
+          if (row[index]) {
+            if (IS_GOOGLE) {
+              value = row[index];
+            } else {
+              // for Excel, dates are returned as days since 1900 - so we need to adjust this for JS date formats
+              const DAYS_BETWEEN_1900_1970 = 25567 + 2;
+              const dateInMs = (row[index] - DAYS_BETWEEN_1900_1970) * 86400 * 1000;
+              value = convertLocalToUTC(new Date(dateInMs), dateInMs);
+            }
+            customType = "DateTimeValue";
+          }
+          break;
         // ARRAY fields are for multiselect lists - currently not supported so just push value into an array to make sure server handles it correctly
         case fieldTypeEnums.arr:
           if (row[index]) {
@@ -3332,6 +3481,13 @@ function createEntryFromRow(row, model, fieldTypeEnums, artifactIsHierarchical, 
             customType = "IntegerValue";
           }
           break;
+        case fieldTypeEnums.customUser:
+          idFromName = getIdFromName(row[index], model.projectUsers);
+          if (idFromName) {
+            value = idFromName;
+            customType = "IntegerValue";
+          }
+          break;
 
         // COMPONENT fields - get id from relevant name, if one is present
         case fieldTypeEnums.component:
@@ -3345,6 +3501,13 @@ function createEntryFromRow(row, model, fieldTypeEnums, artifactIsHierarchical, 
 
         // RELEASE fields - get id from relevant name, if one is present
         case fieldTypeEnums.release:
+          idFromName = getIdFromName(row[index], model.projectActiveReleases);
+          if (idFromName) {
+            value = idFromName;
+            customType = "IntegerValue";
+          }
+          break;
+        case fieldTypeEnums.customRelease:
           idFromName = getIdFromName(row[index], model.projectReleases);
           if (idFromName) {
             value = idFromName;
@@ -3867,6 +4030,7 @@ function getFromSpiraGoogle(model, fieldTypeEnums, advancedMode) {
     fieldTypeEnums,
     model.projectUsers,
     model.projectComponents,
+    model.projectActiveReleases,
     model.projectReleases
   );
 
@@ -3992,13 +4156,13 @@ async function getDataFromSpiraExcel(model, fieldTypeEnums) {
       return a.indentLevel < b.indentLevel ? -1 : 1;
     });
   }
-
   // 4. if artifact has subtype that needs to be retrieved separately, do so
   if (model.currentArtifact.hasSubType) {
     // find the id field
     var idFieldNameArray = model.fields.filter(function (field) {
       return field.type === fieldTypeEnums.id;
     });
+
 
     // if we have an id field, then we can find the id number for each artifact in the array
     if (idFieldNameArray && idFieldNameArray[0].field) {
@@ -4053,6 +4217,7 @@ function processDataFromSpiraExcel(artifacts, model, fieldTypeEnums) {
     fieldTypeEnums,
     model.projectUsers,
     model.projectComponents,
+    model.projectActiveReleases,
     model.projectReleases
   );
 
@@ -4077,8 +4242,7 @@ function processDataFromSpiraExcel(artifacts, model, fieldTypeEnums) {
 // @param: users - array of the user objects
 // @param: components - array of the component objects
 // @param: releases - array of the release objects
-function matchArtifactsToFields(artifacts, artifactMeta, fields, fieldTypeEnums, users, components, releases) {
-
+function matchArtifactsToFields(artifacts, artifactMeta, fields, fieldTypeEnums, users, components, activeReleases, releases) {
   return artifacts.map(function (art) {
     return fields.map(function (field) {
       var originalFieldValue = "";
@@ -4119,7 +4283,9 @@ function matchArtifactsToFields(artifacts, artifactMeta, fields, fieldTypeEnums,
         field.type == fieldTypeEnums.multi ||
         field.type == fieldTypeEnums.user ||
         field.type == fieldTypeEnums.component ||
-        field.type == fieldTypeEnums.release
+        field.type == fieldTypeEnums.release ||
+        field.type == fieldTypeEnums.customUser ||
+        field.type == fieldTypeEnums.customRelease
       ) {
         // a field can have display overrides - if one of these overrides is in the artifact field specified, then this is returned instead of the lookup - used specifically to make sure RQ Epics show as Epics 
         if (field.displayOverride && field.displayOverride.field && field.displayOverride.values && field.displayOverride.values.includes(art[field.displayOverride.field])) {
@@ -4147,6 +4313,7 @@ function matchArtifactsToFields(artifacts, artifactMeta, fields, fieldTypeEnums,
               field.values,
               users,
               components,
+              activeReleases,
               releases
             );
 
@@ -4166,6 +4333,7 @@ function matchArtifactsToFields(artifacts, artifactMeta, fields, fieldTypeEnums,
             field.values,
             users,
             components,
+            activeReleases,
             releases
           );
 
@@ -4178,7 +4346,7 @@ function matchArtifactsToFields(artifacts, artifactMeta, fields, fieldTypeEnums,
         }
 
         // handle date fields 
-      } else if (field.type == fieldTypeEnums.date) {
+      } else if (field.type == fieldTypeEnums.date || field.type == fieldTypeEnums.customDate || field.type == fieldTypeEnums.customDateAndTime) {
         if (IS_GOOGLE) {
           var dateValue = new Date(originalFieldValue);
           if (isNaN(dateValue.getTime())) { //invalid date
@@ -4197,7 +4365,7 @@ function matchArtifactsToFields(artifacts, artifactMeta, fields, fieldTypeEnums,
         }
 
         // handle booleans - need to make sure null values are ignored ie treated differently to false
-      } else if (field.type == fieldTypeEnums.bool) {
+      } else if (field.type == fieldTypeEnums.bool || field.type == fieldTypeEnums.customBoolean) {
         return originalFieldValue ? "Yes" : originalFieldValue === false ? "No" : "";
         // handle hierarchical artifacts
       } else if (field.setsHierarchy) {
@@ -4221,7 +4389,7 @@ function matchArtifactsToFields(artifacts, artifactMeta, fields, fieldTypeEnums,
 // @param: users - array of the user objects
 // @param: components - array of the component objects
 // @param: releases - array of the release objects
-function getListValueFromId(id, type, fieldTypeEnums, fieldValues, users, components, releases) {
+function getListValueFromId(id, type, fieldTypeEnums, fieldValues, users, components, activeReleases, releases) {
   var match = null;
   switch (type) {
     case fieldTypeEnums.drop:
@@ -4231,10 +4399,16 @@ function getListValueFromId(id, type, fieldTypeEnums, fieldValues, users, compon
     case fieldTypeEnums.user:
       match = users.filter(function (val) { return val.id == id; });
       break;
+    case fieldTypeEnums.customUser:
+      match = users.filter(function (val) { return val.id == id; });
+      break;
     case fieldTypeEnums.component:
       match = components.filter(function (val) { return val.id == id; });
       break;
     case fieldTypeEnums.release:
+      match = activeReleases.filter(function (val) { return val.id == id; });
+      break;
+    case fieldTypeEnums.customRelease:
       match = releases.filter(function (val) { return val.id == id; });
       break;
   }

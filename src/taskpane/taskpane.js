@@ -102,9 +102,9 @@ Office.onReady(info => {
 function setDevStuff(devMode) {
   if (devMode) {
     document.getElementById("btn-dev").classList.remove("hidden");
-    model.user.url = "https://internal-bruno.spiraservice.net/";
+    model.user.url = "";
     model.user.userName = "administrator";
-    model.user.api_key = btoa("&api-key=" + encodeURIComponent("{88C10992-22A6-47FD-B570-8A87624A8CB0}"));
+    model.user.api_key = btoa("&api-key=" + encodeURIComponent(""));
 
     loginAttempt();
   }
@@ -787,7 +787,7 @@ function getFromSpiraAttempt() {
 
 
 function getFromSpiraComplete(log) {
-  if (devMode) //console.log(log);
+  if (devMode)
     //if array (which holds error responses) is present, and errors present
     if (log && log.errorCount) {
       errorMessages = log.entries
@@ -1211,6 +1211,28 @@ function getReleases(user, projectId, artifactId) {
 }
 // formats and sets release data on the model
 function getReleasesSuccess(data) {
+  //Getting the Active releases (for standard Release fields)
+  // clear old values
+  uiSelection.projectActiveReleases = [];
+  // add relevant data to the main model store
+  var activeReleases = data.map(function (item) {
+    //getting only the active releases
+    if (item.Active) {
+    return {
+      id: item.ReleaseId,
+      name: item.Name
+    };
+  }
+  });
+
+  uiSelection.projectActiveReleases = activeReleases.filter(function (item) {
+    if(typeof item !== "undefined")
+    {
+      return item;
+    }
+  });
+
+  //Getting all the releases in the project (for custom Release fields)
   // clear old values
   uiSelection.projectReleases = [];
   // add relevant data to the main model store
@@ -1220,6 +1242,7 @@ function getReleasesSuccess(data) {
       name: item.Name
     };
   });
+
   model.projectGetRequestsMade++;
 }
 
@@ -1277,9 +1300,11 @@ function templateLoader() {
   model.currentProject = uiSelection.currentProject;
   model.currentArtifact = uiSelection.currentArtifact;
   model.projectComponents = [];
+  model.projectActiveReleases = [];
   model.projectReleases = [];
   model.projectUsers = [];
   model.projectComponents = uiSelection.projectComponents;
+  model.projectActiveReleases = uiSelection.projectActiveReleases;
   model.projectReleases = uiSelection.projectReleases;
   model.projectUsers = uiSelection.projectUsers;
   // get variables ready
