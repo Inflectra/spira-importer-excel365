@@ -98,14 +98,14 @@ var API_PROJECT_BASE = '/services/v6_0/RestService.svc/projects/',
   STATUS_MESSAGE_GOOGLE = {
     1: "All done! To send more data over, clear the sheet first.",
     2: "Sorry, but there were some problems (see the cells marked in red). Check any notes on the relevant ID field for explanations.",
-    3: "We're really sorry, but we couldn't send anything to SpiraPlan - please check notes on the ID fields for more information.",
+    3: "We're really sorry, but there was a problem while sending data to Spira. Some records may had be exported to Spira. Please check it on the application.",
     4: "You are not on the correct worksheet. Please go to the sheet that matches the one listed on the Spira taskpane / the selection you made in the sidebar.",
     5: "Some/all of the rows already exist in SpiraPlan. These rows have not been re-added."
   },
   STATUS_MESSAGE_EXCEL = {
     1: "All done! To send more data over, clear the sheet first.",
     2: "Sorry, but there were some problems (see the cells marked in red). Check any notes on the relevant ID field for explanations.",
-    3: "We're really sorry, but we couldn't send anything to SpiraPlan - please check notes on the ID fields for more information.",
+    3: "We're really sorry, but there was a problem while sending data to Spira. Some records may had be exported to Spira. Please check it on the application.",
     4: "You are not on the correct worksheet. Please go to the sheet that matches the one listed on the Spira taskpane / the selection you made in the sidebar.",
     5: "Some/all of the rows already exist in SpiraPlan. These rows have not been re-added.",
     6: "Data sent! Since you are using the advanced mode, any errors related to comments and/or associations will be marked as red in the spreadsheet. To send more data over, clear the sheet first."
@@ -247,7 +247,7 @@ async function checkSheetExists(sheetName) {
 }
 
 //clears active sheet in spreadsheet
-function clearAll() {
+function clearAll(model) {
 
   if (IS_GOOGLE) {
     // get active spreadsheet
@@ -292,23 +292,24 @@ function clearAll() {
       sheets.load("items/name");
 
       var isDatabaseSheet = false;
+      var dataBaseSheetName = params.dataSheetName + model.currentProject.id + model.currentArtifact.id;
 
       return context.sync()
         .then(function () {
           sheets.items.forEach(function (singleSheet) {
-            if (singleSheet.name == params.dataSheetName) {
+            if (singleSheet.name == dataBaseSheetName) {
               isDatabaseSheet = true;
             }
           });
 
           if (!isDatabaseSheet) {
             //if we don't have a database worksheet, create one 
-            var dbSheet = sheets.add(params.dataSheetName);
+            var dbSheet = sheets.add(dataBaseSheetName);
             dbSheet.visibility = Excel.SheetVisibility.hidden;
           }
           else {
             //if we have a database worksheet, clear it 
-            var worksheet = context.workbook.worksheets.getItemOrNullObject(params.dataSheetName);
+            var worksheet = context.workbook.worksheets.getItemOrNullObject(dataBaseSheetName);
             worksheet.getRange().clear();
           }
           return context.sync();
@@ -931,11 +932,11 @@ function error(type, err) {
     message = 'Excel reported an error!';
     details = err ? `<br><br>Description: ${err.description}` : "";
   } else if (type == 'unknown' || err == 'unknown') {
-    message = 'Unkown error. Please try again later or contact your system administrator';
+    message = 'Unknown error. Please try again later or contact your system administrator';
   } else if (type == 'sheet') {
     message = 'There was a problem while retrieving data from the active spreadsheet. Please check the details below and try again. <br><br><b>Details:</b><br>' + err;
   } else {
-    message = 'Unkown error. Please try again later or contact your system administrator';
+    message = 'Unknown error. Please try again later or contact your system administrator';
   }
 
   if (IS_GOOGLE) {
@@ -1189,6 +1190,7 @@ function contentValidationSetter(sheet, model, fieldTypeEnums, context) {
         setIntegerValidation(sheet, columnNumber, nonHeaderRows, false);
         break;
 
+
       // NUM fields are handled as decimals by Excel though
       case fieldTypeEnums.num:
         setNumberValidation(sheet, columnNumber, nonHeaderRows, false);
@@ -1240,40 +1242,52 @@ function dataBaseValidationSetter(mainSheetName, model, fieldTypeEnums, context)
     switch (model.fields[index].type) {
       // DROPDOWNS and MULTIDROPDOWNS are both treated as simple dropdowns (Sheets does not have multi selects)
       case fieldTypeEnums.drop:
+      case fieldTypeEnums.customList:
       case fieldTypeEnums.multi:
+      case fieldTypeEnums.customMultiList:
         var fieldList = model.fields[index].values;
         for (var i = 0; i < fieldList.length; i++) {
           list.push(setListItemDisplayName(fieldList[i]));
         }
-        setDropdownValidation(mainSheetName, columnNumber, list, false, context);
+        setDropdownValidation(mainSheetName, columnNumber, list, false, context, model);
         break;
 
       // RELEASE fields are dropdowns with the values coming from a project wide set list
       case fieldTypeEnums.release:
-        for (var l = 0; l < model.projectActiveReleases.length; l++) {
-          list.push(setListItemDisplayName(model.projectActiveReleases[l]));
+        if (!model.fields[index].showInactiveReleases) {
+          //show only the active releases
+          for (var l = 0; l < model.projectActiveReleases.length; l++) {
+            list.push(setListItemDisplayName(model.projectActiveReleases[l]));
+          }
+          setDropdownValidation(mainSheetName, columnNumber, list, false, context, model);
         }
-        setDropdownValidation(mainSheetName, columnNumber, list, false, context);
+        else {
+          //show all the releases - including inactives
+          for (var l = 0; l < model.projectReleases.length; l++) {
+            list.push(setListItemDisplayName(model.projectReleases[l]));
+          }
+          setDropdownValidation(mainSheetName, columnNumber, list, false, context, model);
+          break;
+        }
         break;
-
       case fieldTypeEnums.customRelease:
         for (var l = 0; l < model.projectReleases.length; l++) {
           list.push(setListItemDisplayName(model.projectReleases[l]));
         }
-        setDropdownValidation(mainSheetName, columnNumber, list, false, context);
+        setDropdownValidation(mainSheetName, columnNumber, list, false, context, model);
         break;
 
       // BOOL as Sheets has no bool validation, a yes/no dropdown is used
       case fieldTypeEnums.bool:
         // 'True' and 'False' don't work as dropdown choices
         list.push("Yes", "No");
-        setDropdownValidation(mainSheetName, columnNumber, list, false, context);
+        setDropdownValidation(mainSheetName, columnNumber, list, false, context, model);
         break;
 
       case fieldTypeEnums.customBoolean:
         // 'True' and 'False' don't work as dropdown choices
         list.push("Yes", "No");
-        setDropdownValidation(mainSheetName, columnNumber, list, false, context);
+        setDropdownValidation(mainSheetName, columnNumber, list, false, context, model);
         break;
 
 
@@ -1282,14 +1296,14 @@ function dataBaseValidationSetter(mainSheetName, model, fieldTypeEnums, context)
         for (var j = 0; j < model.projectUsers.length; j++) {
           list.push(setListItemDisplayName(model.projectUsers[j]));
         }
-        setDropdownValidation(mainSheetName, columnNumber, list, false, context);
+        setDropdownValidation(mainSheetName, columnNumber, list, false, context, model);
         break;
 
       case fieldTypeEnums.customUser:
         for (var j = 0; j < model.projectUsers.length; j++) {
           list.push(setListItemDisplayName(model.projectUsers[j]));
         }
-        setDropdownValidation(mainSheetName, columnNumber, list, false, context);
+        setDropdownValidation(mainSheetName, columnNumber, list, false, context, model);
         break;
 
       // COMPONENT fields are dropdowns with the values coming from a project wide set list
@@ -1297,7 +1311,7 @@ function dataBaseValidationSetter(mainSheetName, model, fieldTypeEnums, context)
         for (var k = 0; k < model.projectComponents.length; k++) {
           list.push(setListItemDisplayName(model.projectComponents[k]));
         }
-        setDropdownValidation(mainSheetName, columnNumber, list, false, context);
+        setDropdownValidation(mainSheetName, columnNumber, list, false, context, model);
         break;
 
       // All other types
@@ -1316,7 +1330,8 @@ function dataBaseValidationSetter(mainSheetName, model, fieldTypeEnums, context)
 // @param: rowLength - int of the number of rows for range (global param)
 // @param: list - array of values to show in a dropdown and use for validation
 // @param: allowInvalid - bool to state whether to restrict any values to those in validation or not
-async function setDropdownValidation(mainSheetName, columnNumber, list, allowInvalid, context) {
+async function setDropdownValidation(mainSheetName, columnNumber, list, allowInvalid, context, model) {
+
   if (IS_GOOGLE) {
     // create range
     var range = sheet.getRange(2, columnNumber, rowLength);
@@ -1339,7 +1354,9 @@ async function setDropdownValidation(mainSheetName, columnNumber, list, allowInv
       values.push(itemArray);
     });
 
-    var dbSheetRange = context.workbook.worksheets.getItem(params.dataSheetName).getRangeByIndexes(0, columnNumber - 1, list.length, 1);
+    var dataBaseSheetName = params.dataSheetName + model.currentProject.id + model.currentArtifact.id;
+
+    var dbSheetRange = context.workbook.worksheets.getItem(dataBaseSheetName).getRangeByIndexes(0, columnNumber - 1, list.length, 1);
     dbSheetRange.values = values;
     context.sync();
     //Now, point the fields in the mainsheet to the database worksheet (source)
@@ -3367,6 +3384,24 @@ function createEntryFromRow(row, model, fieldTypeEnums, artifactIsHierarchical, 
             }
           }
           break;
+        case fieldTypeEnums.customAutomationHost:
+          if (IS_GOOGLE) {
+            if (row[index] != '' || row[index] == '0') {
+              value = parseFloat(row[index]).toFixed(0);
+            }
+            else {
+              value = '';
+            }
+            customType = "IntegerValue";
+          } else {
+
+            // only set the value if a number has been returned
+            if (!isNaN(row[index])) {
+              value = row[index];
+              customType = "IntegerValue";
+            }
+          }
+          break;
 
         // DECIMAL fields
         case fieldTypeEnums.num:
@@ -3463,9 +3498,23 @@ function createEntryFromRow(row, model, fieldTypeEnums, artifactIsHierarchical, 
             customType = "IntegerValue";
           }
           break;
+        case fieldTypeEnums.customList:
+          idFromName = getIdFromName(row[index], fields[index].values);
+          if (idFromName) {
+            value = idFromName;
+            customType = "IntegerValue";
+          }
+          break;
 
         // MULTIDROPDOWNS - get id from relevant name, if one is present, set customtype to list value
         case fieldTypeEnums.multi:
+          idFromName = getIdFromName(row[index], fields[index].values);
+          if (idFromName) {
+            value = [idFromName];
+            customType = "IntegerListValue";
+          }
+          break;
+        case fieldTypeEnums.customMultiList:
           idFromName = getIdFromName(row[index], fields[index].values);
           if (idFromName) {
             value = [idFromName];
@@ -4085,6 +4134,7 @@ function getFromSpiraExcel(model, fieldTypeEnums) {
 // resets validations - used before a GET command
 // @param: sheetName - current sheet name
 function resetSheet(model) {
+
   Excel.run(function (ctx) {
     var fields = model.fields;
     //complete data range from old data
@@ -4094,8 +4144,10 @@ function resetSheet(model) {
 
     ctx.sync();
 
+    var dataBaseSheetName = params.dataSheetName + model.currentProject.id + model.currentArtifact.id;
+
     //clear database worksheet
-    var worksheet = context.workbook.worksheets.getItemOrNullObject(params.dataSheetName);
+    var worksheet = context.workbook.worksheets.getItemOrNullObject(dataBaseSheetName);
     worksheet.getRange().clear();
 
     return ctx.sync();
@@ -4280,7 +4332,9 @@ function matchArtifactsToFields(artifacts, artifactMeta, fields, fieldTypeEnums,
       // handle list values - turn from the id to the actual string so the string can be displayed
       if (
         field.type == fieldTypeEnums.drop ||
+        field.type == fieldTypeEnums.customList ||
         field.type == fieldTypeEnums.multi ||
+        field.type == fieldTypeEnums.customMultiList ||
         field.type == fieldTypeEnums.user ||
         field.type == fieldTypeEnums.component ||
         field.type == fieldTypeEnums.release ||
@@ -4393,6 +4447,8 @@ function getListValueFromId(id, type, fieldTypeEnums, fieldValues, users, compon
   var match = null;
   switch (type) {
     case fieldTypeEnums.drop:
+    case fieldTypeEnums.customList:
+    case fieldTypeEnums.customMultiList:
     case fieldTypeEnums.multi:
       match = fieldValues.filter(function (val) { return val.id == id; });
       break;

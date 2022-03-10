@@ -49,14 +49,14 @@ var params = {
 
     // enums for different types of field - match custom field prop types where relevant
     fieldType: {
-        text: 101,
-        int: 102,
-        num:103,
-        bool: 104,
-        date: 105,
-        drop: 106,
-        multi: 107,
-        user: 108,
+        text: 1,
+        int: 2,
+        num:3,
+        bool: 4,
+        date: 5,
+        drop: 6,
+        multi: 7,
+        user: 8,
         // following types don't exist as custom property types as set by Spira - but useful for defining standard field types here
         id: 109,
         subId: 110,
@@ -353,7 +353,7 @@ var templateFields = {
         },
         { field: "OpenerId", name: "Detected By", type: params.fieldType.user },
         { field: "OwnerId", name: "Owner", type: params.fieldType.user },
-        { field: "DetectedReleaseId", name: "Detected Release", type: params.fieldType.release },
+        { field: "DetectedReleaseId", name: "Detected Release", type: params.fieldType.customRelease, showInactiveReleases: true },
         { field: "ResolvedReleaseId", name: "Planned Release", type: params.fieldType.release },
         { field: "VerifiedReleaseId", name: "Verified Release", type: params.fieldType.release },
         { field: "ComponentIds", name: "Component", type: params.fieldType.component, isMulti: true },
