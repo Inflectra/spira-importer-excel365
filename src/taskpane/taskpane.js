@@ -102,9 +102,9 @@ Office.onReady(info => {
 function setDevStuff(devMode) {
   if (devMode) {
     document.getElementById("btn-dev").classList.remove("hidden");
-    model.user.url = "https://internal-bruno.spiraservice.net/";
+    model.user.url = "";
     model.user.userName = "administrator";
-    model.user.api_key = btoa("&api-key=" + encodeURIComponent("{88C10992-22A6-47FD-B570-8A87624A8CBA}"));
+    model.user.api_key = btoa("&api-key=" + encodeURIComponent(""));
 
     loginAttempt();
   }

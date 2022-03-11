@@ -3496,6 +3496,11 @@ function createEntryFromRow(row, model, fieldTypeEnums, artifactIsHierarchical, 
           if (idFromName) {
             value = idFromName;
             customType = "IntegerValue";
+          } else {
+            if (row[index] != "") {
+              entry.validationMessage = "Value not found for field '" + fields[index].name + "' . Please check the entry";
+              return entry;
+            }
           }
           break;
         case fieldTypeEnums.customList:
@@ -3503,6 +3508,11 @@ function createEntryFromRow(row, model, fieldTypeEnums, artifactIsHierarchical, 
           if (idFromName) {
             value = idFromName;
             customType = "IntegerValue";
+          } else {
+            if (row[index] != "") {
+              entry.validationMessage = "Value not found for field '" + fields[index].name + "' . Please check the entry";
+              return entry;
+            }
           }
           break;
 
@@ -3512,6 +3522,11 @@ function createEntryFromRow(row, model, fieldTypeEnums, artifactIsHierarchical, 
           if (idFromName) {
             value = [idFromName];
             customType = "IntegerListValue";
+          } else {
+            if (row[index] != "") {
+              entry.validationMessage = "Value not found for field '" + fields[index].name + "' . Please check the entry";
+              return entry;
+            }
           }
           break;
         case fieldTypeEnums.customMultiList:
@@ -3519,6 +3534,11 @@ function createEntryFromRow(row, model, fieldTypeEnums, artifactIsHierarchical, 
           if (idFromName) {
             value = [idFromName];
             customType = "IntegerListValue";
+          } else {
+            if (row[index] != "") {
+              entry.validationMessage = "Value not found for field '" + fields[index].name + "' . Please check the entry";
+              return entry;
+            }
           }
           break;
 
@@ -3529,12 +3549,24 @@ function createEntryFromRow(row, model, fieldTypeEnums, artifactIsHierarchical, 
             value = idFromName;
             customType = "IntegerValue";
           }
+          else {
+            if (row[index] != "") {
+              entry.validationMessage = "Value not found for field '" + fields[index].name + "' . Please check the entry";
+              return entry;
+            }
+          }
           break;
         case fieldTypeEnums.customUser:
           idFromName = getIdFromName(row[index], model.projectUsers);
           if (idFromName) {
             value = idFromName;
             customType = "IntegerValue";
+          }
+          else {
+            if (row[index] != "") {
+              entry.validationMessage = "Value not found for field '" + fields[index].name + "' . Please check the entry";
+              return entry;
+            }
           }
           break;
 
@@ -3545,6 +3577,11 @@ function createEntryFromRow(row, model, fieldTypeEnums, artifactIsHierarchical, 
             value = idFromName;
             // component is multi select for test cases but not for other artifacts
             customType = fields[index].isMulti ? "IntegerListValue" : "IntegerValue";
+          } else {
+            if (row[index] != "") {
+              entry.validationMessage = "Value not found for field '" + fields[index].name + "' . Please check the entry";
+              return entry;
+            }
           }
           break;
 
@@ -3554,6 +3591,11 @@ function createEntryFromRow(row, model, fieldTypeEnums, artifactIsHierarchical, 
           if (idFromName) {
             value = idFromName;
             customType = "IntegerValue";
+          } else {
+            if (row[index] != "") {
+              entry.validationMessage = "Value not found for field '" + fields[index].name + "' . Please check the entry";
+              return entry;
+            }
           }
           break;
         case fieldTypeEnums.customRelease:
@@ -3561,6 +3603,11 @@ function createEntryFromRow(row, model, fieldTypeEnums, artifactIsHierarchical, 
           if (idFromName) {
             value = idFromName;
             customType = "IntegerValue";
+          } else {
+            if (row[index] != "") {
+              entry.validationMessage = "Value not found for field '" + fields[index].name + "' . Please check the entry";
+              return entry;
+            }
           }
           break;
 
@@ -3737,13 +3784,16 @@ function getIdFromName(string, list) {
     if (setListItemDisplayName(list[i]) == string) {
       return list[i].id;
 
-      // if there's no match with the item, let's try and match on just the name part of the list item  - this is the old way
+      // if there's no match with the item, let's try and match on just the name part of the list item
       // this code is included to accomodate users who create their spreadsheets elsewhere and then dump the data in here without knowing the ids
-    } else if (list[i] == unsetListItemDisplayName(string)) {
+    } else if (compareItemName(string, list[i].name)) {
       return list[i].id;
     }
+    /*else{
+        //the provided name is not part of the list - use a value that indicates error
+        return -1;
+    }*/
   }
-
   // return 0 if there's no match from either method
   return 0;
 }
@@ -3757,12 +3807,22 @@ function setListItemDisplayName(item) {
 
 }
 
-// removes the id from the end of a string to get the initial value, pre setting the display name
-// @param: string - of the list item with the id added at the end as in setListItemDisplayName
-// returns a new string with the regex match removed
-function unsetListItemDisplayName(string) {
-  var regex = / \(\#\d+\)$/gi;
-  return string.replace(regex, "");
+// removes spaces and upper case from strings to compare them
+// @param: string - the base string to compare (user input)
+// @param: value - the value to be compared with (system input)
+// returns true if there's a match or false if there's not
+function compareItemName(string, value) {
+
+  var newString = string.toLowerCase().trim();
+  var newValue = value.toLowerCase().trim();
+
+  if (newString == newValue) {
+    return true;
+  }
+  else {
+    return false;
+  }
+
 }
 
 
