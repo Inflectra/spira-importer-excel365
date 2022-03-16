@@ -43,19 +43,19 @@ var UI_MODE = {
  */
 
 // Google Sheets specific code to run at first launch
-// (function () {
-//   if (isGoogle) {
+(function () {
+  if (isGoogle) {
 
-//     // for dev mode only - comment out or set to false to disable any UI dev features
-//     setDevStuff(devMode);
+    // for dev mode only - comment out or set to false to disable any UI dev features
+    setDevStuff(devMode);
 
-//     // add event listeners to the dom
-//     setEventListeners();
+    // add event listeners to the dom
+    setEventListeners();
 
-//     // dom specific changes
-//     document.getElementById("help-connection-excel").style.display = "none";
-//   }
-// })();
+    // dom specific changes
+    document.getElementById("help-connection-excel").style.display = "none";
+  }
+})();
 
 
 /*
@@ -66,7 +66,7 @@ var UI_MODE = {
  * Please comment/uncomment this block of code for Google Sheets/Excel
  */
 
-import { params, templateFields, Data, tempDataStore } from './model.js';
+/*import { params, templateFields, Data, tempDataStore } from './model.js';
 import * as msOffice from './server.js';
 
 export { showPanel, hidePanel };
@@ -86,7 +86,7 @@ Office.onReady(info => {
   }
 });
 
-
+*/
 
 /* ==============================
 
@@ -209,7 +209,7 @@ function clearSheet(shouldClear) {
     if (isGoogle) {
       google.script.run
         .withSuccessHandler(newTemplateHandler)
-        .clearAll();
+        .clearAll(uiSelection);
       return true;
     } else {
       msOffice.clearAll(model)
@@ -1218,16 +1218,15 @@ function getReleasesSuccess(data) {
   var activeReleases = data.map(function (item) {
     //getting only the active releases
     if (item.Active) {
-    return {
-      id: item.ReleaseId,
-      name: item.Name
-    };
-  }
+      return {
+        id: item.ReleaseId,
+        name: item.Name
+      };
+    }
   });
 
   uiSelection.projectActiveReleases = activeReleases.filter(function (item) {
-    if(typeof item !== "undefined")
-    {
+    if (typeof item !== "undefined") {
       return item;
     }
   });

@@ -17,7 +17,7 @@ var IS_GOOGLE = typeof UrlFetchApp != "undefined";
  * Please comment/uncomment this block of code for Google Sheets/Excel*/
 
 
-export {
+/*export {
   clearAll,
   error,
   getBespoke,
@@ -36,7 +36,7 @@ export {
 
 import { showPanel, hidePanel } from './taskpane.js';
 
-import { params } from './model.js';
+import { params } from './model.js';*/
 
 // ===END OF EXCEL SPECIFIC CODE===
 
@@ -49,8 +49,8 @@ import { params } from './model.js';
  */
 
 //Import Model (data.js.html)
-/*var importModel = HtmlService.createHtmlOutputFromFile('data.js').getContent();
-eval(importModel.replace('<script>', '').replace('</script>', ''));*/
+var importModel = HtmlService.createHtmlOutputFromFile('data.js').getContent();
+eval(importModel.replace('<script>', '').replace('</script>', ''));
 
 /* ===END OF GOOGLE SPECIFIC CODE===
 
@@ -280,6 +280,21 @@ function clearAll(model) {
         protection.remove();
       }
     }
+    //check if the database sheet exists 
+    var dataBaseSheetName = params.dataSheetName + model.currentProject.id + model.currentArtifact.id;
+
+    var databaseSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(dataBaseSheetName);
+
+    if (databaseSheet != null) {
+      //if we have a database worksheet, clear it 
+      databaseSheet.clear();
+    }
+    else {
+      //if we don't have a database worksheet, create one 
+      var newDataBaseSheet = SpreadsheetApp.getActiveSpreadsheet().insertSheet(dataBaseSheetName);
+      newDataBaseSheet.hideSheet();
+    }
+
     return true;
   } else {
     return Excel.run(context => {
@@ -1249,7 +1264,7 @@ function dataBaseValidationSetter(mainSheetName, model, fieldTypeEnums, context)
         for (var i = 0; i < fieldList.length; i++) {
           list.push(setListItemDisplayName(fieldList[i]));
         }
-        setDropdownValidation(mainSheetName, columnNumber, list, false, context, model);
+        setDropdownValidation(mainSheetName, columnNumber, list, true, context, model);
         break;
 
       // RELEASE fields are dropdowns with the values coming from a project wide set list
@@ -1259,14 +1274,14 @@ function dataBaseValidationSetter(mainSheetName, model, fieldTypeEnums, context)
           for (var l = 0; l < model.projectActiveReleases.length; l++) {
             list.push(setListItemDisplayName(model.projectActiveReleases[l]));
           }
-          setDropdownValidation(mainSheetName, columnNumber, list, false, context, model);
+          setDropdownValidation(mainSheetName, columnNumber, list, true, context, model);
         }
         else {
           //show all the releases - including inactives
           for (var l = 0; l < model.projectReleases.length; l++) {
             list.push(setListItemDisplayName(model.projectReleases[l]));
           }
-          setDropdownValidation(mainSheetName, columnNumber, list, false, context, model);
+          setDropdownValidation(mainSheetName, columnNumber, list, true, context, model);
           break;
         }
         break;
@@ -1274,7 +1289,7 @@ function dataBaseValidationSetter(mainSheetName, model, fieldTypeEnums, context)
         for (var l = 0; l < model.projectReleases.length; l++) {
           list.push(setListItemDisplayName(model.projectReleases[l]));
         }
-        setDropdownValidation(mainSheetName, columnNumber, list, false, context, model);
+        setDropdownValidation(mainSheetName, columnNumber, list, true, context, model);
         break;
 
       // BOOL as Sheets has no bool validation, a yes/no dropdown is used
@@ -1296,14 +1311,14 @@ function dataBaseValidationSetter(mainSheetName, model, fieldTypeEnums, context)
         for (var j = 0; j < model.projectUsers.length; j++) {
           list.push(setListItemDisplayName(model.projectUsers[j]));
         }
-        setDropdownValidation(mainSheetName, columnNumber, list, false, context, model);
+        setDropdownValidation(mainSheetName, columnNumber, list, true, context, model);
         break;
 
       case fieldTypeEnums.customUser:
         for (var j = 0; j < model.projectUsers.length; j++) {
           list.push(setListItemDisplayName(model.projectUsers[j]));
         }
-        setDropdownValidation(mainSheetName, columnNumber, list, false, context, model);
+        setDropdownValidation(mainSheetName, columnNumber, list, true, context, model);
         break;
 
       // COMPONENT fields are dropdowns with the values coming from a project wide set list
@@ -1311,7 +1326,7 @@ function dataBaseValidationSetter(mainSheetName, model, fieldTypeEnums, context)
         for (var k = 0; k < model.projectComponents.length; k++) {
           list.push(setListItemDisplayName(model.projectComponents[k]));
         }
-        setDropdownValidation(mainSheetName, columnNumber, list, false, context, model);
+        setDropdownValidation(mainSheetName, columnNumber, list, true, context, model);
         break;
 
       // All other types
@@ -1320,7 +1335,9 @@ function dataBaseValidationSetter(mainSheetName, model, fieldTypeEnums, context)
         break;
     }
   }
-  return context.sync();
+  if (!IS_GOOGLE) {
+    return context.sync();
+  }
 }
 
 
@@ -1331,19 +1348,31 @@ function dataBaseValidationSetter(mainSheetName, model, fieldTypeEnums, context)
 // @param: list - array of values to show in a dropdown and use for validation
 // @param: allowInvalid - bool to state whether to restrict any values to those in validation or not
 async function setDropdownValidation(mainSheetName, columnNumber, list, allowInvalid, context, model) {
-
   if (IS_GOOGLE) {
-    // create range
-    var range = sheet.getRange(2, columnNumber, rowLength);
+    //first, write the values to the dbSheet
+    var dataBaseSheetName = params.dataSheetName + model.currentProject.id + model.currentArtifact.id;
+    mainSheetName = model.currentArtifact.name + ", PR-" + model.currentProject.id;
 
+    var values = [];
+    list.forEach(function (item) {
+      var itemArray = [item];
+      values.push(itemArray);
+    });
+
+    var dbSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(dataBaseSheetName),
+      dbRange = dbSheet.getRange(1, columnNumber, list.length, 1);
+    dbRange.setValues(values);
+
+    //Now, point the fields in the mainsheet to the database worksheet (source)
+    var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(mainSheetName);
+    var range = sheet.getRange(2, columnNumber, sheet.getMaxRows() - 1);
     // create the validation rule
     // requireValueInList - params are the array to use, and whether to create a dropdown list
     var rule = SpreadsheetApp.newDataValidation()
-      .requireValueInList(list, true)
+      .requireValueInRange(dbRange, true)
       .setAllowInvalid(allowInvalid)
       .build();
     range.setDataValidation(rule);
-
   } else {
     //max rows for Excel
     var nonHeaderRows = 1048576 - 1;
@@ -1370,7 +1399,6 @@ async function setDropdownValidation(mainSheetName, columnNumber, list, allowInv
       }
     };
     await context.sync();
-
   }
 }
 
