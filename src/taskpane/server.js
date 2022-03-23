@@ -17,7 +17,7 @@ var IS_GOOGLE = typeof UrlFetchApp != "undefined";
  * Please comment/uncomment this block of code for Google Sheets/Excel*/
 
 
-/*export {
+  export {
   clearAll,
   error,
   getBespoke,
@@ -36,7 +36,7 @@ var IS_GOOGLE = typeof UrlFetchApp != "undefined";
 
 import { showPanel, hidePanel } from './taskpane.js';
 
-import { params } from './model.js';*/
+import { params } from './model.js';
 
 // ===END OF EXCEL SPECIFIC CODE===
 
@@ -49,8 +49,8 @@ import { params } from './model.js';*/
  */
 
 //Import Model (data.js.html)
-var importModel = HtmlService.createHtmlOutputFromFile('data.js').getContent();
-eval(importModel.replace('<script>', '').replace('</script>', ''));
+/*var importModel = HtmlService.createHtmlOutputFromFile('data.js').getContent();
+eval(importModel.replace('<script>', '').replace('</script>', ''));*/
 
 /* ===END OF GOOGLE SPECIFIC CODE===
 
@@ -98,19 +98,20 @@ var API_PROJECT_BASE = '/services/v6_0/RestService.svc/projects/',
   STATUS_MESSAGE_GOOGLE = {
     1: "All done! To send more data over, clear the sheet first.",
     2: "Sorry, but there were some problems (see the cells marked in red). Check any notes on the relevant ID field for explanations.",
-    3: "We're really sorry, but there was a problem while sending data to Spira. Some records may had be exported to Spira. Please check it on the application.",
+    3: "We're really sorry, there was a problem sending data to Spira. Some records may not have been sent correctly. Please check in Spira to confirm.",
     4: "You are not on the correct worksheet. Please go to the sheet that matches the one listed on the Spira taskpane / the selection you made in the sidebar.",
     5: "Some/all of the rows already exist in SpiraPlan. These rows have not been re-added."
   },
   STATUS_MESSAGE_EXCEL = {
     1: "All done! To send more data over, clear the sheet first.",
     2: "Sorry, but there were some problems (see the cells marked in red). Check any notes on the relevant ID field for explanations.",
-    3: "We're really sorry, but there was a problem while sending data to Spira. Some records may had be exported to Spira. Please check it on the application.",
+    3: "We're really sorry, there was a problem sending data to Spira. Some records may not have been sent correctly. Please check in Spira to confirm.",
     4: "You are not on the correct worksheet. Please go to the sheet that matches the one listed on the Spira taskpane / the selection you made in the sidebar.",
     5: "Some/all of the rows already exist in SpiraPlan. These rows have not been re-added.",
     6: "Data sent! Since you are using the advanced mode, any errors related to comments and/or associations will be marked as red in the spreadsheet. To send more data over, clear the sheet first."
   },
   CUSTOM_PROP_TYPE_ENUM = {
+    //internal-handling only
     101: "StringValue",
     102: "IntegerValue",
     103: "DecimalValue",
@@ -119,6 +120,7 @@ var API_PROJECT_BASE = '/services/v6_0/RestService.svc/projects/',
     106: "IntegerValue",
     107: "IntegerListValue",
     108: "IntegerValue",
+    //Spira ID values from API
     1: "StringValue",
     2: "IntegerValue",
     3: "DecimalValue",
@@ -137,6 +139,9 @@ var API_PROJECT_BASE = '/services/v6_0/RestService.svc/projects/',
     2: 'TestCaseId',
     7: 'TestCaseId'
   };
+
+  const EXCEL_NUMBER_OF_ROWS = 1048576;
+  const DAYS_BETWEEN_1900_1970 = 25567 + 2;
 
 /*
  * ======================
@@ -281,8 +286,8 @@ function clearAll(model) {
       }
     }
     //check if the database sheet exists 
-    var dataBaseSheetName = params.dataSheetName + model.currentProject.id + model.currentArtifact.id;
-
+    var dataBaseSheetName = createDatabaseSheetName(params.dataSheetName, model.currentProject.id, model.currentArtifact.id);
+    
     var databaseSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(dataBaseSheetName);
 
     if (databaseSheet != null) {
@@ -307,7 +312,7 @@ function clearAll(model) {
       sheets.load("items/name");
 
       var isDatabaseSheet = false;
-      var dataBaseSheetName = params.dataSheetName + model.currentProject.id + model.currentArtifact.id;
+      var dataBaseSheetName = createDatabaseSheetName(params.dataSheetName, model.currentProject.id, model.currentArtifact.id);
 
       return context.sync()
         .then(function () {
@@ -543,11 +548,11 @@ function getArtifacts(user, projectId, artifactTypeId, startRow, numberOfRows, a
       fullURL += "/test-sets?starting_row=" + startRow + "&number_of_rows=" + numberOfRows + "&sort_field=TestSetId&sort_direction=ASC&";
       if (IS_GOOGLE) {
         var rawResponse = JSON.stringify(fetcher(user, fullURL));
-        response = IS_GOOGLE ? JSON.parse(rawResponse) : rawResponse; // this particular return needs to be parsed here
+        response = JSON.parse(rawResponse); // this particular return needs to be parsed here
       }
       else {
         var rawResponse = fetcher(user, fullURL);
-        response = IS_GOOGLE ? JSON.parse(rawResponse) : rawResponse; // this particular return needs to be parsed here
+        response = rawResponse; // this particular return needs to be parsed here
       }
       break;
   }
@@ -1173,7 +1178,7 @@ function headerSetter(sheet, fields, colors, context) {
 // @param: fieldTypeEnums - enums for field types
 function contentValidationSetter(sheet, model, fieldTypeEnums, context) {
   // we can't easily get the max rows for excel so use the number of rows it always seems to have
-  var nonHeaderRows = IS_GOOGLE ? sheet.getMaxRows() - 1 : 1048576 - 1;
+  var nonHeaderRows = IS_GOOGLE ? sheet.getMaxRows() - 1 : EXCEL_NUMBER_OF_ROWS - 1;
 
   for (var index = 0; index < model.fields.length; index++) {
     var columnNumber = index + 1,
@@ -1242,6 +1247,11 @@ function contentValidationSetter(sheet, model, fieldTypeEnums, context) {
         break;
     }
   }
+}
+
+//Function used to set the databaseSheet complete name, given the project and artifact ID
+function createDatabaseSheetName(sheetName, projectId, artifactTypeId) {
+  return sheetName + "-" + projectId + "-" + artifactTypeId;
 }
 
 // Sets validation on a per column basis, based on the field type passed in by the model
@@ -1350,7 +1360,7 @@ function dataBaseValidationSetter(mainSheetName, model, fieldTypeEnums, context)
 async function setDropdownValidation(mainSheetName, columnNumber, list, allowInvalid, context, model) {
   if (IS_GOOGLE) {
     //first, write the values to the dbSheet
-    var dataBaseSheetName = params.dataSheetName + model.currentProject.id + model.currentArtifact.id;
+    var dataBaseSheetName = createDatabaseSheetName(params.dataSheetName, model.currentProject.id, model.currentArtifact.id);
     mainSheetName = model.currentArtifact.name + ", PR-" + model.currentProject.id;
 
     var values = [];
@@ -1375,7 +1385,7 @@ async function setDropdownValidation(mainSheetName, columnNumber, list, allowInv
     range.setDataValidation(rule);
   } else {
     //max rows for Excel
-    var nonHeaderRows = 1048576 - 1;
+    var nonHeaderRows = EXCEL_NUMBER_OF_ROWS - 1;
     //first, write the values to the dbSheet
     var values = [];
     list.forEach(function (item) {
@@ -1383,7 +1393,7 @@ async function setDropdownValidation(mainSheetName, columnNumber, list, allowInv
       values.push(itemArray);
     });
 
-    var dataBaseSheetName = params.dataSheetName + model.currentProject.id + model.currentArtifact.id;
+    var dataBaseSheetName = createDatabaseSheetName(params.dataSheetName, model.currentProject.id, model.currentArtifact.id);
 
     var dbSheetRange = context.workbook.worksheets.getItem(dataBaseSheetName).getRangeByIndexes(0, columnNumber - 1, list.length, 1);
     dbSheetRange.values = values;
@@ -1676,7 +1686,7 @@ function setTextValidation(sheet, columnNumber, rowLength, allowInvalid) {
 function contentFormattingSetter(sheet, model) {
   for (var i = 0; i < model.fields.length; i++) {
     var columnNumber = i + 1;
-    var nonHeaderRows = IS_GOOGLE ? sheet.getMaxRows() - 1 : 1048576 - 1;
+    var nonHeaderRows = IS_GOOGLE ? sheet.getMaxRows() - 1 : EXCEL_NUMBER_OF_ROWS - 1;
 
     // protect column
     // read only fields - ie ones you can get from Spira but not create in Spira (as with IDs - eg task component)
@@ -1861,6 +1871,7 @@ function resetSheetColors(model, fieldTypeEnums, currentSheet) {
       return ctx.sync();
     }).catch(function (error) {
       if (error instanceof OfficeExtension.Error) {
+        //fail quietly
       }
     });
 
@@ -3477,7 +3488,6 @@ function createEntryFromRow(row, model, fieldTypeEnums, artifactIsHierarchical, 
               value = row[index];
             } else {
               // for Excel, dates are returned as days since 1900 - so we need to adjust this for JS date formats
-              const DAYS_BETWEEN_1900_1970 = 25567 + 2;
               const dateInMs = (row[index] - DAYS_BETWEEN_1900_1970) * 86400 * 1000;
               value = convertLocalToUTC(new Date(dateInMs), dateInMs);
             }
@@ -3490,7 +3500,6 @@ function createEntryFromRow(row, model, fieldTypeEnums, artifactIsHierarchical, 
               value = row[index];
             } else {
               // for Excel, dates are returned as days since 1900 - so we need to adjust this for JS date formats
-              const DAYS_BETWEEN_1900_1970 = 25567 + 2;
               const dateInMs = (row[index] - DAYS_BETWEEN_1900_1970) * 86400 * 1000;
               value = convertLocalToUTC(new Date(dateInMs), dateInMs);
             }
@@ -3503,7 +3512,6 @@ function createEntryFromRow(row, model, fieldTypeEnums, artifactIsHierarchical, 
               value = row[index];
             } else {
               // for Excel, dates are returned as days since 1900 - so we need to adjust this for JS date formats
-              const DAYS_BETWEEN_1900_1970 = 25567 + 2;
               const dateInMs = (row[index] - DAYS_BETWEEN_1900_1970) * 86400 * 1000;
               value = convertLocalToUTC(new Date(dateInMs), dateInMs);
             }
@@ -3945,6 +3953,7 @@ function processSendToSpiraResponse(i, sentToSpira, entriesForExport, artifact, 
     }
     else {
       if (errorCode == 400) {
+        //Handling different types of error description from Spira API
         if (IS_GOOGLE) {
           try {
 
@@ -4232,7 +4241,7 @@ function resetSheet(model) {
 
     ctx.sync();
 
-    var dataBaseSheetName = params.dataSheetName + model.currentProject.id + model.currentArtifact.id;
+    var dataBaseSheetName = createDatabaseSheetName(params.dataSheetName, model.currentProject.id, model.currentArtifact.id);
 
     //clear database worksheet
     var worksheet = context.workbook.worksheets.getItemOrNullObject(dataBaseSheetName);

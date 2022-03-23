@@ -43,7 +43,7 @@ var UI_MODE = {
  */
 
 // Google Sheets specific code to run at first launch
-(function () {
+/*(function () {
   if (isGoogle) {
 
     // for dev mode only - comment out or set to false to disable any UI dev features
@@ -55,7 +55,7 @@ var UI_MODE = {
     // dom specific changes
     document.getElementById("help-connection-excel").style.display = "none";
   }
-})();
+})();*/
 
 
 /*
@@ -66,7 +66,7 @@ var UI_MODE = {
  * Please comment/uncomment this block of code for Google Sheets/Excel
  */
 
-/*import { params, templateFields, Data, tempDataStore } from './model.js';
+import { params, templateFields, Data, tempDataStore } from './model.js';
 import * as msOffice from './server.js';
 
 export { showPanel, hidePanel };
@@ -86,7 +86,6 @@ Office.onReady(info => {
   }
 });
 
-*/
 
 /* ==============================
 
