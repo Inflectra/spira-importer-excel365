@@ -12,7 +12,7 @@ var uiSelection = new tempDataStore();
 
 // if devmode enabled, set the required fields and show the dev button
 var devMode = false;
-var isGoogle = false;
+var isGoogle = typeof UrlFetchApp != "undefined";
 
 /*
 Global Variable to control if advanced options should be enabled to the user
@@ -27,6 +27,7 @@ var advancedMode = false;
 //ENUMS
 
 var UI_MODE = {
+  initialState: 0,
   newProject: 1,
   newArtifact: 2,
   getData: 3,
@@ -43,8 +44,8 @@ var UI_MODE = {
 
 // Google Sheets specific code to run at first launch
 (function () {
-  if (typeof google != "undefined") {
-    isGoogle = true;
+  if (isGoogle) {
+
     // for dev mode only - comment out or set to false to disable any UI dev features
     setDevStuff(devMode);
 
@@ -57,20 +58,15 @@ var UI_MODE = {
 })();
 
 
-
-
-
-
-
-
 /*
  *
  * ==============================
  * MICROSOFT EXCEL SPECIFIC SETUP
  * ==============================
- *
+ * Please comment/uncomment this block of code for Google Sheets/Excel
  */
-import { params, templateFields, Data, tempDataStore } from './model.js';
+
+/*import { params, templateFields, Data, tempDataStore } from './model.js';
 import * as msOffice from './server.js';
 
 export { showPanel, hidePanel };
@@ -90,13 +86,9 @@ Office.onReady(info => {
   }
 });
 
+*/
 
-
-
-
-
-
-
+/* ==============================
 
 
 /*
@@ -215,16 +207,43 @@ function clearSheet(shouldClear) {
   var shouldClearToUse = typeof shouldClear !== 'undefined' ? shouldClear : true;
   if (shouldClearToUse) {
     if (isGoogle) {
-      google.script.run.clearAll();
+      google.script.run
+        .withSuccessHandler(newTemplateHandler)
+        .clearAll(uiSelection);
+      return true;
     } else {
-      msOffice.clearAll()
+      msOffice.clearAll(model)
         .then((response) => document.getElementById("panel-confirm").classList.add("offscreen"))
         .catch((error) => errorExcel(error));
     }
   }
+  else { return false; }
 }
 
+//Handles the first step 
+function newTemplateHandler(shouldContinue) {
+  if (shouldContinue) {
+    showLoadingSpinner();
+    manageTemplateBtnState();
 
+    // all data should already be loaded (as otherwise template button is disabled)
+    // but check again that all data is present before kicking off template creation
+    // if so, kicks off template creation, otherwise waits and tries again
+
+    if (allGetsSucceeded()) {
+      templateLoader();
+      // otherwise, run an interval loop (should never get called as template button should be disabled)
+    } else {
+      var checkGetsSuccess = setInterval(attemptTemplateLoader, 1500);
+      function attemptTemplateLoader() {
+        if (allGetsSucceeded()) {
+          templateLoader();
+          clearInterval(checkGetsSuccess);
+        }
+      }
+    }
+  }
+}
 
 // resets the sidebar following logout
 function resetSidebar() {
@@ -308,7 +327,6 @@ function setDropdown(selectId, array, firstMessage) {
 }
 
 
-
 function isModelDifferentToSelection() {
   if (model.isTemplateLoaded) {
     var projectHasChanged = model.currentProject.id !== getSelectedProject().id;
@@ -318,12 +336,6 @@ function isModelDifferentToSelection() {
     return false;
   }
 }
-
-
-
-
-
-
 
 
 
@@ -371,6 +383,7 @@ function loginAttempt() {
 
 // login function that starts the intial data creation
 function login() {
+  artifactUpdateUI(UI_MODE.initialState);
   showLoadingSpinner();
   // call server side function to get projects
   // also serves as authentication check, if the user credentials aren't correct it will throw a network error
@@ -415,12 +428,6 @@ function populateProjects(projects) {
   showPanel("decide");
   hideLoadingSpinner();
 }
-
-
-
-
-
-
 
 
 
@@ -556,6 +563,24 @@ function artifactUpdateUI(mode) {
 
   switch (mode) {
 
+    case UI_MODE.initialState:
+      //when re-starting session
+
+      document.getElementById('main-guide-1-fromSpira').style.fontWeight = 'bold';
+      document.getElementById("main-guide-1").classList.remove("pale");
+
+      document.getElementById('main-guide-2').style.fontWeight = 'normal';
+      document.getElementById("main-guide-2").classList.add("pale");
+      document.getElementById("btn-fromSpira").disabled = true;
+
+      document.getElementById('main-guide-3').style.fontWeight = 'normal';
+      document.getElementById("btn-updateToSpira").disabled = true;
+
+      document.getElementById('btn-fromSpira').classList.remove('ms-Button--default');
+      document.getElementById('btn-fromSpira').classList.add('ms-Button--primary');
+
+      break;
+
     case UI_MODE.newProject:
       //when selecting a new project
       document.getElementById("main-guide-1").classList.remove("pale");
@@ -636,19 +661,32 @@ function manageTemplateBtnState() {
       if (allGetsSucceeded()) {
 
         if (!document.getElementById("btn-updateToSpira").disabled) {
+          //Send to Spira is active - click on Get from Spira
           //sets the UI to allow update
           document.getElementById("btn-fromSpira").disabled = false;
+
           document.getElementById("main-guide-2").classList.add("pale");
           document.getElementById("main-guide-3").classList.remove("pale");
           document.getElementById("message-fetching-data").style.visibility = "hidden";
         }
         else {
+          //Send to Spira is NOT active - project is selected
           document.getElementById("btn-toSpira").disabled = false;
           document.getElementById("btn-fromSpira").disabled = false;
+          document.getElementById("btn-updateToSpira").disabled = true;
+
+          document.getElementById('btn-fromSpira').classList.remove('ms-Button--default');
+          document.getElementById('btn-fromSpira').classList.add('ms-Button--primary');
 
           document.getElementById("message-fetching-data").style.visibility = "hidden";
+
           document.getElementById("main-guide-1").classList.add("pale");
           document.getElementById("main-guide-2").classList.remove("pale");
+          document.getElementById("main-guide-3").classList.add("pale");
+
+          document.getElementById('main-guide-1-fromSpira').style.fontWeight = 'normal';
+          document.getElementById('main-guide-2').style.fontWeight = 'bold';
+          document.getElementById('main-guide-3').style.fontWeight = 'normal';
         }
 
         clearInterval(checkGetsSuccess);
@@ -677,10 +715,16 @@ function manageTemplateBtnState() {
 function createTemplateAttempt() {
   var message = 'The active sheet will be replaced. Continue?'
   //warn the user data will be erased
-  showPanel("confirm");
-  document.getElementById("message-confirm").innerHTML = message;
-  document.getElementById("btn-confirm-ok").onclick = () => createTemplate(true);
-  document.getElementById("btn-confirm-cancel").onclick = () => hidePanel("confirm");
+  if (isGoogle) {
+    google.script.run
+      .withSuccessHandler(clearSheet)
+      .warn(message);
+  } else {
+    showPanel("confirm");
+    document.getElementById("message-confirm").innerHTML = message;
+    document.getElementById("btn-confirm-ok").onclick = () => createTemplate(true);
+    document.getElementById("btn-confirm-cancel").onclick = () => hidePanel("confirm");
+  }
 }
 
 
@@ -711,6 +755,8 @@ function createTemplate(shouldContinue) {
   }
 }
 
+
+
 function getFromSpiraAttempt() {
   // first update state to reflect user intent
   model.isGettingDataAttempt = true;
@@ -723,7 +769,7 @@ function getFromSpiraAttempt() {
       google.script.run
         .withFailureHandler(errorImpExp)
         .withSuccessHandler(getFromSpiraComplete)
-        .getFromSpiraGoogle(model, params.fieldType);
+        .getFromSpiraGoogle(model, params.fieldType, advancedMode);
     } else {
       msOffice.getFromSpiraExcel(model, params.fieldType)
         .then((response) => getFromSpiraComplete(response))
@@ -737,17 +783,20 @@ function getFromSpiraAttempt() {
   artifactUpdateUI(UI_MODE.getData);
 }
 
+
+
+
 function getFromSpiraComplete(log) {
-  if (devMode) console.log(log);
-  //if array (which holds error responses) is present, and errors present
-  if (log && log.errorCount) {
-    errorMessages = log.entries
-      .filter(function (entry) { return entry.error; })
-      .map(function (entry) { return entry.message; });
-  }
-  else {
-    manageTemplateBtnState();
-  }
+  if (devMode)
+    //if array (which holds error responses) is present, and errors present
+    if (log && log.errorCount) {
+      errorMessages = log.entries
+        .filter(function (entry) { return entry.error; })
+        .map(function (entry) { return entry.message; });
+    }
+    else {
+      manageTemplateBtnState();
+    }
   hideLoadingSpinner();
 
   //runs the export success function, passes a boolean flag, if there are errors the flag is true.
@@ -813,6 +862,10 @@ function updateSpiraAttempt() {
 }
 
 function sendToSpiraComplete(log) {
+
+  if (isGoogle && log) {
+    log = JSON.parse(log);
+  }
   hideLoadingSpinner();
   if (devMode) console.log(log);
 
@@ -1064,6 +1117,9 @@ function getCustomsSuccess(data) {
     );
   model.artifactGetRequestsMade++;
 }
+
+
+
 // starts GET request to Spira for project users properties
 // @param: user - the user object of the logged in user
 // @param: templateId - int of the reqested template
@@ -1155,6 +1211,27 @@ function getReleases(user, projectId, artifactId) {
 }
 // formats and sets release data on the model
 function getReleasesSuccess(data) {
+  //Getting the Active releases (for standard Release fields)
+  // clear old values
+  uiSelection.projectActiveReleases = [];
+  // add relevant data to the main model store
+  var activeReleases = data.map(function (item) {
+    //getting only the active releases
+    if (item.Active) {
+      return {
+        id: item.ReleaseId,
+        name: item.Name
+      };
+    }
+  });
+
+  uiSelection.projectActiveReleases = activeReleases.filter(function (item) {
+    if (typeof item !== "undefined") {
+      return item;
+    }
+  });
+
+  //Getting all the releases in the project (for custom Release fields)
   // clear old values
   uiSelection.projectReleases = [];
   // add relevant data to the main model store
@@ -1164,6 +1241,7 @@ function getReleasesSuccess(data) {
       name: item.Name
     };
   });
+
   model.projectGetRequestsMade++;
 }
 
@@ -1221,9 +1299,11 @@ function templateLoader() {
   model.currentProject = uiSelection.currentProject;
   model.currentArtifact = uiSelection.currentArtifact;
   model.projectComponents = [];
+  model.projectActiveReleases = [];
   model.projectReleases = [];
   model.projectUsers = [];
   model.projectComponents = uiSelection.projectComponents;
+  model.projectActiveReleases = uiSelection.projectActiveReleases;
   model.projectReleases = uiSelection.projectReleases;
   model.projectUsers = uiSelection.projectUsers;
   // get variables ready
@@ -1245,6 +1325,17 @@ function templateLoader() {
     });
   }
 
+  if (isGoogle) {
+    if (!advancedMode) {
+      //if not in advanced mode, ignore the fields only available for that mode
+      fields = fields.filter(function (item) {
+        if (!item.isAdvanced) {
+          return item;
+        }
+      })
+    }
+  }
+
   // collate standard fields and custom fields
   model.fields = fields.concat(customs);
 
@@ -1258,8 +1349,8 @@ function templateLoader() {
   if (isGoogle) {
     google.script.run
       .withSuccessHandler(templateLoaderSuccess)
-      .withFailureHandler(errorUnknown)
-      .templateLoader(model, params.fieldType, advancedMode);
+      .withFailureHandler(errorImpExp)
+      .templateLoader(model, params.fieldType);
   } else {
     msOffice.templateLoader(model, params.fieldType, advancedMode)
       .then(response => templateLoaderSuccess(response))
@@ -1318,6 +1409,7 @@ function errorPopUp(type, err) {
     google.script.run.error(type);
     //sets the UI to correspond to this mode
     artifactUpdateUI(UI_MODE.errorMode);
+    hideLoadingSpinner();
   } else {
     msOffice.error(type, err);
     //sets the UI to correspond to this mode
@@ -1332,6 +1424,7 @@ function errorPopUp(type, err) {
 }
 
 function errorNetwork(err) {
+  hideLoadingSpinner();
   errorPopUp("network", err);
 }
 function errorImpExp(err) {

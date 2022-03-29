@@ -2,6 +2,20 @@
 <html>
 
 <head>
+    <!--
+    * =================================
+    * GOOGLE SHEETS SPECIFIC HEAD SETUP
+    * ================================= -->
+    <base target="_top">
+    <link rel="stylesheet" href="https://ssl.gstatic.com/docs/script/css/add-ons1.css">
+    <?!= include('styles.css') ?>
+    <!--==END OF GOOGLE SPECIFIC CODE== -->
+
+    <!--
+    * =================================
+    * MICROSOFT EXCEL SPECIFIC HEAD SETUP
+    * ================================= -->
+
     <meta charset="UTF-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -11,7 +25,7 @@
     <!-- Office JavaScript API -->
     <script type="text/javascript" src="https://appsforoffice.microsoft.com/lib/1.1/hosted/office.js"></script>
 
-    <script src="https://cdn.jsdelivr.net/npm/superagent@5.1.0/dist/superagent.min.js"></script>
+    <script type="text/javascript" src="src/taskpane/superagent.min.js"></script>
 
     <!-- For more information on Office UI Fabric, visit https://developer.microsoft.com/fabric. -->
     <link rel="stylesheet"
@@ -21,6 +35,8 @@
 
     <!-- Plugin specific files -->
     <link href="taskpane.css" rel="stylesheet" type="text/css" />
+
+    <!--==END OF EXCEL SPECIFIC CODE== -->
 </head>
 
 <body class="ms-font-m ms-welcome ms-Fabric">
@@ -40,7 +56,7 @@
         <p class="well">
             Learn how to use this app via the <a id="lnk-help-login" href="#">mini help</a>, or read our <a
                 target="_blank"
-                href="http://spiradoc.inflectra.com/Migration-and-Integration/Importing-from-Microsoft-Excel-(Office365)/">full
+                href="https://spiradoc.inflectra.com/Migration-and-Integration/Importing-from-Google-Sheets/">full
                 documentation</a>.
         </p>
 
@@ -129,8 +145,12 @@
         <div class="mt-md">
 
             <input type="checkbox" id="chkAdvanced" name="chkAdvancedMain">
-            <label for="chkAdvancedMain"> Advanced Mode </label><div class = "circleHelp"><p>?</p></div>
-            <div class="helpBox">This mode allows you to create artifact associations and comments. Please refer to the documentation for more details.</div>
+            <label for="chkAdvancedMain"> Advanced Mode </label>
+            <div class="circleHelp">
+                <p>?</p>
+            </div>
+            <div class="helpBox">This mode allows you to create artifact associations and comments. Please refer to the
+                documentation for more details.</div>
         </div>
 
         <div class="mt-lg">
@@ -212,7 +232,7 @@
                 c. Send the updated data to Spira (optional)
             </p>
             <button class="ms-Button ms-Button--default" disabled="true" id="btn-updateToSpira" type="button"
-                title="Send every item back to Spira, updating all of them with the worksheet contents">
+                title="Send data back to Spira, reflecting the changes from the spreadsheet">
                 Update Spira
             </button>
         </div>
@@ -243,7 +263,7 @@
 
         <h3>Quick Help Guide</h3>
         <p class="mt-0">For more information see our <a target="_blank"
-                href="http://spiradoc.inflectra.com/Migration-and-Integration/Importing-from-Microsoft-Excel-(Office365)/">documentation. This is version </a>.
+                href="https://spiradoc.inflectra.com/Migration-and-Integration/Importing-from-Google-Sheets/">documentation</a>.
         </p>
 
         <div class="flex" id='help-header'>
@@ -282,7 +302,9 @@
                 </li>
                 <li>
                     <p><b>Enter your RSS token</b></p>
-                    <small>You can find or generate this from your user profile page inside Spira - <a href="http://spiradoc.inflectra.com/HowTo-Guides/Users-profile-management/#how-to-get-or-make-your-rss-token-or-api-key">read how to do so here</a>. Make sure to include
+                    <small>You can find or generate this from your user profile page inside Spira - <a
+                            href="http://spiradoc.inflectra.com/HowTo-Guides/Users-profile-management/#how-to-get-or-make-your-rss-token-or-api-key">read
+                            how to do so here</a>. Make sure to include
                         the curly braces - {ExampleRSS}</small>
                 </li>
             </ol>
@@ -304,8 +326,13 @@
                             the spreadsheet (on the current active sheet). Exporting data in this way can be helpful to
                             share with colleagues who are not using Spira. Please note that this will bring over 100% of
                             the artifacts in that product so it may take some time.</small>
+
+
+
                     </p>
-                    <p><small>Optionally, after getting data from Spira, you can make changes, then <b>update the data in Spira</b>, hitting the button 'Update Spira'. Please note that this option only allows you to update the received data, not create new artifacts.</small>
+                    <p><small>Optionally, after getting data from Spira, you can make changes, then <b>update the data
+                                in Spira</b>, hitting the button 'Update Spira'. Please note that this option only
+                            allows you to update the received data, not create new artifacts.</small>
                     </p>
                 </li>
                 <li>
@@ -327,15 +354,38 @@
                     <p>
                         <b>Advanced Mode (optional)</b>
                         <small>This mode allows you to create new comments and associate artifacts.</small>
-                        <p><small>To <b>associate artifacts</b>, find the column of the artifact type you want to associate to (e.g.: "New Associated Requirement") and enter the ID(s) of the artifact(s) to associate to. You can associate multiple artifacts at a time using a comma-separated list of IDs, e.g.: 335,336,337. It's possible to associate: </small></p>
-                        <ul>
-                            <small><li>Requirements to Requirements</li></small>
-                            <small><li>TestCases to Requirements</li></small>
-                            <small><li>TestCases to Releases</li></small>
-                            <small><li>TestCases to TestSets</li></small>
-                        </ul>
-                        <p><small>To <b>create a new comment</b>, simply enter the text under the column "New Comment". When you send to / update Spira, this text will 
+                    <p><small>To <b>associate artifacts</b>, find the column of the artifact type you want to associate
+                            to (e.g.: "Linked Requirement") and enter the ID(s) of the artifact(s) to associate to. You
+                            can associate multiple artifacts at a time using a comma-separated list of IDs, e.g.:
+                            335,336,337. It's possible to associate: </small></p>
+                    <ul>
+                        <small>
+                            <li>Requirements to Requirements</li>
+                        </small>
+                        <small>
+                            <li>TestCases to Requirements</li>
+                        </small>
+                        <small>
+                            <li>TestCases to Releases</li>
+                        </small>
+                        <small>
+                            <li>TestCases to TestSets</li>
+                        </small>
+                    </ul>
+                    <p><small>To <b>create a new comment</b>, simply enter the text under the column "New Comment". When
+                            you send to / update Spira, this text will
                             be saved as a new comment in the artifact.</small></p>
+                    <p>In case you have more than one sheet in your spreadsheet, make sure that the one you want to use
+                         the add-on with is ordered as the first one. </p>
+
+
+
+
+
+
+
+
+
                     </p>
                 </li>
             </ul>
@@ -367,12 +417,18 @@
                 start the export process. The add-in gets every entry of that artifact in the chosen product so it may
                 take some time.</p>
 
+
+
+
             <p><b>Sending data to Spira</b>: before you can enter data into the sheet click "Prepare Sheet" to create a
-                    template for that product and artifact. Once the sheet is ready click the Send button to add that data
-                    to Spira.</p>
+                template for that product and artifact. Once the sheet is ready click the Send button to add that data
+                to Spira.</p>
 
             <p><b>Updating data in Spira (advanced):</b> once you have the data from Spira in the spreadsheet, you can
-                update the available fields and then click on 'Update Spira' to make the changes reflect in Spira. Each row will be sent in full to Spira - if you blank out a cell, that value will be blanked out in Spira. NOTE: you cannot move artifacts by updating (for example, you cannot move requirements in the hierarchy, or test steps within or between test cases)</p>
+                update the available fields and then click on 'Update Spira' to make the changes reflect in Spira. Each
+                row will be sent in full to Spira - if you blank out a cell, that value will be blanked out in Excel.
+                NOTE: you cannot moving artifacts by updating (for example, you cannot move requirements in the
+                hierarchy, or test steps within or between test cases)</p>
 
             <h4>Fields: working with required fields</h4>
             <ul class="list">
@@ -509,7 +565,22 @@ Item 1
     <!--spinner-->
     <div id='loader' class='loader-box hidden'>
         <div class="loader"></div>
+        <h1>Please wait. If this is taking too long, make sure you're not editing any cell.</h1>
     </div>
 </body>
 
 </html>
+
+<!--
+    * =================================
+    * GOOGLE SHEETS SPECIFIC CODE
+    * ================================= -->
+
+<!--user agent modules-->
+<?!= include('data.js') ?>
+<?!= include('client.js') ?>
+
+</body>
+
+</html>
+<!--==END OF GOOGLE SPECIFIC CODE== -->

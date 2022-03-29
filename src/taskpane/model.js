@@ -1,11 +1,23 @@
 /*
  *
+ * =============
+ * GENERAL SETUP
+ * =============
+ *
+ */
+var IS_GOOGLE = typeof UrlFetchApp != "undefined";
+
+/*
+ *
  * ==============================
  * MICROSOFT EXCEL SPECIFIC SETUP
  * ==============================
- *
+ * Please comment/uncomment this block of code for Google Sheets/Excel
  */
 export { params, templateFields, tempDataStore, Data };
+// ===END OF EXCEL SPECIFIC CODE===
+
+
 
 /*
  *
@@ -32,25 +44,39 @@ var params = {
         testSets: 8,
         risks: 14
     },
-
+    
+    dataSheetName: "database",
 
     // enums for different types of field - match custom field prop types where relevant
     fieldType: {
         text: 1,
         int: 2,
-        num: 3,
+        num:3,
         bool: 4,
         date: 5,
         drop: 6,
         multi: 7,
         user: 8,
         // following types don't exist as custom property types as set by Spira - but useful for defining standard field types here
-        id: 9,
-        subId: 10,
-        component: 11, // project level field
-        release: 12, // project level field
-        arr: 13, // used for comma separated lists in a single cell (eg linked Ids)
-        folder: 14 // don't think in reality this will be need
+        id: 109,
+        subId: 110,
+        component: 111, // project level field
+        release: 112, // project level field
+        arr: 113, // used for comma separated lists in a single cell (eg linked Ids)
+        folder: 114, // don't think in reality this will be need
+        //custom properties (6.13+)
+        customText: 1,
+        customInteger: 2,
+        customDecimal: 3,
+        customBoolean: 4,
+        customDate: 5,
+        customList: 6,
+        customMultiList: 7,
+        customUser: 8,
+        customPassword: 9,
+        customRelease: 10,
+        customDateAndTime: 11,
+        customAutomationHost: 12,
     },
 
     //enums for association between artifact types we handle in the add-in
@@ -59,6 +85,12 @@ var params = {
         tc2req: 2,
         tc2rel: 3,
         tc2ts: 4
+    },
+    associationTextLabels: {
+        1: "[Req. to Req.]",
+        2: "[TestCase to Req.]",
+        3: "[TestCase to Rel.]",
+        4: "[TestCase to TestSet]",
     },
 
     // enums and various metadata for all artifacts potentially used by the system
@@ -71,12 +103,17 @@ var params = {
         { field: 'tasks', name: 'Tasks', id: 6, hasFolders: true },
         { field: 'testSteps', name: 'Test Steps', id: 7, disabled: true, hidden: true, isSubType: true },
         { field: 'testSets', name: 'Test Sets', id: 8, hasFolders: true },
-        { field: 'risks', name: 'Risks', id: 14 }
+        { field: 'risks', name: 'Risks', id: 14 },
     ],
     //special cases enum
     specialCases: [
         { artifactId: 2, parameter: 'TestStepId', field: 'Description', target: "Call TC:" }
-    ]
+    ],
+    //enum for result column
+    resultColumns: {
+        Requirements: 14,
+        'Test Cases': 18,
+    },
 };
 
 // each artifact has all its standard fields listed, along with important metadata - display name, field type, hard coded values set by system
@@ -122,9 +159,10 @@ var templateFields = {
         { field: "AuthorId", name: "Author", type: params.fieldType.user },
         { field: "OwnerId", name: "Owner", type: params.fieldType.user },
         { field: "ComponentId", name: "Component", type: params.fieldType.component },
-        { field: "CreationDate", name: "Creation Date", type: params.fieldType.date,isReadOnly: true, isHidden: true },
+        { field: "CreationDate", name: "Creation Date", type: params.fieldType.date, isReadOnly: true, isHidden: true },
         { field: "Text", name: "New Comment", type: params.fieldType.text, isComment: true, isAdvanced: true },
         { field: "Association", name: "New Associated Requirement(s)", type: params.fieldType.text, isAdvanced: true, association: params.associationEnums.req2req },
+        { field: "Result", name: "Advanced 'Send to Spira' Log", type: params.fieldType.text, isReadOnly: true, isComments: true, isAdvanced: true},
         { field: "ConcurrencyDate", name: "Concurrency Date", type: params.fieldType.text, isReadOnly: true, isHidden: true },
         { field: "IndentLevel", name: "Indent Level", type: params.fieldType.text, isReadOnly: true, isHidden: true },
         { field: "Summary", name: "Summary", type: params.fieldType.bool, isReadOnly: true, isHidden: true }
@@ -216,7 +254,7 @@ var templateFields = {
         { field: "EndDate", name: "End Date", type: params.fieldType.date },
         { field: "EstimatedEffort", name: "Estimated Effort (in mins)", type: params.fieldType.int },
         { field: "ActualEffort", name: "Actual Effort (in mins)", type: params.fieldType.int },
-        { field: "ProjectedEffort", name: "Projected Effort (in mins)", type: params.fieldType.int, isReadOnly: true },
+        { field: "ProjectedEffort", name: "Projected Effort (in mins)", type: params.fieldType.int, isReadOnly: true, isHidden: true},
         { field: "RemainingEffort", name: "Remaining Effort (in mins)", type: params.fieldType.int },
         { field: "RequirementId", name: "RequirementId", type: params.fieldType.int },
         { field: "ProjectId", name: "Project ID", type: params.fieldType.int, isReadOnly: true, isHidden: true },
@@ -226,7 +264,7 @@ var templateFields = {
     testSets: [
         { field: "TestSetId", name: "ID", type: params.fieldType.id },
         { field: "Name", name: "Name", type: params.fieldType.text, required: true },
-        { field: "Description", name: "Description", type: params.fieldType.text},
+        { field: "Description", name: "Description", type: params.fieldType.text },
         { field: "ReleaseId", name: "Scheduled Release", type: params.fieldType.release },
         {
             field: "TestRunTypeId", name: "Run Type", type: params.fieldType.drop, required: true,
@@ -248,7 +286,6 @@ var templateFields = {
         {
             field: "RecurrenceId", name: "Recurrence", type: params.fieldType.drop,
             values: [
-                { id: 0, name: "One Time" },
                 { id: 1, name: "Hourly" },
                 { id: 2, name: "Daily" },
                 { id: 3, name: "Weekly" },
@@ -275,6 +312,8 @@ var templateFields = {
         { field: "ExecutionDate", name: "Execution Date", type: params.fieldType.date, isReadOnly: true, isHidden: true },
         { field: "ProjectId", name: "ProjectId", type: params.fieldType.int, isReadOnly: true, isHidden: true },
         { field: "ConcurrencyDate", name: "Concurrency Date", type: params.fieldType.text, isReadOnly: true, isHidden: true },
+        { field: "AutomationHostId", name: "AutomationHostId", type: params.fieldType.text, isReadOnly: true, isHidden: true },
+        { field: "TestConfigurationSetId", name: "TestConfigurationSetId", type: params.fieldType.text, isReadOnly: true, isHidden: true }
     ],
     incidents: [
         { field: "IncidentId", name: "Incident ID", type: params.fieldType.id },
@@ -314,7 +353,7 @@ var templateFields = {
         },
         { field: "OpenerId", name: "Detected By", type: params.fieldType.user },
         { field: "OwnerId", name: "Owner", type: params.fieldType.user },
-        { field: "DetectedReleaseId", name: "Detected Release", type: params.fieldType.release },
+        { field: "DetectedReleaseId", name: "Detected Release", type: params.fieldType.customRelease, showInactiveReleases: true },
         { field: "ResolvedReleaseId", name: "Planned Release", type: params.fieldType.release },
         { field: "VerifiedReleaseId", name: "Verified Release", type: params.fieldType.release },
         { field: "ComponentIds", name: "Component", type: params.fieldType.component, isMulti: true },
@@ -380,13 +419,17 @@ var templateFields = {
         { field: "Requirement", name: "New Associated Requirement(s)", type: params.fieldType.text, isAdvanced: true, association: params.associationEnums.tc2req },
         { field: "Release", name: "New Associated Release(s)", type: params.fieldType.text, isAdvanced: true, association: params.associationEnums.tc2rel },
         { field: "TestSet", name: "New Associated Test Set(s)", type: params.fieldType.text, isAdvanced: true, association: params.associationEnums.tc2ts },
+        { field: "Text", name: "New Comment", type: params.fieldType.text, isComment: true, isAdvanced: true },
+        { field: "Result", name: "Advanced 'Send to Spira' Log", type: params.fieldType.text, isReadOnly: true, isComments: true, isAdvanced: true},
         { field: "ComponentIds", name: "Test Case Component", type: params.fieldType.component, isMulti: true },
         { field: "CreationDate", name: "Test Case Creation Date", type: params.fieldType.text, isReadOnly: true, isHidden: true },
-        { field: "Text", name: "New Comment", type: params.fieldType.text, isComment: true, isAdvanced: true },
         { field: "ConcurrencyDate", name: "Test Case Conc. Date", type: params.fieldType.text, isReadOnly: true, isHidden: true },
         { field: "ConcurrencyDate", name: "Test Step Conc. Date", type: params.fieldType.text, isReadOnly: true, isSubTypeField: true, isHidden: true },
         { field: "ExecutionStatusId", name: "ExecutionStatusId", type: params.fieldType.text, isReadOnly: true, isHidden: true },
-        { field: "IsSuspect", name: "IsSuspect", type: params.fieldType.bool, isReadOnly: true, isHidden: true }
+        { field: "IsSuspect", name: "IsSuspect", type: params.fieldType.bool, isReadOnly: true, isHidden: true },
+        { field: "EstimatedDuration", name: "EstimatedDuration", type: params.fieldType.text, isReadOnly: true, isHidden: true },
+        { field: "AutomationEngineId", name: "AutomationEngineId", type: params.fieldType.text, isReadOnly: true, isHidden: true }, 
+        { field: "ExecutionStatusId", name: "ExecutionStatusId", type: params.fieldType.text, isReadOnly: true, isSubTypeField: true, isHidden: true }
     ],
 
     risks: [
@@ -433,7 +476,7 @@ var templateFields = {
         { field: "CreatorId", name: "Creator", type: params.fieldType.user, required: true },
         { field: "OwnerId", name: "Owner", type: params.fieldType.user },
         { field: "ComponentId", name: "Component", type: params.fieldType.component },
-        { field: "CreationDate", name: "Creation Date", type: params.fieldType.date, isReadOnly: true, isHidden: true},
+        { field: "CreationDate", name: "Creation Date", type: params.fieldType.date, isReadOnly: true, isHidden: true },
         { field: "ClosedDate", name: "Closed Date", type: params.fieldType.date },
         { field: "ReviewDate", name: "Review Date", type: params.fieldType.date },
         { field: "RiskExposure", name: "Risk Exposure", type: params.fieldType.int, isReadOnly: true, isHidden: true },
@@ -458,6 +501,7 @@ function Data() {
 
     this.currentProject = '';
     this.projectComponents = [];
+    this.projectActiveReleases = [];
     this.projectReleases = [];
     this.projectUsers = [];
     this.indentCharacter = ">";
@@ -492,6 +536,7 @@ function Data() {
 function tempDataStore() {
     this.currentProject = '';
     this.projectComponents = [];
+    this.projectActiveReleases = [];
     this.projectReleases = [];
     this.projectUsers = [];
 
