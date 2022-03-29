@@ -931,6 +931,14 @@ function putArtifactToSpira(entry, user, projectId, artifactTypeId, parentId) {
  *
  */
 
+/*
+ *
+ * ==============
+ * ERROR MESSAGES
+ * ==============
+ *
+ */
+
 // Error notification function
 // Assigns string value and routes error call from client.js.html
 // @param: type - string identifying the message to be displayed
