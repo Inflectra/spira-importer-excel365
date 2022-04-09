@@ -42,16 +42,17 @@ var params = {
         tasks: 6,
         testSteps: 7,
         testSets: 8,
-        risks: 14
+        risks: 14,
+        folders: 114
     },
-    
+
     dataSheetName: "database",
 
     // enums for different types of field - match custom field prop types where relevant
     fieldType: {
         text: 1,
         int: 2,
-        num:3,
+        num: 3,
         bool: 4,
         date: 5,
         drop: 6,
@@ -104,6 +105,7 @@ var params = {
         { field: 'testSteps', name: 'Test Steps', id: 7, disabled: true, hidden: true, isSubType: true },
         { field: 'testSets', name: 'Test Sets', id: 8, hasFolders: true },
         { field: 'risks', name: 'Risks', id: 14 },
+        { field: 'folders', name: 'Folders', id: 114, sendOnly: true }
     ],
     //special cases enum
     specialCases: [
@@ -113,6 +115,18 @@ var params = {
     resultColumns: {
         Requirements: 14,
         'Test Cases': 18,
+    },
+    //enum for parentFolder fields
+    parentFolders: {
+        2: "ParentTestCaseFolderId",
+        6: "ParentTaskFolderId",
+        8: "ParentTestSetFolderId"
+    },
+    //enum for FolderId fields
+    IdFolders: {
+        2: "TestCaseFolderId",
+        6: "TaskFolderId",
+        8: "TestSetFolderId"
     },
 };
 
@@ -162,7 +176,7 @@ var templateFields = {
         { field: "CreationDate", name: "Creation Date", type: params.fieldType.date, isReadOnly: true, isHidden: true },
         { field: "Text", name: "New Comment", type: params.fieldType.text, isComment: true, isAdvanced: true },
         { field: "Association", name: "New Associated Requirement(s)", type: params.fieldType.text, isAdvanced: true, association: params.associationEnums.req2req },
-        { field: "Result", name: "Advanced 'Send to Spira' Log", type: params.fieldType.text, isReadOnly: true, isComments: true, isAdvanced: true},
+        { field: "Result", name: "Advanced 'Send to Spira' Log", type: params.fieldType.text, isReadOnly: true, isComments: true, isAdvanced: true },
         { field: "ConcurrencyDate", name: "Concurrency Date", type: params.fieldType.text, isReadOnly: true, isHidden: true },
         { field: "IndentLevel", name: "Indent Level", type: params.fieldType.text, isReadOnly: true, isHidden: true },
         { field: "Summary", name: "Summary", type: params.fieldType.bool, isReadOnly: true, isHidden: true }
@@ -246,7 +260,8 @@ var templateFields = {
                 idField: "TaskFolderId",
                 nameField: "Name",
                 indent: "IndentLevel",
-                isProjectBased: true
+                isProjectBased: true,
+                isActive: "Active"
             }
         },
         { field: "CreationDate", name: "Creation Date", type: params.fieldType.date, isReadOnly: true, isHidden: true },
@@ -254,7 +269,7 @@ var templateFields = {
         { field: "EndDate", name: "End Date", type: params.fieldType.date },
         { field: "EstimatedEffort", name: "Estimated Effort (in mins)", type: params.fieldType.int },
         { field: "ActualEffort", name: "Actual Effort (in mins)", type: params.fieldType.int },
-        { field: "ProjectedEffort", name: "Projected Effort (in mins)", type: params.fieldType.int, isReadOnly: true, isHidden: true},
+        { field: "ProjectedEffort", name: "Projected Effort (in mins)", type: params.fieldType.int, isReadOnly: true, isHidden: true },
         { field: "RemainingEffort", name: "Remaining Effort (in mins)", type: params.fieldType.int },
         { field: "RequirementId", name: "RequirementId", type: params.fieldType.int },
         { field: "ProjectId", name: "Project ID", type: params.fieldType.int, isReadOnly: true, isHidden: true },
@@ -303,7 +318,8 @@ var templateFields = {
                 idField: "TestSetFolderId",
                 nameField: "Name",
                 indent: "IndentLevel",
-                isProjectBased: true
+                isProjectBased: true,
+                isActive: "Active"
             }
         },
         { field: "CreationDate", name: "Creation Date", type: params.fieldType.date, isReadOnly: true, isHidden: true },
@@ -413,14 +429,15 @@ var templateFields = {
                 idField: "TestCaseFolderId",
                 nameField: "Name",
                 indent: "IndentLevel",
-                isProjectBased: true
+                isProjectBased: true,
+                isActive: "Active"
             }
         },
         { field: "Requirement", name: "New Associated Requirement(s)", type: params.fieldType.text, isAdvanced: true, association: params.associationEnums.tc2req },
         { field: "Release", name: "New Associated Release(s)", type: params.fieldType.text, isAdvanced: true, association: params.associationEnums.tc2rel },
         { field: "TestSet", name: "New Associated Test Set(s)", type: params.fieldType.text, isAdvanced: true, association: params.associationEnums.tc2ts },
         { field: "Text", name: "New Comment", type: params.fieldType.text, isComment: true, isAdvanced: true },
-        { field: "Result", name: "Advanced 'Send to Spira' Log", type: params.fieldType.text, isReadOnly: true, isComments: true, isAdvanced: true},
+        { field: "Result", name: "Advanced 'Send to Spira' Log", type: params.fieldType.text, isReadOnly: true, isComments: true, isAdvanced: true },
         { field: "ComponentIds", name: "Test Case Component", type: params.fieldType.component, isMulti: true },
         { field: "CreationDate", name: "Test Case Creation Date", type: params.fieldType.text, isReadOnly: true, isHidden: true },
         { field: "ConcurrencyDate", name: "Test Case Conc. Date", type: params.fieldType.text, isReadOnly: true, isHidden: true },
@@ -428,10 +445,23 @@ var templateFields = {
         { field: "ExecutionStatusId", name: "ExecutionStatusId", type: params.fieldType.text, isReadOnly: true, isHidden: true },
         { field: "IsSuspect", name: "IsSuspect", type: params.fieldType.bool, isReadOnly: true, isHidden: true },
         { field: "EstimatedDuration", name: "EstimatedDuration", type: params.fieldType.text, isReadOnly: true, isHidden: true },
-        { field: "AutomationEngineId", name: "AutomationEngineId", type: params.fieldType.text, isReadOnly: true, isHidden: true }, 
+        { field: "AutomationEngineId", name: "AutomationEngineId", type: params.fieldType.text, isReadOnly: true, isHidden: true },
         { field: "ExecutionStatusId", name: "ExecutionStatusId", type: params.fieldType.text, isReadOnly: true, isSubTypeField: true, isHidden: true }
     ],
-
+    folders: [
+        { field: "FolderId", name: "Folder ID", type: params.fieldType.id},
+        {
+            field: "artifact", name: "Artifact", type: params.fieldType.drop, required: true,
+            values: [
+                { id: 2, name: "Test Case" },
+                { id: 8, name: "Test Set" },
+                { id: 6, name: "Task" },
+            ]
+        },
+        { field: "Name", name: "Name", type: params.fieldType.text, required: true },
+        { field: "Description", name: "Description", type: params.fieldType.text },
+        { field: "Parent", name: "Parent Folder ID", type: params.fieldType.int },
+    ],
     risks: [
         { field: "RiskId", name: "ID", type: params.fieldType.id },
         { field: "Name", name: "Name", type: params.fieldType.text, required: true },
@@ -483,6 +513,7 @@ var templateFields = {
         { field: "Text", name: "New Comment", type: params.fieldType.text, isComment: true, isAdvanced: true },
         { field: "ConcurrencyDate", name: "Concurrency Date", type: params.fieldType.text, isReadOnly: true, isHidden: true },
     ],
+
 };
 
 function Data() {

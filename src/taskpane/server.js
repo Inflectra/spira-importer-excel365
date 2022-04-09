@@ -17,7 +17,7 @@ var IS_GOOGLE = typeof UrlFetchApp != "undefined";
  * Please comment/uncomment this block of code for Google Sheets/Excel*/
 
 
-  export {
+export {
   clearAll,
   error,
   getBespoke,
@@ -78,6 +78,7 @@ var API_PROJECT_BASE = '/services/v6_0/RestService.svc/projects/',
     testSteps: 7,
     testSets: 8,
     risks: 14,
+    folders: 114
   },
   INITIAL_HIERARCHY_OUTDENT = -20,
   GET_PAGINATION_SIZE = 100,
@@ -140,8 +141,8 @@ var API_PROJECT_BASE = '/services/v6_0/RestService.svc/projects/',
     7: 'TestCaseId'
   };
 
-  const EXCEL_NUMBER_OF_ROWS = 1048576;
-  const DAYS_BETWEEN_1900_1970 = 25567 + 2;
+const EXCEL_NUMBER_OF_ROWS = 1048576;
+const DAYS_BETWEEN_1900_1970 = 25567 + 2;
 
 /*
  * ======================
@@ -287,7 +288,7 @@ function clearAll(model) {
     }
     //check if the database sheet exists 
     var dataBaseSheetName = createDatabaseSheetName(params.dataSheetName, model.currentProject.id, model.currentArtifact.id);
-    
+
     var databaseSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(dataBaseSheetName);
 
     if (databaseSheet != null) {
@@ -852,8 +853,18 @@ function postArtifactToSpira(entry, user, projectId, artifactTypeId, parentId) {
     case ART_ENUMS.testSets:
       postUrl = API_PROJECT_BASE + projectId + '/test-sets?';
       break;
-  }
 
+    // FOLDERS
+    case ART_ENUMS.folders:
+      if (entry.artifact == ART_ENUMS.testCases) {
+        postUrl = API_PROJECT_BASE + projectId + '/test-folders?';
+      } else if (entry.artifact == ART_ENUMS.testSets) {
+        postUrl = API_PROJECT_BASE + projectId + '/test-set-folders?';
+      } else if (entry.artifact == ART_ENUMS.tasks) {
+        postUrl = API_PROJECT_BASE + projectId + '/task-folders?';
+      }
+      break;
+  }
   return postUrl ? poster(JSON_body, user, postUrl) : null;
 }
 
@@ -2174,6 +2185,39 @@ function createExportEntries(sheetData, model, fieldTypeEnums, fields, artifact,
           }
         }
 
+        //treating special Folders Creation
+
+        if (artifact.id == params.artifactEnums.folders) {
+          //We need to retrieve the Artifact we're creating the folder to and
+          //use that to get the specific Parent Folder ID field
+          var folderArtifact = params.artifacts.filter(function (artifact) {
+            return artifact.id == entry.artifact;
+          })[0];
+
+          var newkey = "";
+
+          //replacing Parent field, accordingly
+          if (entry.Parent) {
+            newkey = params.parentFolders[folderArtifact.id];
+            Object.defineProperty(entry, newkey,
+              Object.getOwnPropertyDescriptor(entry, "Parent"));
+
+            //deleting the temporary (for internal reference only) Parent field
+            delete entry.Parent;
+          }
+
+          //replacing folder ID field, accordingly
+
+          /* newkey = params.IdFolders[folderArtifact.id];
+           Object.defineProperty(entry, newkey, {
+             //temp value
+             value: 0
+           })*/
+
+          //deleting the temporary (for internal reference only) FolderId field
+          //delete entry.FolderId;
+
+        }
         if (entry) { entriesForExport.push(entry); }
       }
       else {
@@ -2633,10 +2677,9 @@ function updateSheetWithExportResults(entriesLog, commentsLog, associationsLog, 
           }
         }
       }
-
       if (IS_GOOGLE) {
         rowBgColors.push(bgColor);
-        if (associationNote != null) {
+        if (associationNote.length > 0) {
           rowNotes.push(associationNote);
         }
         else {
@@ -2646,16 +2689,17 @@ function updateSheetWithExportResults(entriesLog, commentsLog, associationsLog, 
       } else {
         var cellRange = sheet.getCell(row + 1, col);
         if (note) rowNotes.push(note);
-        if (associationNote != null) {
+        if (associationNote.length > 0) {
           var subRange = sheet.getCell(row + 1, params.resultColumns[model.currentArtifact.name]);
           subRange.values = [[associationNote]];
         }
         if (bgColor) {
           cellRange.set({ format: { fill: { color: bgColor } } });
-
         }
-        //cellRange.values = [[associationNote]];
-
+        if (value) {
+          cellRange.values = [[value]];
+          context.sync();
+        }
       }
     }
     if (IS_GOOGLE) {
@@ -2666,13 +2710,12 @@ function updateSheetWithExportResults(entriesLog, commentsLog, associationsLog, 
       // for Excel we can't pass in arrays of data for values, but we still take action here for notes - because Excel API does not allow the addition of comments
     } else {
       var rowFirstCell = sheet.getCell(row + 1, 0);
-      if (rowNotes.length) {
+      if (rowNotes.length > 0) {
         rowFirstCell.set({ format: { fill: { color: model.colors.warning } } });
         rowFirstCell.values = [[rowNotes.join()]];
       }
     }
   }
-
   if (IS_GOOGLE) {
     sheetRange.setBackgrounds(bgColors).setNotes(notes).setValues(values);
     return entriesLog;
@@ -2797,6 +2840,7 @@ function setFeedbackBgColor(cell, error, field, fieldTypeEnums, artifact, colors
 // @param: message - relevant error message from the entry for this row
 // @param: value - original ID of the artifact to be kept in case of an error
 function setFeedbackNote(cell, error, field, fieldTypeEnums, message, value, isUpdate) {
+  //PAREI AQUI: FAZER RETORNAR O ID SE FOR UMA CÉLULA 1,1 (E NÃO FOR TEST CASE?) -> VERIFICAR COMO ESTÁ NO ANTIGO!
   // handle entries with errors - add error notes into ID field
   if (error && field.type == fieldTypeEnums.id) {
     //invalid new rows always have -1 in the ID field
@@ -2985,11 +3029,17 @@ function manageSendingToSpira(entry, user, projectId, artifact, fields, fieldTyp
         return postArtifactToSpira(entry, user, projectId, artifactTypeIdToSend, parentId)
           .then(function (response) {
             output.fromSpira = response.body;
-
             // get the id/subType id of the newly created artifact
             var artifactIdField = getIdFieldName(fields, fieldTypeEnums, entry.isSubType);
-            output.newId = output.fromSpira[artifactIdField];
-
+            //special case for folders
+            if (artifactTypeIdToSend == ART_ENUMS.folders) {
+              //
+              var idField = params.IdFolders[entry.artifact];
+              output.newId = output.fromSpira[idField];
+            }
+            else {
+              output.newId = output.fromSpira[artifactIdField];
+            }
             // update the output parent ID to the new id only if the artifact has a subtype and this entry is NOT a subtype
             if (artifact.hasSubType && !entry.isSubType) {
               output.parentId = output.newId;
@@ -3866,7 +3916,9 @@ function compareItemName(string, value) {
 // @param: fields - object of the relevant fields for specific artifact, along with all metadata about each
 // @param: fieldTypeEnums - object of all field types with enums
 // @param: getSubType - optioanl bool to specify to return the subtype Id field, not the normal field (where two exist)
+// @param: artifactId - the artifact type Id that was sent to Spira
 function getIdFieldName(fields, fieldTypeEnums, getSubType) {
+  var fieldToLookup = "";
   for (var i = 0; i < fields.length; i++) {
     var fieldToLookup = getSubType ? "subId" : "id";
     if (fields[i].type == fieldTypeEnums[fieldToLookup]) {

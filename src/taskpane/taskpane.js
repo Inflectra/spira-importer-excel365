@@ -11,7 +11,7 @@ var model = new Data();
 var uiSelection = new tempDataStore();
 
 // if devmode enabled, set the required fields and show the dev button
-var devMode = false;
+var devMode = true;
 var isGoogle = typeof UrlFetchApp != "undefined";
 
 /*
@@ -101,9 +101,9 @@ Office.onReady(info => {
 function setDevStuff(devMode) {
   if (devMode) {
     document.getElementById("btn-dev").classList.remove("hidden");
-    model.user.url = "";
+    model.user.url = "https://internal-bruno.spiraservice.net/";
     model.user.userName = "administrator";
-    model.user.api_key = btoa("&api-key=" + encodeURIComponent(""));
+    model.user.api_key = btoa("&api-key=" + encodeURIComponent("{88C10992-22A6-47FD-B570-8A87624A8CBA}"));
 
     loginAttempt();
   }
@@ -442,7 +442,21 @@ function populateProjects(projects) {
 function showMainPanel(type) {
 
   setDropdown("select-product", model.projects, "Select a product");
-  setDropdown("select-artifact", params.artifacts, "Select an artifact");
+  if (type == "get") {
+    var paramsGet = params.artifacts.filter((element) => {
+      if(!element.hasOwnProperty("sendOnly")){
+        return element;
+      }
+    })
+
+    setDropdown("select-artifact", paramsGet, "Select an artifact");
+  }
+  else{
+    setDropdown("select-artifact", params.artifacts, "Select an artifact");
+  }
+
+
+  
 
   // set the buttons to the correct mode
   if (type == "send") {
