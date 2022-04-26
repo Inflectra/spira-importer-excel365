@@ -2840,7 +2840,6 @@ function setFeedbackBgColor(cell, error, field, fieldTypeEnums, artifact, colors
 // @param: message - relevant error message from the entry for this row
 // @param: value - original ID of the artifact to be kept in case of an error
 function setFeedbackNote(cell, error, field, fieldTypeEnums, message, value, isUpdate) {
-  //PAREI AQUI: FAZER RETORNAR O ID SE FOR UMA CÉLULA 1,1 (E NÃO FOR TEST CASE?) -> VERIFICAR COMO ESTÁ NO ANTIGO!
   // handle entries with errors - add error notes into ID field
   if (error && field.type == fieldTypeEnums.id) {
     //invalid new rows always have -1 in the ID field
@@ -2950,13 +2949,22 @@ function manageSendingToSpira(entry, user, projectId, artifact, fields, fieldTyp
       if (!output.error) {
         // get the id/subType id of the updated artifact
         var artifactIdField = getIdFieldName(fields, fieldTypeEnums, entry.isSubType);
-        if (isUpdate) {
-          //just repeat the id - it's the same 
-          output.newId = entry[artifactIdField];
+
+         //special case for folders
+         if (artifactTypeIdToSend == ART_ENUMS.folders) {
+          //
+          var idField = params.IdFolders[entry.artifact];
+          output.newId = output.fromSpira[idField];
         }
-        else {
-          //get the just-created ID from the server response
-          output.newId = output.fromSpira[artifactIdField];
+        else{
+          if (isUpdate) {
+            //just repeat the id - it's the same 
+            output.newId = entry[artifactIdField];
+          }
+          else {
+            //get the just-created ID from the server response
+            output.newId = output.fromSpira[artifactIdField];
+          }
         }
         // repeats the output parent ID only if the artifact has a subtype and this entry is NOT a subtype
         if (artifact.hasSubType && !entry.isSubType) {
@@ -4261,9 +4269,7 @@ function getFromSpiraExcel(model, fieldTypeEnums) {
           resetSheet(model);
           //then, clear the background colors of the spreadsheet (in case we had any errors in the last run)
           resetSheetColors(model, fieldTypeEnums, sheetRange);
-
           dataBaseValidationSetter(requiredSheetName, model, fieldTypeEnums, context);
-
           return getDataFromSpiraExcel(model, fieldTypeEnums).then((response) => {
             //error handling
             if (response == 'noData') {
