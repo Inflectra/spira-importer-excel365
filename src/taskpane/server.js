@@ -78,7 +78,8 @@ var API_PROJECT_BASE = '/services/v6_0/RestService.svc/projects/',
     testSteps: 7,
     testSets: 8,
     risks: 14,
-    folders: 114
+    folders: 114,
+    components: 99,
   },
   INITIAL_HIERARCHY_OUTDENT = -20,
   GET_PAGINATION_SIZE = 100,
@@ -556,11 +557,13 @@ function getArtifacts(user, projectId, artifactTypeId, startRow, numberOfRows, a
         response = rawResponse; // this particular return needs to be parsed here
       }
       break;
+    case ART_ENUMS.components:
+      fullURL += "/components?active_only=false&include_deleted=false&start_row=" + startRow + "&number_rows=" + numberOfRows + "&sort_field=ComponentId&sort_direction=ASC&";
+      response = fetcher(user, fullURL);
+      break;
   }
   return response;
 }
-
-
 
 
 
@@ -864,6 +867,11 @@ function postArtifactToSpira(entry, user, projectId, artifactTypeId, parentId) {
         postUrl = API_PROJECT_BASE + projectId + '/task-folders?';
       }
       break;
+
+    // COMPONENTS
+    case ART_ENUMS.components:
+      postUrl = API_PROJECT_BASE + projectId + '/components?';
+      break;
   }
   return postUrl ? poster(JSON_body, user, postUrl) : null;
 }
@@ -933,6 +941,10 @@ function putArtifactToSpira(entry, user, projectId, artifactTypeId, parentId) {
     // TEST SETS
     case ART_ENUMS.testSets:
       putUrl = API_PROJECT_BASE + projectId + '/test-sets/?';
+      break;
+    //COMPONENTS
+    case ART_ENUMS.components:
+      putUrl = API_PROJECT_BASE + projectId + '/components/' + entry.ComponentId + '?';
       break;
   }
 
@@ -2950,13 +2962,13 @@ function manageSendingToSpira(entry, user, projectId, artifact, fields, fieldTyp
         // get the id/subType id of the updated artifact
         var artifactIdField = getIdFieldName(fields, fieldTypeEnums, entry.isSubType);
 
-         //special case for folders
-         if (artifactTypeIdToSend == ART_ENUMS.folders) {
+        //special case for folders
+        if (artifactTypeIdToSend == ART_ENUMS.folders) {
           //
           var idField = params.IdFolders[entry.artifact];
           output.newId = output.fromSpira[idField];
         }
-        else{
+        else {
           if (isUpdate) {
             //just repeat the id - it's the same 
             output.newId = entry[artifactIdField];
@@ -3520,20 +3532,20 @@ function createEntryFromRow(row, model, fieldTypeEnums, artifactIsHierarchical, 
         case fieldTypeEnums.bool:
           // 'True' and 'False' don't work as dropdown choices, so have to convert back
           if (row[index] == "Yes") {
-            value = true;
+            value = "true";
             customType = "BooleanValue";
           } else if (row[index] == "No") {
-            value = false;
+            value = "false";
             customType = "BooleanValue";
           }
           break;
         case fieldTypeEnums.customBoolean:
           // 'True' and 'False' don't work as dropdown choices, so have to convert back
           if (row[index] == "Yes") {
-            value = true;
+            value = "true";
             customType = "BooleanValue";
           } else if (row[index] == "No") {
-            value = false;
+            value = "false";
             customType = "BooleanValue";
           }
           break;
@@ -4575,7 +4587,7 @@ function matchArtifactsToFields(artifacts, artifactMeta, fields, fieldTypeEnums,
 
         // handle booleans - need to make sure null values are ignored ie treated differently to false
       } else if (field.type == fieldTypeEnums.bool || field.type == fieldTypeEnums.customBoolean) {
-        return originalFieldValue ? "Yes" : originalFieldValue === false ? "No" : "";
+        return originalFieldValue ? "Yes" : originalFieldValue === false ? "No" : "No";
         // handle hierarchical artifacts
       } else if (field.setsHierarchy) {
         return makeHierarchical(originalFieldValue, art.IndentLevel);

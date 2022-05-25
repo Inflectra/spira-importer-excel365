@@ -43,7 +43,8 @@ var params = {
         testSteps: 7,
         testSets: 8,
         risks: 14,
-        folders: 114
+        folders: 114,
+        components: 99
     },
 
     dataSheetName: "database",
@@ -105,7 +106,8 @@ var params = {
         { field: 'testSteps', name: 'Test Steps', id: 7, disabled: true, hidden: true, isSubType: true },
         { field: 'testSets', name: 'Test Sets', id: 8, hasFolders: true },
         { field: 'risks', name: 'Risks', id: 14 },
-        { field: 'folders', name: 'Folders', id: 114, sendOnly: true }
+        { field: 'folders', name: 'Folders', id: 114, sendOnly: true },
+        { field: 'components', name: 'Components', id: 99}
     ],
     //special cases enum
     specialCases: [
@@ -513,7 +515,12 @@ var templateFields = {
         { field: "Text", name: "New Comment", type: params.fieldType.text, isComment: true, isAdvanced: true },
         { field: "ConcurrencyDate", name: "Concurrency Date", type: params.fieldType.text, isReadOnly: true, isHidden: true },
     ],
+    components: [
 
+        { field: "ComponentId", name: "ID", type: params.fieldType.id },
+        { field: "Name", name: "Name", type: params.fieldType.text, required: true },
+        { field: "IsActive", name: "Active?", type: params.fieldType.bool},
+    ],
 };
 
 function Data() {
