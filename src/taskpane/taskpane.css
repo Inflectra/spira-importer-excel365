@@ -123,7 +123,14 @@
     background-color: rgb(0, 90, 158);
 }
 
+.AdminButtonAlignment{
+    display: flex;
+    flex-wrap: wrap;
+}
 
+.AdminButtonAlignment button{
+    width: 100%;
+}
 
 .helpBox {
     position: absolute;

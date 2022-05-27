@@ -530,12 +530,21 @@ function Data() {
         userName: '',
         api_key: '',
         roleId: 1,
+        admin: false
         //TODO this is wrong and should eventually be fixed to limit what user can create or edit client side
         //when add permissions - show in some way to the user what is going on
         // maybe it's as simple as a footnote explaining why projects or artifacts are disabled
     };
 
     this.projects = [];
+
+    this.templates = [];
+
+    this.operations = [
+        { name: "Add new Users to Spira", id: 0, type: "get" },
+        { name: "Add new Custom Lists/Custom Values", id: 1, type: "get" },
+        { name: "Edit existent Custom Lists/Custom Values", id: 2, type: "get" },
+    ];
 
     this.currentProject = '';
     this.projectComponents = [];

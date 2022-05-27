@@ -25,13 +25,15 @@ export {
   getCustoms,
   getFromSpiraExcel,
   getProjects,
+  getProjectTemplates,
   getReleases,
   getUsers,
   getTemplateFromProjectId,
   operationComplete,
   sendToSpira,
   templateLoader,
-  warn
+  warn,
+  isUserAdmin
 };
 
 import { showPanel, hidePanel } from './taskpane.js';
@@ -67,7 +69,8 @@ eval(importModel.replace('<script>', '').replace('</script>', ''));*/
 // globals
 var API_PROJECT_BASE = '/services/v6_0/RestService.svc/projects/',
   API_PROJECT_BASE_NO_SLASH = '/services/v6_0/RestService.svc/projects',
-  API_TEMPLATE_BASE = '/services/v6_0/RestService.svc/project-templates/',
+  API_TEMPLATE_BASE = '/services/v6_0/RestService.svc/project-templates',
+  API_USER_BASE = '/services/v6_0/RestService.svc/users/usernames/',
   ART_ENUMS = {
     requirements: 1,
     testCases: 2,
@@ -419,7 +422,7 @@ function fetcher(currentUser, fetcherURL) {
 
 
 // Gets projects accessible by current logged in user
-// This function is called on initial log in and therefore also acts as user validation
+// This function is called on initial log in
 // @param: currentUser - object with details about the current user
 async function getProjects(currentUser) {
   var fetcherURL = API_PROJECT_BASE_NO_SLASH + '?';
@@ -427,6 +430,13 @@ async function getProjects(currentUser) {
 }
 
 
+// Gets projects accessible by current logged in user
+// This function is called on initial log in and therefore also acts as user validation
+// @param: currentUser - object with details about the current user
+async function getProjectTemplates(currentUser) {
+  var fetcherURL = API_TEMPLATE_BASE + '?';
+  return fetcher(currentUser, fetcherURL);
+}
 
 // Gets projects accessible by current logged in user
 // This function is called on initial log in and therefore also acts as user validation
@@ -437,6 +447,13 @@ function getTemplateFromProjectId(currentUser, projectId) {
   return fetcher(currentUser, fetcherURL);
 }
 
+// Checks if the current user is a system administrator
+// This function is called on initial log in
+// @param: currentUser - object with details about the current user
+async function isUserAdmin(currentUser) {
+  var fetcherURL = API_USER_BASE + currentUser.userName + '?include_inactive=false&';
+  return fetcher(currentUser, fetcherURL);
+}
 
 
 // Gets components for selected project.

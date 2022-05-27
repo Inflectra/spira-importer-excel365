@@ -130,6 +130,7 @@ function setEventListeners() {
   };
   document.getElementById("btn-decide-send").onclick = function () { showMainPanel("send") };
   document.getElementById("btn-decide-get").onclick = function () { showMainPanel("get") };
+  document.getElementById("btn-decide-admin").onclick = function () { showAdminPanel() };
   document.getElementById("btn-decide-logout").onclick = logoutAttempt;
   document.getElementById("btn-help-main").onclick = function () {
     panelToggle('help');
@@ -384,6 +385,21 @@ function loginAttempt() {
 function login() {
   artifactUpdateUI(UI_MODE.initialState);
   showLoadingSpinner();
+  //First, check if this user is an admin (required to display admin options)
+  if (isGoogle) {
+    google.script.run
+      .withSuccessHandler(showHideAdminButton)
+      .withFailureHandler(errorNetwork)
+      .isUserAdmin(model.user);
+  } else {
+    msOffice.isUserAdmin(model.user)
+      .then(response => showHideAdminButton(response.body))
+      .catch(err => {
+        return errorNetwork(err)
+      }
+      );
+  }
+
   // call server side function to get projects
   // also serves as authentication check, if the user credentials aren't correct it will throw a network error
   if (isGoogle) {
@@ -428,6 +444,25 @@ function populateProjects(projects) {
   hideLoadingSpinner();
 }
 
+// prepare prj template data to be displayed in the admin panel
+// @param: templates - passed in templates data returned from the server following successful API call to Spira
+function populateTemplates(templates) {
+  // take projects data from Spira API call, strip out unwanted fields, add to data model
+  var pairedDownTemplatesData = templates.reduce(function (filtered, template) {
+    if (template.IsActive) {
+      var result = {
+        id: template.ProjectTemplateId,
+        name: template.Name
+      }
+      filtered.push(result);
+    }
+    return filtered;
+  }, []);
+  // now add paired down template array to data store
+  model.templates = pairedDownTemplatesData;
+  //populates the templates dropdown menu
+  setDropdown("select-template", model.templates, "Select a product template");
+}
 
 
 /*
@@ -444,19 +479,19 @@ function showMainPanel(type) {
   setDropdown("select-product", model.projects, "Select a product");
   if (type == "get") {
     var paramsGet = params.artifacts.filter((element) => {
-      if(!element.hasOwnProperty("sendOnly")){
+      if (!element.hasOwnProperty("sendOnly")) {
         return element;
       }
     })
 
     setDropdown("select-artifact", paramsGet, "Select an artifact");
   }
-  else{
+  else {
     setDropdown("select-artifact", params.artifacts, "Select an artifact");
   }
 
 
-  
+
 
   // set the buttons to the correct mode
   if (type == "send") {
@@ -478,6 +513,49 @@ function showMainPanel(type) {
   hideLoadingSpinner();
 }
 
+//decide if the administrator advanced options button should be displayed for the current logged user
+function showHideAdminButton(spiraUser) {
+  spiraUser.Admin ? document.getElementById("btn-decide-admin").style.visibility = "visible" : document.getElementById("btn-decide-admin").style.visibility = "hidden";
+}
+
+
+// manage the switching of the UI off the login screen to the administrator screen 
+function showAdminPanel() {
+
+  //hide information we don't want to be displayed yet
+  document.getElementById("main-guide-admin-2-get").style.visibility = "hidden";
+  document.getElementById("main-guide-admin-2-send").style.visibility = "hidden";
+  document.getElementById("btn-prepareTemplate").style.visibility = "hidden";
+  document.getElementById("btn-adminGet").style.visibility = "hidden";
+  document.getElementById("main-guide-admin-3").style.visibility = "hidden"; 
+  document.getElementById("btn-adminupdate").style.visibility = "hidden";
+  document.getElementById("main-guide-admin-templates").style.visibility = "hidden";
+  document.getElementById("select-template").style.visibility = "hidden";
+
+  //Get the project templates now we know this user is an admin
+  // call server side function to get templates
+  if (isGoogle) {
+    google.script.run
+      .withSuccessHandler(populateTemplates)
+      .withFailureHandler(errorNetwork)
+      .getProjectTemplates(model.user);
+  } else {
+    msOffice.getProjectTemplates(model.user)
+      .then(response => populateTemplates(response.body))
+      .catch(err => {
+        return errorNetwork(err)
+      }
+      );
+  }
+
+
+  //populate the operations dropdown menu
+  setDropdown("select-operation", model.operations, "Select an operation");
+
+  showPanel("admin");
+  hideLoadingSpinner();
+
+}
 
 function hideMainPanel() {
   hidePanel("main");
