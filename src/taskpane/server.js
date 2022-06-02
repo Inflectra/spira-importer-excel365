@@ -69,7 +69,8 @@ eval(importModel.replace('<script>', '').replace('</script>', ''));*/
 // globals
 var API_PROJECT_BASE = '/services/v6_0/RestService.svc/projects/',
   API_PROJECT_BASE_NO_SLASH = '/services/v6_0/RestService.svc/projects',
-  API_TEMPLATE_BASE = '/services/v6_0/RestService.svc/project-templates',
+  API_TEMPLATE_BASE = '/services/v6_0/RestService.svc/project-templates/',
+  API_TEMPLATE_BASE_NO_SLASH = '/services/v6_0/RestService.svc/project-templates',
   API_USER_BASE = '/services/v6_0/RestService.svc/users/usernames/',
   ART_ENUMS = {
     requirements: 1,
@@ -434,7 +435,7 @@ async function getProjects(currentUser) {
 // This function is called on initial log in and therefore also acts as user validation
 // @param: currentUser - object with details about the current user
 async function getProjectTemplates(currentUser) {
-  var fetcherURL = API_TEMPLATE_BASE + '?';
+  var fetcherURL = API_TEMPLATE_BASE_NO_SLASH + '?';
   return fetcher(currentUser, fetcherURL);
 }
 
@@ -1081,7 +1082,7 @@ function templateLoader(model, fieldTypeEnums, advancedMode) {
   var sheet;
   var newSheetName = model.currentArtifact.name + ", PR-" + model.currentProject.id;
   var response;
-
+  console.log('newSheetName ' + newSheetName);
   // select active sheet
   if (IS_GOOGLE) {
     sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();

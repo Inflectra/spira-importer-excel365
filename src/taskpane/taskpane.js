@@ -136,15 +136,26 @@ function setEventListeners() {
     panelToggle('help');
     showChosenHelpSection('data')
   };
+  document.getElementById("btn-help-admin").onclick = function () {
+    panelToggle('help');
+    showChosenHelpSection('login')
+  };
 
   document.getElementById("btn-logout").onclick = logoutAttempt;
+  document.getElementById("btn-logout-admin").onclick = logoutAttempt;
   document.getElementById("btn-main-back").onclick = hideMainPanel;
+  document.getElementById("btn-admin-back").onclick = hideAdminPanel;
 
   // changing of dropdowns
   document.getElementById("select-product").onchange = changeProjectSelect;
   document.getElementById("select-artifact").onchange = changeArtifactSelect;
 
+  document.getElementById("select-operation").onchange = changeOperationSelect;
+  document.getElementById("select-template").onchange = changeTemplateSelect;
+
   document.getElementById("btn-toSpira").onclick = sendToSpiraAttempt;
+  document.getElementById("btn-prepareTemplate").onclick = sendToSpiraAttempt;
+
   document.getElementById("btn-fromSpira").onclick = getFromSpiraAttempt;
   document.getElementById("btn-template").onclick = updateTemplateAttempt;
   document.getElementById("btn-updateToSpira").onclick = updateSpiraAttempt;
@@ -513,49 +524,6 @@ function showMainPanel(type) {
   hideLoadingSpinner();
 }
 
-//decide if the administrator advanced options button should be displayed for the current logged user
-function showHideAdminButton(spiraUser) {
-  spiraUser.Admin ? document.getElementById("btn-decide-admin").style.visibility = "visible" : document.getElementById("btn-decide-admin").style.visibility = "hidden";
-}
-
-
-// manage the switching of the UI off the login screen to the administrator screen 
-function showAdminPanel() {
-
-  //hide information we don't want to be displayed yet
-  document.getElementById("main-guide-admin-2-get").style.visibility = "hidden";
-  document.getElementById("main-guide-admin-2-send").style.visibility = "hidden";
-  document.getElementById("btn-prepareTemplate").style.visibility = "hidden";
-  document.getElementById("btn-adminGet").style.visibility = "hidden";
-  document.getElementById("main-guide-admin-3").style.visibility = "hidden"; 
-  document.getElementById("btn-adminupdate").style.visibility = "hidden";
-  document.getElementById("main-guide-admin-templates").style.visibility = "hidden";
-  document.getElementById("select-template").style.visibility = "hidden";
-
-  //Get the project templates now we know this user is an admin
-  // call server side function to get templates
-  if (isGoogle) {
-    google.script.run
-      .withSuccessHandler(populateTemplates)
-      .withFailureHandler(errorNetwork)
-      .getProjectTemplates(model.user);
-  } else {
-    msOffice.getProjectTemplates(model.user)
-      .then(response => populateTemplates(response.body))
-      .catch(err => {
-        return errorNetwork(err)
-      }
-      );
-  }
-
-
-  //populate the operations dropdown menu
-  setDropdown("select-operation", model.operations, "Select an operation");
-
-  showPanel("admin");
-  hideLoadingSpinner();
-
-}
 
 function hideMainPanel() {
   hidePanel("main");
@@ -565,7 +533,6 @@ function hideMainPanel() {
   // make sure the system does not think any data is loaded
   model.isTemplateLoaded = false;
 }
-
 
 
 // run server side code to manage logout
@@ -721,7 +688,6 @@ function changeArtifactSelect(e) {
 
       // enable template button only when all info is received - otherwise keep it disabled
       manageTemplateBtnState();
-
       // kick off API calls - if we have a current template and project
       if (uiSelection.currentProject.templateId && uiSelection.currentProject.id) {
         getArtifactSpecificInformation(model.user, uiSelection.currentProject.templateId, uiSelection.currentProject.id, uiSelection.currentArtifact);
@@ -830,7 +796,8 @@ function createTemplate(shouldContinue) {
     // all data should already be loaded (as otherwise template button is disabled)
     // but check again that all data is present before kicking off template creation
     // if so, kicks off template creation, otherwise waits and tries again
-    if (allGetsSucceeded()) {
+    // the exception is when using advanced admin mode operations not based on projects
+    if (allGetsSucceeded() || uiSelection.currentOperation == 1) {
       templateLoader();
 
       // otherwise, run an interval loop (should never get called as template button should be disabled)
@@ -1019,11 +986,251 @@ function showChosenHelpSection(choice) {
 
 
 
+/*
+*
+* ===========
+* ADMIN SCREEN
+* ===========
+*
+*/
+// Admin-exclusive: retrieves the operation object that matches the one selected in the dropdown
+// returns a operation object
+function getSelectedOperation() {
+  // store dropdown value
+  var select = document.getElementById("select-operation");
+  var operationDropdownVal = select.options[select.selectedIndex].value;
+  // filter the project lists to those chosen 
+  var operationSelected = model.operations.filter(function (operation) {
+    return operation.id == operationDropdownVal;
+  })[0];
+  return operationSelected;
+}
+
+//decide if the administrator advanced options button should be displayed for the current logged user
+function showHideAdminButton(spiraUser) {
+  spiraUser.Admin ? document.getElementById("btn-decide-admin").style.visibility = "visible" : document.getElementById("btn-decide-admin").style.visibility = "hidden";
+}
 
 
+// manage the switching of the UI off the login screen to the administrator screen 
+function showAdminPanel() {
+
+  //hide information we don't want to be displayed yet
+  document.getElementById("main-guide-admin-2-get").style.visibility = "hidden";
+  document.getElementById("main-guide-admin-2-send").style.visibility = "hidden";
+  document.getElementById("btn-prepareTemplate").style.visibility = "hidden";
+  document.getElementById("btn-adminGet").style.visibility = "hidden";
+  document.getElementById("main-guide-admin-3-put").style.visibility = "hidden";
+  document.getElementById("main-guide-admin-3-post").style.visibility = "hidden";
+  document.getElementById("btn-adminsend").style.visibility = "hidden";
+  document.getElementById("main-guide-admin-templates").style.visibility = "hidden";
+  document.getElementById("select-template").style.visibility = "hidden";
+
+  //Get the project templates now we know this user is an admin
+  // call server side function to get templates
+  if (isGoogle) {
+    google.script.run
+      .withSuccessHandler(populateTemplates)
+      .withFailureHandler(errorNetwork)
+      .getProjectTemplates(model.user);
+  } else {
+    msOffice.getProjectTemplates(model.user)
+      .then(response => populateTemplates(response.body))
+      .catch(err => {
+        return errorNetwork(err)
+      }
+      );
+  }
+
+  //populate the operations dropdown menu
+  setDropdown("select-operation", model.operations, "Select an operation");
+
+  showPanel("admin");
+  hideLoadingSpinner();
+
+}
+
+function hideAdminPanel() {
+  hidePanel("admin");
+  // reset the buttons and dropdowns
+  resetUi();
+  uiSelection = new tempDataStore();
+  // make sure the system does not think any data is loaded
+  model.isTemplateLoaded = false;
+}
+
+function changeOperationSelect(e) {
+
+  // if the operation field has not been selected all other objects in this panel will be hidden
+  if (e.target.value == 0) {
+    //hide information we don't want to be displayed
+    document.getElementById("main-guide-admin-2-get").style.visibility = "hidden";
+    document.getElementById("main-guide-admin-2-send").style.visibility = "hidden";
+    document.getElementById("btn-prepareTemplate").style.visibility = "hidden";
+    document.getElementById("btn-adminGet").style.visibility = "hidden";
+    document.getElementById("main-guide-admin-3-put").style.visibility = "hidden";
+    document.getElementById("main-guide-admin-3-post").style.visibility = "hidden";
+    document.getElementById("btn-adminsend").style.visibility = "hidden";
+    document.getElementById("main-guide-admin-templates").style.visibility = "hidden";
+    document.getElementById("select-template").style.visibility = "hidden";
+
+    uiSelection.currentOperation = null;
+
+  } else {
+    // enable other objects, depending on the oparation selected
+    var chosenOperation = getSelectedOperation();
+
+    switch (chosenOperation.type) {
+      case "send-system":
+        //system wide operations that requires send data only
+        if (chosenOperation.id == 1) {
+          //Create users operation
+          //Display the necessary objects on the taskpane
+          document.getElementById("main-guide-admin-2-get").style.display = "none";
+          document.getElementById("main-guide-admin-2-get").style.visibility = "hidden";
+
+          document.getElementById("main-guide-admin-2-send").classList.remove("pale");
+          document.getElementById("main-guide-admin-2-send").style.visibility = "visible";
+          document.getElementById("main-guide-admin-2-send").style.display = "";
+
+          document.getElementById("btn-prepareTemplate").classList.remove("pale");
+          document.getElementById("btn-prepareTemplate").style.visibility = "visible";
+          document.getElementById("btn-prepareTemplate").disabled = false;
+          document.getElementById("btn-prepareTemplate").style.display = "";
+
+          document.getElementById("select-template").style.display = "";
+
+          document.getElementById("btn-adminGet").style.display = "none";
+          document.getElementById("btn-adminGet").style.visibility = "hidden";
+
+          document.getElementById("main-guide-admin-3-post").style.visibility = "visible";
+
+          document.getElementById("main-guide-admin-3-put").style.display = "none";
+
+          document.getElementById("btn-adminsend").style.visibility = "visible";
+
+          document.getElementById("main-guide-admin-templates").style.visibility = "hidden";
+          document.getElementById("main-guide-admin-templates").style.display = "none";
+          document.getElementById("select-template").style.display = "none";
+
+          uiSelection.currentOperation = 1;
+          //sets the selected artifact based on admin operation
+          uiSelection.currentArtifact = getAdminArtifact();
+        }
+        break;
+
+      case "send-template":
+        //template-based operations that requires send data only
+        if (chosenOperation.id == 2) {
+          //Create custom lists and values operation
+          //Display the necessary objects on the taskpane
+          document.getElementById("main-guide-admin-2-get").style.display = "none";
+
+          document.getElementById("main-guide-admin-2-send").classList.remove("pale");
+          document.getElementById("main-guide-admin-2-send").style.visibility = "visible";
+          document.getElementById("main-guide-admin-2-send").style.display = "";
+
+          document.getElementById("btn-prepareTemplate").classList.remove("pale");
+          document.getElementById("btn-prepareTemplate").style.visibility = "visible";
+          document.getElementById("btn-prepareTemplate").disabled = true;
+          document.getElementById("btn-prepareTemplate").style.display = "";
 
 
+          document.getElementById("btn-adminGet").style.display = "none";
+          document.getElementById("btn-adminGet").style.visibility = "hidden";
 
+          document.getElementById("main-guide-admin-3-post").style.visibility = "visible";
+
+          document.getElementById("main-guide-admin-3-put").style.display = "none";
+
+          document.getElementById("btn-adminsend").style.visibility = "visible";
+
+          document.getElementById("main-guide-admin-templates").style.visibility = "visible";
+          document.getElementById("select-template").style.visibility = "visible";
+          document.getElementById("main-guide-admin-templates").style.display = "";
+          document.getElementById("select-template").style.display = "";
+          document.getElementById("select-template").selectedIndex = 0;
+
+          uiSelection.currentOperation = 2;
+          //sets the selected artifact based on admin operation
+          uiSelection.currentArtifact = getAdminArtifact();
+        }
+        break;
+
+      case "get-template":
+        //template-based operations that requires get data + send later
+        if (chosenOperation.id == 3) {
+          //Create custom lists and values operation
+          //Display the necessary objects on the taskpane
+          document.getElementById("main-guide-admin-2-send").style.display = "none";
+          document.getElementById("main-guide-admin-2-send").style.visibility = "hidden";
+
+          document.getElementById("main-guide-admin-2-get").classList.remove("pale");
+          document.getElementById("main-guide-admin-2-get").style.visibility = "visible";
+          document.getElementById("main-guide-admin-2-get").style.display = "";
+
+          document.getElementById("btn-adminGet").classList.remove("pale");
+          document.getElementById("btn-adminGet").style.visibility = "visible";
+          document.getElementById("btn-adminGet").disabled = true;
+
+          document.getElementById("btn-adminGet").style.display = "";
+
+          document.getElementById("btn-prepareTemplate").style.visibility = "hidden";
+          document.getElementById("btn-prepareTemplate").style.display = "none";
+
+          document.getElementById("main-guide-admin-3-post").style.visibility = "visible";
+
+          document.getElementById("main-guide-admin-3-put").style.display = "none";
+
+          document.getElementById("btn-adminsend").style.visibility = "visible";
+
+          document.getElementById("main-guide-admin-templates").style.visibility = "visible";
+          document.getElementById("select-template").style.visibility = "visible";
+          document.getElementById("main-guide-admin-templates").style.display = "";
+
+          document.getElementById("select-template").style.display = "";
+          document.getElementById("select-template").selectedIndex = 0;
+
+          uiSelection.currentOperation = 3;
+          //sets the selected artifact based on admin operation
+          uiSelection.currentArtifact = getAdminArtifact();
+        }
+        break;
+    }
+
+  }
+}
+
+
+function changeTemplateSelect(e) {
+  //First, enable the respective operation next button
+  if (e.target.value != 0) {
+
+    if (uiSelection.currentOperation == 2) {
+      document.getElementById("btn-prepareTemplate").disabled = false;
+    } else if (uiSelection.currentOperation == 3) {
+      document.getElementById("btn-adminGet").disabled = false;
+    }
+  }
+  else {
+    document.getElementById("btn-prepareTemplate").disabled = true;
+    document.getElementById("btn-adminGet").disabled = true;
+  }
+}
+
+//returns the artifactId associated with the given admin operation
+function getAdminArtifact() {
+  //filter the current operation
+  var operationSelected = model.operations.filter(function (operation) {
+    return operation.id == uiSelection.currentOperation;
+  })[0];
+
+  // filter the artifact lists to those chosen 
+  var artifactSelected = params.artifacts.filter(function (artifact) {
+    return artifact.id == operationSelected.artifactId;
+  })[0];
+  return artifactSelected;
+}
 
 /*
 *
@@ -1054,13 +1261,13 @@ function getSelectedArtifact() {
   // store dropdown values
   var select = document.getElementById("select-artifact");
   var artifactDropdownVal = select.options[select.selectedIndex].value;
+
   // filter the artifact lists to those chosen 
   var artifactSelected = params.artifacts.filter(function (artifact) {
     return artifact.id == artifactDropdownVal;
   })[0];
   return artifactSelected;
 }
-
 
 
 // kicks off all relevant API calls to get project specific information
@@ -1081,11 +1288,13 @@ function getProjectSpecificInformation(user, projectId) {
 // @param: templateId - int of the reqested project template
 // @param: artifact - object of the reqested artifact - needed to query on different parts of object
 function getArtifactSpecificInformation(user, templateId, projectId, artifact) {
+
   // first reset get counts
   model.artifactGetRequestsMade = 0;
   model.artifactGetRequestsToMake = model.baselineArtifactGetRequests;
   // increase the count if any bespoke fields are present (eg folders or incident types)
   var bespokeData = fieldsWithBespokeData(templateFields[artifact.field]);
+
   if (bespokeData) {
     model.artifactGetRequestsToMake += bespokeData.length;
     // get any bespoke field information
@@ -1389,6 +1598,10 @@ function templateLoader() {
   // set the model based on data stored based on current dropdown selections
   model.currentProject = uiSelection.currentProject;
   model.currentArtifact = uiSelection.currentArtifact;
+  model.currentOperation = uiSelection.currentOperation;
+  //handling special admin operations:
+
+
   model.projectComponents = [];
   model.projectActiveReleases = [];
   model.projectReleases = [];

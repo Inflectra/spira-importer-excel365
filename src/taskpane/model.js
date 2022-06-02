@@ -44,7 +44,8 @@ var params = {
         testSets: 8,
         risks: 14,
         folders: 114,
-        components: 99
+        components: 99,
+        users: 98
     },
 
     dataSheetName: "database",
@@ -107,7 +108,8 @@ var params = {
         { field: 'testSets', name: 'Test Sets', id: 8, hasFolders: true },
         { field: 'risks', name: 'Risks', id: 14 },
         { field: 'folders', name: 'Folders', id: 114, sendOnly: true },
-        { field: 'components', name: 'Components', id: 99}
+        { field: 'components', name: 'Components', id: 99},
+        { field: 'users', name: 'Users', id: 98, disabled: false, hidden: true},
     ],
     //special cases enum
     specialCases: [
@@ -521,6 +523,23 @@ var templateFields = {
         { field: "Name", name: "Name", type: params.fieldType.text, required: true },
         { field: "IsActive", name: "Active?", type: params.fieldType.bool},
     ],
+    users: [
+        { field: "UserId", name: "ID", type: params.fieldType.id },
+        { field: "FirstName", name: "First Name", type: params.fieldType.text, required: true },
+        { field: "MiddleInitial", name: "Middle Initial", type: params.fieldType.text},
+        { field: "LastName", name: "Last Name", type: params.fieldType.text, required: true },
+        { field: "UserName", name: "UserName", type: params.fieldType.text, required: true },
+        { field: "LdapDn", name: "LDAP Distinguished Name", type: params.fieldType.text},
+        { field: "EmailAddress", name: "Email Address", type: params.fieldType.text, required: true },
+        { field: "Admin", name: "Admin?", type: params.fieldType.bool},
+        { field: "Active", name: "Active?", type: params.fieldType.bool},
+        { field: "Department", name: "Department", type: params.fieldType.text},
+        { field: "password", name: "Password", type: params.fieldType.text, isHeader: true },
+        { field: "password_question", name: "Password Question", type: params.fieldType.text, isHeader: true },
+        { field: "password_answer", name: "password Answer", type: params.fieldType.text, isHeader: true },
+        { field: "project_id", name: "Project ID", type: params.fieldType.num, isHeader: true },
+        { field: "project_role_id", name: "Project Role ID", type: params.fieldType.num, isHeader: true },
+    ],
 };
 
 function Data() {
@@ -541,9 +560,9 @@ function Data() {
     this.templates = [];
 
     this.operations = [
-        { name: "Add new Users to Spira", id: 0, type: "get" },
-        { name: "Add new Custom Lists/Custom Values", id: 1, type: "get" },
-        { name: "Edit existent Custom Lists/Custom Values", id: 2, type: "get" },
+        { name: "Add new Users to Spira", id: 1, type: "send-system", artifactId: 98},
+        { name: "Add new Custom Lists/Custom Values", id: 2, type: "send-template", artifactId: 99},
+        { name: "Edit existent Custom Lists/Custom Values", id: 3, type: "get-template", artifactId: 99},
     ];
 
     this.currentProject = '';
@@ -554,6 +573,9 @@ function Data() {
     this.indentCharacter = ">";
 
     this.currentArtifact = '';
+
+    this.currentOperation = '';
+    this.currentTemplate = '';
 
     this.projectGetRequestsToMake = 3; // users, components, releases
     this.projectGetRequestsMade = 0;
