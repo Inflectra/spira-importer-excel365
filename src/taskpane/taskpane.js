@@ -154,7 +154,8 @@ function setEventListeners() {
   document.getElementById("select-template").onchange = changeTemplateSelect;
 
   document.getElementById("btn-toSpira").onclick = sendToSpiraAttempt;
-  document.getElementById("btn-prepareTemplate").onclick = sendToSpiraAttempt;
+  document.getElementById("btn-prepareTemplate").onclick = prepareTemplateAdmin;
+  document.getElementById("btn-admin-send").onclick = sendToSpiraAttempt;
 
   document.getElementById("btn-fromSpira").onclick = getFromSpiraAttempt;
   document.getElementById("btn-template").onclick = updateTemplateAttempt;
@@ -893,6 +894,22 @@ function sendToSpiraAttempt() {
   }
 }
 
+function prepareTemplateAdmin() {
+  if (!model.isTemplateLoaded) {
+    createTemplateAttempt();
+    document.getElementById("btn-prepareTemplate").disabled = true;
+    document.getElementById("main-guide-admin-2-send").classList.add("pale");
+    document.getElementById('main-guide-1-fromSpira').style.fontWeight = 'normal';
+
+    document.getElementById("main-guide-admin-3-post").classList.remove("pale");
+    document.getElementById("btn-admin-send").classList.remove("pale");
+    document.getElementById('main-guide-admin-3-post').style.fontWeight = 'bold';
+
+    document.getElementById("btn-admin-send").disabled = false;
+
+  }
+}
+
 function updateSpiraAttempt() {
 
   // first update state to reflect user intent
@@ -1022,9 +1039,19 @@ function showAdminPanel() {
   document.getElementById("btn-adminGet").style.visibility = "hidden";
   document.getElementById("main-guide-admin-3-put").style.visibility = "hidden";
   document.getElementById("main-guide-admin-3-post").style.visibility = "hidden";
-  document.getElementById("btn-adminsend").style.visibility = "hidden";
+  document.getElementById("btn-admin-send").style.visibility = "hidden";
   document.getElementById("main-guide-admin-templates").style.visibility = "hidden";
   document.getElementById("select-template").style.visibility = "hidden";
+
+  document.getElementById("btn-prepareTemplate").disabled = true;
+  document.getElementById("main-guide-admin-2-send").classList.add("pale");
+  document.getElementById('main-guide-1-fromSpira').style.fontWeight = 'bold';
+
+  document.getElementById("main-guide-admin-3-post").classList.add("pale");
+  document.getElementById("btn-admin-send").classList.add("pale");
+  document.getElementById('main-guide-admin-3-post').style.fontWeight = 'normal';
+
+  document.getElementById("btn-admin-send").disabled = false;
 
   //Get the project templates now we know this user is an admin
   // call server side function to get templates
@@ -1070,9 +1097,19 @@ function changeOperationSelect(e) {
     document.getElementById("btn-adminGet").style.visibility = "hidden";
     document.getElementById("main-guide-admin-3-put").style.visibility = "hidden";
     document.getElementById("main-guide-admin-3-post").style.visibility = "hidden";
-    document.getElementById("btn-adminsend").style.visibility = "hidden";
+    document.getElementById("btn-admin-send").style.visibility = "hidden";
     document.getElementById("main-guide-admin-templates").style.visibility = "hidden";
     document.getElementById("select-template").style.visibility = "hidden";
+
+    document.getElementById("btn-prepareTemplate").disabled = true;
+    document.getElementById("main-guide-admin-2-send").classList.add("pale");
+    document.getElementById('main-guide-1-fromSpira').style.fontWeight = 'normal';
+
+    document.getElementById("main-guide-admin-3-post").classList.add("pale");
+    document.getElementById("btn-admin-send").classList.add("pale");
+    document.getElementById('main-guide-admin-3-post').style.fontWeight = 'normal';
+
+    document.getElementById("btn-admin-send").disabled = false;
 
     uiSelection.currentOperation = null;
 
@@ -1107,7 +1144,7 @@ function changeOperationSelect(e) {
 
           document.getElementById("main-guide-admin-3-put").style.display = "none";
 
-          document.getElementById("btn-adminsend").style.visibility = "visible";
+          document.getElementById("btn-admin-send").style.visibility = "visible";
 
           document.getElementById("main-guide-admin-templates").style.visibility = "hidden";
           document.getElementById("main-guide-admin-templates").style.display = "none";
@@ -1116,6 +1153,8 @@ function changeOperationSelect(e) {
           uiSelection.currentOperation = 1;
           //sets the selected artifact based on admin operation
           uiSelection.currentArtifact = getAdminArtifact();
+          //get bespoke fields for this operation's artifact
+          getArtifactSpecificInformation(model.user, null, null, uiSelection.currentArtifact);
         }
         break;
 
@@ -1143,7 +1182,7 @@ function changeOperationSelect(e) {
 
           document.getElementById("main-guide-admin-3-put").style.display = "none";
 
-          document.getElementById("btn-adminsend").style.visibility = "visible";
+          document.getElementById("btn-admin-send").style.visibility = "visible";
 
           document.getElementById("main-guide-admin-templates").style.visibility = "visible";
           document.getElementById("select-template").style.visibility = "visible";
@@ -1182,7 +1221,7 @@ function changeOperationSelect(e) {
 
           document.getElementById("main-guide-admin-3-put").style.display = "none";
 
-          document.getElementById("btn-adminsend").style.visibility = "visible";
+          document.getElementById("btn-admin-send").style.visibility = "visible";
 
           document.getElementById("main-guide-admin-templates").style.visibility = "visible";
           document.getElementById("select-template").style.visibility = "visible";
@@ -1199,6 +1238,7 @@ function changeOperationSelect(e) {
     }
 
   }
+  model.isTemplateLoaded = false;
 }
 
 
@@ -1303,7 +1343,9 @@ function getArtifactSpecificInformation(user, templateId, projectId, artifact) {
     });
   }
   // get standard artifact information - eg custom fields
-  getCustoms(user, templateId, artifact.id);
+  if (templateId != null && projectId != null) {
+    getCustoms(user, templateId, artifact.id);
+  }
 }
 
 

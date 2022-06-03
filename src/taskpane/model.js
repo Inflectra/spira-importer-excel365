@@ -537,8 +537,26 @@ var templateFields = {
         { field: "password", name: "Password", type: params.fieldType.text, isHeader: true },
         { field: "password_question", name: "Password Question", type: params.fieldType.text, isHeader: true },
         { field: "password_answer", name: "password Answer", type: params.fieldType.text, isHeader: true },
-        { field: "project_id", name: "Project ID", type: params.fieldType.num, isHeader: true },
-        { field: "project_role_id", name: "Project Role ID", type: params.fieldType.num, isHeader: true },
+        {
+            field: "project_id", name: "Project ID", type: params.fieldType.drop, required: false, isHeader: true,
+            bespoke: {
+                url: "projects",
+                idField: "ProjectId",
+                nameField: "Name",
+                isActive: "Active",
+                isSystemWide: true
+            }
+        },
+        {
+            field: "project_role_id", name: "Project Role ID", type: params.fieldType.drop, required: false,isHeader: true,
+            bespoke: {
+                url: "projects-roles",
+                idField: "ProjectRoleId",
+                nameField: "Name",
+                isActive: "Active",
+                isSystemWide: true
+            }
+        },
     ],
 };
 

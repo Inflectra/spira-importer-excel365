@@ -67,7 +67,8 @@ eval(importModel.replace('<script>', '').replace('</script>', ''));*/
  */
 
 // globals
-var API_PROJECT_BASE = '/services/v6_0/RestService.svc/projects/',
+var API_BASE = '/services/v6_0/RestService.svc/',
+  API_PROJECT_BASE = '/services/v6_0/RestService.svc/projects/',
   API_PROJECT_BASE_NO_SLASH = '/services/v6_0/RestService.svc/projects',
   API_TEMPLATE_BASE = '/services/v6_0/RestService.svc/project-templates/',
   API_TEMPLATE_BASE_NO_SLASH = '/services/v6_0/RestService.svc/project-templates',
@@ -84,6 +85,7 @@ var API_PROJECT_BASE = '/services/v6_0/RestService.svc/projects/',
     risks: 14,
     folders: 114,
     components: 99,
+    users: 98,
   },
   INITIAL_HIERARCHY_OUTDENT = -20,
   GET_PAGINATION_SIZE = 100,
@@ -489,7 +491,10 @@ function getBespoke(currentUser, templateId, projectId, artifactName, field) {
   // a couple of dynamic fields are project based - like folders
   if (field.bespoke.isProjectBased) {
     fetcherURL = API_PROJECT_BASE + projectId + field.bespoke.url + '?';
-  } else {
+  } else if (field.bespoke.isSystemWide) {
+    fetcherURL = API_BASE + field.bespoke.url + '?';
+  }
+  else {
     fetcherURL = API_TEMPLATE_BASE + templateId + field.bespoke.url + '?';
   }
   var results = fetcher(currentUser, fetcherURL);
@@ -890,6 +895,23 @@ function postArtifactToSpira(entry, user, projectId, artifactTypeId, parentId) {
     case ART_ENUMS.components:
       postUrl = API_PROJECT_BASE + projectId + '/components?';
       break;
+
+    // USERS
+    case ART_ENUMS.users:
+
+      postUrl = API_BASE + 'users?';
+      //adding the optional URL paramenters
+      if (entry.password) { postUrl += "password=" + entry.password + "&" };
+      if (entry.password_question) { postUrl += "password_question=" + entry.password_question + "&" };
+      if (entry.password_answer) { postUrl += "password_answer=" + entry.password_answer + "&" };
+      if (entry.project_id) { postUrl += "project_id=" + entry.project_id + "&" };
+      if (entry.project_role_id) { postUrl += "project_role_id=" + entry.project_role_id + "&" };
+
+      //since the user is being created by an administrator, it should be already approved
+      entry.Approved = "true";
+      JSON_body = JSON.stringify(entry);
+      break;
+
   }
   return postUrl ? poster(JSON_body, user, postUrl) : null;
 }
@@ -1077,12 +1099,33 @@ function okWarn(dialog) {
 // @param: model - full model object from client containing field data for specific artifact, list of project users, components, etc
 // @param: fieldTypeEnums - list of fieldType enums from client params object
 function templateLoader(model, fieldTypeEnums, advancedMode) {
-
   var fields = model.fields;
   var sheet;
-  var newSheetName = model.currentArtifact.name + ", PR-" + model.currentProject.id;
+  var newSheetName;
+
+  if (model.currentOperation) {
+    //administrator mode
+
+    var operation = model.operations.filter(function (operation) {
+      return operation.id == model.currentOperation;
+    })[0];
+
+    if (operation.type == "send-system") {
+      //system wide operations
+      newSheetName = model.currentArtifact.name + ", system";
+
+    }
+    else if (operation.type == "send-template" || operation.type == "get-template") {
+      //template-based operations
+      newSheetName = model.currentArtifact.name + ", TP-" + model.currentTemplate.id;
+    }
+  }
+  else {
+    //stardard artifact functions
+    newSheetName = model.currentArtifact.name + ", PR-" + model.currentProject.id;
+  }
+
   var response;
-  console.log('newSheetName ' + newSheetName);
   // select active sheet
   if (IS_GOOGLE) {
     sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
@@ -1402,7 +1445,28 @@ async function setDropdownValidation(mainSheetName, columnNumber, list, allowInv
   if (IS_GOOGLE) {
     //first, write the values to the dbSheet
     var dataBaseSheetName = createDatabaseSheetName(params.dataSheetName, model.currentProject.id, model.currentArtifact.id);
-    mainSheetName = model.currentArtifact.name + ", PR-" + model.currentProject.id;
+
+    if (model.currentOperation) {
+      //administrator mode
+
+      var operation = model.operations.filter(function (operation) {
+        return operation.id == model.currentOperation;
+      })[0];
+
+      if (operation.type == "send-system") {
+        //system wide operations
+        mainSheetName = model.currentArtifact.name + ", system";
+
+      }
+      else if (operation.type == "send-template" || operation.type == "get-template") {
+        //template-based operations
+        mainSheetName = model.currentArtifact.name + ", TP-" + model.currentTemplate.id;
+      }
+    }
+    else {
+      //stardard artifact functions
+      mainSheetName = model.currentArtifact.name + ", PR-" + model.currentProject.id;
+    }
 
     var values = [];
     list.forEach(function (item) {
@@ -2014,13 +2078,35 @@ function getValidationsFromEntries(entries, sheetData, response) {
 async function sendToSpira(model, fieldTypeEnums, isUpdate) {
 
   // 0. SETUP FUNCTION LEVEL VARS
-
   var entriesLog, commentsLog, associationsLog;
 
   var fields = model.fields,
     artifact = model.currentArtifact,
-    artifactIsHierarchical = artifact.hierarchical,
-    requiredSheetName = model.currentArtifact.name + ", PR-" + model.currentProject.id
+    artifactIsHierarchical = artifact.hierarchical;
+
+  var requiredSheetName;
+
+  if (model.currentOperation) {
+    //administrator mode
+
+    var operation = model.operations.filter(function (operation) {
+      return operation.id == model.currentOperation;
+    })[0];
+
+    if (operation.type == "send-system") {
+      //system wide operations
+      requiredSheetName = model.currentArtifact.name + ", system";
+
+    }
+    else if (operation.type == "send-template" || operation.type == "get-template") {
+      //template-based operations
+      requiredSheetName = model.currentArtifact.name + ", TP-" + model.currentTemplate.id;
+    }
+  }
+  else {
+    //stardard artifact functions
+    requiredSheetName = model.currentArtifact.name + ", PR-" + model.currentProject.id;
+  }
 
   // 1. get the active spreadsheet and first sheet
   if (IS_GOOGLE) {
@@ -4158,7 +4244,29 @@ function processSendToSpiraResponse(i, sentToSpira, entriesForExport, artifact, 
 // @param: model - full model object from client
 // @param: fieldTypeEnums - enum of fieldTypes used
 function getFromSpiraGoogle(model, fieldTypeEnums, advancedMode) {
-  var requiredSheetName = model.currentArtifact.name + ", PR-" + model.currentProject.id;
+  var requiredSheetName;
+
+  if (model.currentOperation) {
+    //administrator mode
+
+    var operation = model.operations.filter(function (operation) {
+      return operation.id == model.currentOperation;
+    })[0];
+
+    if (operation.type == "send-system") {
+      //system wide operations
+      requiredSheetName = model.currentArtifact.name + ", system";
+
+    }
+    else if (operation.type == "send-template" || operation.type == "get-template") {
+      //template-based operations
+      requiredSheetName = model.currentArtifact.name + ", TP-" + model.currentTemplate.id;
+    }
+  }
+  else {
+    //stardard artifact functions
+    requiredSheetName = model.currentArtifact.name + ", PR-" + model.currentProject.id;
+  }
 
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var sheet = ss.getSheets()[0];
@@ -4290,7 +4398,30 @@ function getFromSpiraExcel(model, fieldTypeEnums) {
       sheetRange = sheet.getRangeByIndexes(1, 0, EXCEL_MAX_ROWS, fields.length);
     sheet.load("name");
     sheetRange.load("values");
-    var requiredSheetName = model.currentArtifact.name + ", PR-" + model.currentProject.id;
+    var requiredSheetName;
+
+    if (model.currentOperation) {
+      //administrator mode
+
+      var operation = model.operations.filter(function (operation) {
+        return operation.id == model.currentOperation;
+      })[0];
+
+      if (operation.type == "send-system") {
+        //system wide operations
+        requiredSheetName = model.currentArtifact.name + ", system";
+
+      }
+      else if (operation.type == "send-template" || operation.type == "get-template") {
+        //template-based operations
+        requiredSheetName = model.currentArtifact.name + ", TP-" + model.currentTemplate.id;
+      }
+    }
+    else {
+      //stardard artifact functions
+      requiredSheetName = model.currentArtifact.name + ", PR-" + model.currentProject.id;
+    }
+
     return context.sync()
       .then(function () {
         // only get the data if we are on the right sheet - the one with the template loaded on it
