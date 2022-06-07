@@ -86,6 +86,8 @@ var API_BASE = '/services/v6_0/RestService.svc/',
     folders: 114,
     components: 99,
     users: 98,
+    customLists: 97,
+    customValues: 96,
   },
   INITIAL_HIERARCHY_OUTDENT = -20,
   GET_PAGINATION_SIZE = 100,
@@ -583,6 +585,16 @@ function getArtifacts(user, projectId, artifactTypeId, startRow, numberOfRows, a
     case ART_ENUMS.components:
       fullURL += "/components?active_only=false&include_deleted=false&start_row=" + startRow + "&number_rows=" + numberOfRows + "&sort_field=ComponentId&sort_direction=ASC&";
       response = fetcher(user, fullURL);
+      break;
+    case ART_ENUMS.customLists:
+      fullURL = API_TEMPLATE_BASE + templateId + "/custom-lists?start_row=" + startRow + "&number_rows=" + numberOfRows + "&sort_field=CustomPropertyListId&sort_direction=ASC&";
+      response = fetcher(user, fullURL);
+      break;
+    case ART_ENUMS.customValues:
+      if (artifactId) {
+        fullURL =  API_TEMPLATE_BASE + templateId + "/custom-lists/" + artifactId + "values?";
+        response = fetcher(user, fullURL);
+      }
       break;
   }
   return response;
@@ -1099,6 +1111,10 @@ function okWarn(dialog) {
 // @param: model - full model object from client containing field data for specific artifact, list of project users, components, etc
 // @param: fieldTypeEnums - list of fieldType enums from client params object
 function templateLoader(model, fieldTypeEnums, advancedMode) {
+
+  console.log('model');
+  console.dir(model);
+
   var fields = model.fields;
   var sheet;
   var newSheetName;

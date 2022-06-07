@@ -24,6 +24,10 @@ Up to know, the advanced features are :
 */
 var advancedMode = false;
 
+//Global Variable to control if an admin advanced options button should be enabled to the logged user
+var isAdmin = false;
+
+
 //ENUMS
 
 var UI_MODE = {
@@ -158,6 +162,7 @@ function setEventListeners() {
   document.getElementById("btn-admin-send").onclick = sendToSpiraAttempt;
 
   document.getElementById("btn-fromSpira").onclick = getFromSpiraAttempt;
+  document.getElementById("btn-adminGet").onclick = getFromSpiraAttempt;
   document.getElementById("btn-template").onclick = updateTemplateAttempt;
   document.getElementById("btn-updateToSpira").onclick = updateSpiraAttempt;
 
@@ -340,10 +345,17 @@ function setDropdown(selectId, array, firstMessage) {
 
 
 function isModelDifferentToSelection() {
+  console.log(model);
   if (model.isTemplateLoaded) {
-    var projectHasChanged = model.currentProject.id !== getSelectedProject().id;
-    var artifactHasChanged = model.currentArtifact.id !== getSelectedArtifact().id;
-    return projectHasChanged || artifactHasChanged;
+    if (!isAdmin) {
+      var projectHasChanged = model.currentProject.id !== getSelectedProject().id;
+      var artifactHasChanged = model.currentArtifact.id !== getSelectedArtifact().id;
+      return projectHasChanged || artifactHasChanged;
+    }
+    else if (uiSelection.currentOperation == 2 || uiSelection.currentOperation == 3) {
+      var templatetHasChanged = model.currentTemplate.id !== getSelectedTemplate().id;
+      return templatetHasChanged;
+    }
   } else {
     return false;
   }
@@ -487,6 +499,9 @@ function populateTemplates(templates) {
 
 // manage the switching of the UI off the login screen on succesful login and retrieval of projects
 function showMainPanel(type) {
+
+  //all the users should have access to these options
+  isAdmin = false;
 
   setDropdown("select-product", model.projects, "Select a product");
   if (type == "get") {
@@ -656,8 +671,16 @@ function artifactUpdateUI(mode) {
       break;
 
     case UI_MODE.getData:
-      //when clicking from-Spira button
-      document.getElementById("btn-updateToSpira").disabled = false;
+      //when clicking from-Spira button - the admin pane is different from the main pane
+      if (isAdmin === false) {
+        document.getElementById("main-guide-admin-2-get").disabled = false;
+      }
+      else {
+        document.getElementById('main-guide-admin-3-post').style.fontWeight = 'normal';
+        document.getElementById("main-guide-admin-3-post").classList.remove("pale");
+        document.getElementById('main-guide-admin-3-post').style.fontWeight = 'bold';
+        document.getElementById("btn-admin-send").disabled = false;
+      }
       break;
 
     case UI_MODE.errorMode:
@@ -752,7 +775,7 @@ function manageTemplateBtnState() {
         // if there is a discrepancy between the dropdown and the currently active template
         // only do this is user will send to spira - determined by whether the send to spira button is visible
         if (document.getElementById("btn-toSpira").style.display != "none") {
-          if (isModelDifferentToSelection()) {
+          if (isModelDifferentToSelection(false)) {
             document.getElementById("pnl-template").style.display = "";
             document.getElementById("btn-template").disabled = false;
           } else {
@@ -798,9 +821,8 @@ function createTemplate(shouldContinue) {
     // but check again that all data is present before kicking off template creation
     // if so, kicks off template creation, otherwise waits and tries again
     // the exception is when using advanced admin mode operations not based on projects
-    if (allGetsSucceeded() || uiSelection.currentOperation == 1) {
+    if (allGetsSucceeded() || uiSelection.currentOperation == 1 || uiSelection.currentOperation == 2 || uiSelection.currentOperation == 3) {
       templateLoader();
-
       // otherwise, run an interval loop (should never get called as template button should be disabled)
     } else {
       var checkGetsSuccess = setInterval(attemptTemplateLoader, 500);
@@ -819,7 +841,6 @@ function createTemplate(shouldContinue) {
 function getFromSpiraAttempt() {
   // first update state to reflect user intent
   model.isGettingDataAttempt = true;
-
   //check that template is loaded and that it matches the UI choices
   if (model.isTemplateLoaded && !isModelDifferentToSelection()) {
     showLoadingSpinner();
@@ -841,8 +862,6 @@ function getFromSpiraAttempt() {
   //sets the UI to correspond to this mode
   artifactUpdateUI(UI_MODE.getData);
 }
-
-
 
 
 function getFromSpiraComplete(log) {
@@ -1031,6 +1050,8 @@ function showHideAdminButton(spiraUser) {
 
 // manage the switching of the UI off the login screen to the administrator screen 
 function showAdminPanel() {
+  //menu exclusive for system administrator users
+  isAdmin = true;
 
   //hide information we don't want to be displayed yet
   document.getElementById("main-guide-admin-2-get").style.visibility = "hidden";
@@ -1245,16 +1266,21 @@ function changeOperationSelect(e) {
 function changeTemplateSelect(e) {
   //First, enable the respective operation next button
   if (e.target.value != 0) {
-
     if (uiSelection.currentOperation == 2) {
       document.getElementById("btn-prepareTemplate").disabled = false;
     } else if (uiSelection.currentOperation == 3) {
       document.getElementById("btn-adminGet").disabled = false;
     }
+    var chosenTemplate = getSelectedTemplate();
+    if (chosenTemplate.id && chosenTemplate.id !== uiSelection.currentTemplate.id) {
+      //set the temp data store project to the one selected;
+      uiSelection.currentTemplate = chosenTemplate;
+    }
   }
   else {
     document.getElementById("btn-prepareTemplate").disabled = true;
     document.getElementById("btn-adminGet").disabled = true;
+    uiSelection.currentTemplate = null;
   }
 }
 
@@ -1309,6 +1335,18 @@ function getSelectedArtifact() {
   return artifactSelected;
 }
 
+// retrieves the template object that matches the template selected in the administration screen dropdown
+// returns a template object
+function getSelectedTemplate() {
+  // store dropdown value
+  var select = document.getElementById("select-template");
+  var projectDropdownVal = select.options[select.selectedIndex].value;
+  // filter the project lists to those chosen 
+  var templateSelected = model.templates.filter(function (template) {
+    return template.id == projectDropdownVal;
+  })[0];
+  return templateSelected;
+}
 
 // kicks off all relevant API calls to get project specific information
 // @param: user - the user object of the logged in user
@@ -1641,9 +1679,9 @@ function templateLoader() {
   model.currentProject = uiSelection.currentProject;
   model.currentArtifact = uiSelection.currentArtifact;
   model.currentOperation = uiSelection.currentOperation;
-  //handling special admin operations:
-
-
+  model.currentTemplate = uiSelection.currentTemplate;
+  model.isAdmin = isAdmin;
+  
   model.projectComponents = [];
   model.projectActiveReleases = [];
   model.projectReleases = [];

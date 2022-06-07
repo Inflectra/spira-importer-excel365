@@ -45,7 +45,9 @@ var params = {
         risks: 14,
         folders: 114,
         components: 99,
-        users: 98
+        users: 98,
+        customLists: 97,
+        customValues: 96,
     },
 
     dataSheetName: "database",
@@ -110,6 +112,8 @@ var params = {
         { field: 'folders', name: 'Folders', id: 114, sendOnly: true },
         { field: 'components', name: 'Components', id: 99},
         { field: 'users', name: 'Users', id: 98, disabled: false, hidden: true},
+        { field: 'customLists', name: 'Custom Lists', id: 97, disabled: false, hidden: true, hasSubType: true, subTypeId: 96, subTypeName: "customValues" },
+        { field: 'customValues', name: 'Custom Values', id: 96, disabled: true, hidden: true, isSubType: true },
     ],
     //special cases enum
     specialCases: [
@@ -518,13 +522,12 @@ var templateFields = {
         { field: "ConcurrencyDate", name: "Concurrency Date", type: params.fieldType.text, isReadOnly: true, isHidden: true },
     ],
     components: [
-
-        { field: "ComponentId", name: "ID", type: params.fieldType.id },
+        { field: "ComponentId", name: "Compoment ID", type: params.fieldType.id },
         { field: "Name", name: "Name", type: params.fieldType.text, required: true },
         { field: "IsActive", name: "Active?", type: params.fieldType.bool},
     ],
     users: [
-        { field: "UserId", name: "ID", type: params.fieldType.id },
+        { field: "UserId", name: "User ID", type: params.fieldType.id },
         { field: "FirstName", name: "First Name", type: params.fieldType.text, required: true },
         { field: "MiddleInitial", name: "Middle Initial", type: params.fieldType.text},
         { field: "LastName", name: "Last Name", type: params.fieldType.text, required: true },
@@ -558,6 +561,17 @@ var templateFields = {
             }
         },
     ],
+    customLists: [
+        { field: "CustomPropertyListId", name: "List ID", type: params.fieldType.id},
+        { field: "CustomPropertyValueId", name: "Value ID", type: params.fieldType.subId, isSubTypeField: true },
+        //{ field: "ProjectTemplateId", name: "Template ID", type: params.fieldType.text, isReadOnly: true, isHidden: true },
+        { field: "Name", name: "List Name", type: params.fieldType.text, required: true, blocksSubType: true },
+        { field: "Name", name: "Value Name", type: params.fieldType.text, required: true, isSubTypeField: true},
+        { field: "Active", name: "List Active?", type: params.fieldType.bool, blocksSubType: true},
+        { field: "Active", name: "Value Active?", type: params.fieldType.bool, isSubTypeField: true},
+        { field: "SortedOnValue", name: "SortedOnValue", type: params.fieldType.bool, isReadOnly: true, isHidden: true},
+    ],
+
 };
 
 function Data() {
@@ -579,11 +593,12 @@ function Data() {
 
     this.operations = [
         { name: "Add new Users to Spira", id: 1, type: "send-system", artifactId: 98},
-        { name: "Add new Custom Lists/Custom Values", id: 2, type: "send-template", artifactId: 99},
-        { name: "Edit existent Custom Lists/Custom Values", id: 3, type: "get-template", artifactId: 99},
+        { name: "Add new Custom Lists and Values", id: 2, type: "send-template", artifactId: 97},
+        { name: "Edit existent Custom Lists and Values", id: 3, type: "get-template", artifactId: 97},
     ];
 
     this.currentProject = '';
+    this.currentTemplate = '';
     this.projectComponents = [];
     this.projectActiveReleases = [];
     this.projectReleases = [];
@@ -622,6 +637,7 @@ function Data() {
 
 function tempDataStore() {
     this.currentProject = '';
+    this.currentTemplate = '';
     this.projectComponents = [];
     this.projectActiveReleases = [];
     this.projectReleases = [];
