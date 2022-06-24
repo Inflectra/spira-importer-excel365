@@ -345,7 +345,6 @@ function setDropdown(selectId, array, firstMessage) {
 
 
 function isModelDifferentToSelection() {
-  console.log(model);
   if (model.isTemplateLoaded) {
     if (!isAdmin) {
       var projectHasChanged = model.currentProject.id !== getSelectedProject().id;

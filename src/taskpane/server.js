@@ -533,7 +533,7 @@ function getUsers(currentUser, projectId) {
 }
 
 
-function getArtifacts(user, projectId, artifactTypeId, startRow, numberOfRows, artifactId) {
+function getArtifacts(user, projectId, artifactTypeId, startRow, numberOfRows, artifactId, templateId) {
   var fullURL = API_PROJECT_BASE + projectId;
   var response = null;
 
@@ -592,7 +592,7 @@ function getArtifacts(user, projectId, artifactTypeId, startRow, numberOfRows, a
       break;
     case ART_ENUMS.customValues:
       if (artifactId) {
-        fullURL =  API_TEMPLATE_BASE + templateId + "/custom-lists/" + artifactId + "values?";
+        fullURL = API_TEMPLATE_BASE + templateId + "/custom-lists/" + artifactId + "?";
         response = fetcher(user, fullURL);
       }
       break;
@@ -1111,9 +1111,6 @@ function okWarn(dialog) {
 // @param: model - full model object from client containing field data for specific artifact, list of project users, components, etc
 // @param: fieldTypeEnums - list of fieldType enums from client params object
 function templateLoader(model, fieldTypeEnums, advancedMode) {
-
-  console.log('model');
-  console.dir(model);
 
   var fields = model.fields;
   var sheet;
@@ -4499,6 +4496,7 @@ async function getDataFromSpiraExcel(model, fieldTypeEnums) {
   var currentPage = 0;
   var artifacts = [];
   var getNextPage = true;
+  console.dir(model);
 
   async function getArtifactsPage(startRow) {
     await getArtifacts(
@@ -4507,8 +4505,10 @@ async function getDataFromSpiraExcel(model, fieldTypeEnums) {
       model.currentArtifact.id,
       startRow,
       GET_PAGINATION_SIZE,
-      null
+      null,
+      model.currentTemplate.id
     ).then(function (response) {
+      console.log(response);
       // if we got a non empty array back then we have artifacts to process
       if (response.body && response.body.length) {
         artifacts = artifacts.concat(response.body);
@@ -4552,16 +4552,26 @@ async function getDataFromSpiraExcel(model, fieldTypeEnums) {
     if (idFieldNameArray && idFieldNameArray[0].field) {
       //function called below in the foreach call
       async function getArtifactSubs(art) {
+        console.log('MAOE');
         await getArtifacts(
           model.user,
           model.currentProject.id,
           model.currentArtifact.subTypeId,
           null,
           null,
-          art[idFieldName]
+          art[idFieldName],
+          model.currentTemplate.id
         ).then(function (response) {
           // take action if we got any sub types back - ie if they exist for the specific artifact
-          if (response.body && response.body.length) {
+          console.log(response.body.Values.length);
+          console.log(art);
+
+          if (response.body && (response.body.length || response.body.Values.length)) {
+            if (response.body.Values) {
+              //some subArtifacts, such as Custom Values, require this adjustment
+              response.body = response.body.Values;
+            }
+            console.log('entrei');
             var subTypeArtifactsWithMeta = response.body.map(function (sub) {
               sub.isSubType = true;
               sub.parentId = art[idFieldName];
