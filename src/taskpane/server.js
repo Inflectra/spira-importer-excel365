@@ -4496,7 +4496,6 @@ async function getDataFromSpiraExcel(model, fieldTypeEnums) {
   var currentPage = 0;
   var artifacts = [];
   var getNextPage = true;
-  console.dir(model);
 
   async function getArtifactsPage(startRow) {
     await getArtifacts(
@@ -4508,7 +4507,6 @@ async function getDataFromSpiraExcel(model, fieldTypeEnums) {
       null,
       model.currentTemplate.id
     ).then(function (response) {
-      console.log(response);
       // if we got a non empty array back then we have artifacts to process
       if (response.body && response.body.length) {
         artifacts = artifacts.concat(response.body);
@@ -4552,7 +4550,6 @@ async function getDataFromSpiraExcel(model, fieldTypeEnums) {
     if (idFieldNameArray && idFieldNameArray[0].field) {
       //function called below in the foreach call
       async function getArtifactSubs(art) {
-        console.log('MAOE');
         await getArtifacts(
           model.user,
           model.currentProject.id,
@@ -4562,23 +4559,24 @@ async function getDataFromSpiraExcel(model, fieldTypeEnums) {
           art[idFieldName],
           model.currentTemplate.id
         ).then(function (response) {
-          // take action if we got any sub types back - ie if they exist for the specific artifact
-          console.log(response.body.Values.length);
-          console.log(art);
-
-          if (response.body && (response.body.length || response.body.Values.length)) {
-            if (response.body.Values) {
-              //some subArtifacts, such as Custom Values, require this adjustment
-              response.body = response.body.Values;
+          try {
+            // take action if we got any sub types back - ie if they exist for the specific artifact
+            if (response.body && (response.body.length || response.body.Values.length)) {
+              if (response.body.Values) {
+                //some subArtifacts, such as Custom Values, require this adjustment
+                response.body = response.body.Values;
+              }
+              var subTypeArtifactsWithMeta = response.body.map(function (sub) {
+                sub.isSubType = true;
+                sub.parentId = art[idFieldName];
+                return sub;
+              });
+              // now add the steps into the original object
+              artifactsWithSubTypes = artifactsWithSubTypes.concat(subTypeArtifactsWithMeta);
             }
-            console.log('entrei');
-            var subTypeArtifactsWithMeta = response.body.map(function (sub) {
-              sub.isSubType = true;
-              sub.parentId = art[idFieldName];
-              return sub;
-            });
-            // now add the steps into the original object
-            artifactsWithSubTypes = artifactsWithSubTypes.concat(subTypeArtifactsWithMeta);
+          }
+          catch (err) {
+            //do nothing - just proceed to the next artifact
           }
         })
       };
@@ -4655,15 +4653,14 @@ function matchArtifactsToFields(artifacts, artifactMeta, fields, fieldTypeEnums,
           }
         }
 
-        // handle subtype fields
-      } else if (field.isSubTypeField) {
+        // handle subtype fields. If dual type, make sure this is a subtype (avoid main types entering here)
+      } else if (field.isSubTypeField || (field.isTypeAndSubTypeField && art.isSubType)) {
         if (artifactMeta.hasSubType && art.isSubType) {
           // first check to make sure the field exists in the artifact data
           if (typeof art[field.field] != "undefined" && art[field.field]) {
             originalFieldValue = art[field.field]
           }
         }
-
         // handle standard fields
       } else if (!art.isSubType) {
         // first check to make sure the field exists in the artifact data
@@ -4762,7 +4759,15 @@ function matchArtifactsToFields(artifacts, artifactMeta, fields, fieldTypeEnums,
 
         // handle booleans - need to make sure null values are ignored ie treated differently to false
       } else if (field.type == fieldTypeEnums.bool || field.type == fieldTypeEnums.customBoolean) {
-        return originalFieldValue ? "Yes" : originalFieldValue === false ? "No" : "No";
+
+        /*in case of null/blank values, the return value depends on the characteristic of the artifact (i.e.: we want to see an explicit "No" when
+        that field is shared between a main and a subtypes)*/
+        if (artifactMeta.hasDualValues) {
+          return originalFieldValue ? "Yes" : originalFieldValue === false ? "No" : "No";
+        }
+        else {
+          return originalFieldValue ? "Yes" : originalFieldValue === false ? "No" : "";
+        }
         // handle hierarchical artifacts
       } else if (field.setsHierarchy) {
         return makeHierarchical(originalFieldValue, art.IndentLevel);

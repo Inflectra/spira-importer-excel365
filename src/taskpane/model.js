@@ -110,9 +110,9 @@ var params = {
         { field: 'testSets', name: 'Test Sets', id: 8, hasFolders: true },
         { field: 'risks', name: 'Risks', id: 14 },
         { field: 'folders', name: 'Folders', id: 114, sendOnly: true },
-        { field: 'components', name: 'Components', id: 99},
-        { field: 'users', name: 'Users', id: 98, disabled: false, hidden: true},
-        { field: 'customLists', name: 'Custom Lists', id: 97, disabled: false, hidden: true, hasSubType: true, subTypeId: 96, subTypeName: "customValues" },
+        { field: 'components', name: 'Components', id: 99 },
+        { field: 'users', name: 'Users', id: 98, disabled: false, hidden: true },
+        { field: 'customLists', name: 'Custom Lists', id: 97, disabled: false, hidden: true, hasDualValues: true, hasSubType: true, subTypeId: 96, subTypeName: "customValues" },
         { field: 'customValues', name: 'Custom Values', id: 96, disabled: true, hidden: true, isSubType: true },
     ],
     //special cases enum
@@ -457,7 +457,7 @@ var templateFields = {
         { field: "ExecutionStatusId", name: "ExecutionStatusId", type: params.fieldType.text, isReadOnly: true, isSubTypeField: true, isHidden: true }
     ],
     folders: [
-        { field: "FolderId", name: "Folder ID", type: params.fieldType.id},
+        { field: "FolderId", name: "Folder ID", type: params.fieldType.id },
         {
             field: "artifact", name: "Artifact", type: params.fieldType.drop, required: true,
             values: [
@@ -524,19 +524,19 @@ var templateFields = {
     components: [
         { field: "ComponentId", name: "Compoment ID", type: params.fieldType.id },
         { field: "Name", name: "Name", type: params.fieldType.text, required: true },
-        { field: "IsActive", name: "Active?", type: params.fieldType.bool},
+        { field: "IsActive", name: "Active?", type: params.fieldType.bool },
     ],
     users: [
         { field: "UserId", name: "User ID", type: params.fieldType.id },
         { field: "FirstName", name: "First Name", type: params.fieldType.text, required: true },
-        { field: "MiddleInitial", name: "Middle Initial", type: params.fieldType.text},
+        { field: "MiddleInitial", name: "Middle Initial", type: params.fieldType.text },
         { field: "LastName", name: "Last Name", type: params.fieldType.text, required: true },
         { field: "UserName", name: "UserName", type: params.fieldType.text, required: true },
-        { field: "LdapDn", name: "LDAP Distinguished Name", type: params.fieldType.text},
+        { field: "LdapDn", name: "LDAP Distinguished Name", type: params.fieldType.text },
         { field: "EmailAddress", name: "Email Address", type: params.fieldType.text, required: true },
-        { field: "Admin", name: "Admin?", type: params.fieldType.bool},
-        { field: "Active", name: "Active?", type: params.fieldType.bool},
-        { field: "Department", name: "Department", type: params.fieldType.text},
+        { field: "Admin", name: "Admin?", type: params.fieldType.bool },
+        { field: "Active", name: "Active?", type: params.fieldType.bool },
+        { field: "Department", name: "Department", type: params.fieldType.text },
         { field: "password", name: "Password", type: params.fieldType.text, isHeader: true },
         { field: "password_question", name: "Password Question", type: params.fieldType.text, isHeader: true },
         { field: "password_answer", name: "password Answer", type: params.fieldType.text, isHeader: true },
@@ -551,7 +551,7 @@ var templateFields = {
             }
         },
         {
-            field: "project_role_id", name: "Project Role ID", type: params.fieldType.drop, required: false,isHeader: true,
+            field: "project_role_id", name: "Project Role ID", type: params.fieldType.drop, required: false, isHeader: true,
             bespoke: {
                 url: "projects-roles",
                 idField: "ProjectRoleId",
@@ -562,14 +562,15 @@ var templateFields = {
         },
     ],
     customLists: [
-        { field: "CustomPropertyListId", name: "List ID", type: params.fieldType.id},
+        { field: "CustomPropertyListId", name: "List ID", type: params.fieldType.id },
         { field: "CustomPropertyValueId", name: "Value ID", type: params.fieldType.subId, isSubTypeField: true },
         //{ field: "ProjectTemplateId", name: "Template ID", type: params.fieldType.text, isReadOnly: true, isHidden: true },
         { field: "Name", name: "List Name", type: params.fieldType.text, required: true, blocksSubType: true },
-        { field: "Name", name: "Value Name", type: params.fieldType.text, required: true, isSubTypeField: true},
-        { field: "Active", name: "List Active?", type: params.fieldType.bool, blocksSubType: true},
-        { field: "Active", name: "Value Active?", type: params.fieldType.bool, isSubTypeField: true},
-        { field: "SortedOnValue", name: "SortedOnValue", type: params.fieldType.bool, isReadOnly: true, isHidden: true},
+        { field: "Name", name: "Value Name", type: params.fieldType.text, required: true, isSubTypeField: true },
+        // { field: "Active", name: "List Active?", type: params.fieldType.bool, blocksSubType: true},
+        // { field: "Active", name: "Value Active?", type: params.fieldType.bool, isSubTypeField: true},
+        { field: "Active", name: "Active?", type: params.fieldType.bool, isTypeAndSubTypeField: true},
+        { field: "SortedOnValue", name: "SortedOnValue", type: params.fieldType.text, isReadOnly: true, isHidden: true },
     ],
 
 };
@@ -592,9 +593,9 @@ function Data() {
     this.templates = [];
 
     this.operations = [
-        { name: "Add new Users to Spira", id: 1, type: "send-system", artifactId: 98},
-        { name: "Add new Custom Lists and Values", id: 2, type: "send-template", artifactId: 97},
-        { name: "Edit existent Custom Lists and Values", id: 3, type: "get-template", artifactId: 97},
+        { name: "Add new Users to Spira", id: 1, type: "send-system", artifactId: 98 },
+        { name: "Add new Custom Lists and Values", id: 2, type: "send-template", artifactId: 97 },
+        { name: "Edit existent Custom Lists and Values", id: 3, type: "get-template", artifactId: 97 },
     ];
 
     this.currentProject = '';
