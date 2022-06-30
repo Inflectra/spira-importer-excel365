@@ -940,10 +940,6 @@ function postArtifactToSpira(entry, user, projectId, artifactTypeId, parentId) {
 // @param: artifactId - int of the current artifact
 // @param: parentId - optional int of the relevant parent to attach the artifact too
 function putArtifactToSpira(entry, user, projectId, templateId, artifactTypeId, parentId) {
-  console.log('porra 4!')
-  console.log('artifactTypeId');
-  console.log(artifactTypeId);
-
   var JSON_body = JSON.stringify(entry),
     response = "",
     putUrl = "";
@@ -1004,29 +1000,27 @@ function putArtifactToSpira(entry, user, projectId, templateId, artifactTypeId, 
     case ART_ENUMS.components:
       putUrl = API_PROJECT_BASE + projectId + '/components/' + entry.ComponentId + '?';
       break;
-    //CUSTOM LISTS https://internal-bruno.spiraservice.net/services/v6_0/RestService.svc/project-templates/1/custom-lists/1?username=administrator&api-key={88C10992-22A6-47FD-B570-8A87624A8CBA}
+    //CUSTOM LISTS
     case ART_ENUMS.customLists:
-      console.log('maoe');
       putUrl = API_TEMPLATE_BASE + templateId + '/custom-lists/' + entry[ART_PARENT_IDS[ART_ENUMS.customLists]] + '?';
-      console.log('putUrl');
-      console.dir(putUrl);
       break;
     //CUSTOM VALUES
     case ART_ENUMS.customValues:
-      console.log('maoe2');
       putUrl = API_TEMPLATE_BASE + templateId + '/custom-lists/' + entry[ART_PARENT_IDS[ART_ENUMS.customLists]] + '?';
-      //due to the API nature, this API requires some extra steps before sending the object
-      var finalEntry = {};
+      //due to the API nature, this query requires some extra steps before sending the object
+      var finalEntry = {
+        Name: "",
+        Active: true,
+        Values: []
+      };
       finalEntry.Name = entry.parentName;
-      finalEntry.Values = [...entry];
-
+      finalEntry.Active = entry.parentActive;
+      finalEntry.Values.push(entry);
       JSON_body = JSON.stringify(finalEntry);
-      console.log('JSON_body');
-      console.dir(JSON_body);
       break;
   }
 
-  return null; //putUrl ? putUpdater(JSON_body, user, putUrl) : null;
+  return putUrl ? putUpdater(JSON_body, user, putUrl) : null;
 }
 
 /*
@@ -2115,16 +2109,6 @@ function getValidationsFromEntries(entries, sheetData, response) {
 // @param: fieldTypeEnums - list of fieldType enums from client params object
 // @param: isUpdate - boolean that indicates if this is an update operation (true) or create operation (false)
 async function sendToSpira(model, fieldTypeEnums, isUpdate) {
-
-  /*console.log('model');
-  console.dir(model);
-
-  console.log('fieldTypeEnums');
-  console.dir(fieldTypeEnums);
-
-  console.log('isUpdate');
-  console.dir(isUpdate);*/
-
   // 0. SETUP FUNCTION LEVEL VARS
   var entriesLog, commentsLog, associationsLog;
 
@@ -2209,8 +2193,6 @@ async function sendToSpira(model, fieldTypeEnums, isUpdate) {
               var validations = [];
               //First, send the artifact entries for Spira
               var entriesForExport = createExportEntries(sheetData, model, fieldTypeEnums, fields, artifact, artifactIsHierarchical, isUpdate);
-              console.log('entriesForExport');
-              console.dir(entriesForExport);
 
               return sendExportEntriesExcel(entriesForExport, '', '', sheetData, sheet, sheetRange, model, fieldTypeEnums, fields, artifact, context, isUpdate, '').then(function (response) {
                 validations = getValidationsFromEntries(entriesForExport, sheetData, response);
@@ -2543,7 +2525,7 @@ function sendExportEntriesGoogle(entriesForExport, commentEntriesForExport, asso
       }
       //if we not have a parent ID yet, set the correct parentId artifact for subtypes (needed for POST URL)
       if (isUpdate && Number(log.parentId) == -1 && artifact.hasSubType && entriesForExport[i].isSubType) {
-        log.parentId = getAssociationParentId(entriesForExport, i, artifact.id);
+        log.parentId = getAssociationParentInfo(entriesForExport, i, artifact.id, "id");
         //let the child object to hold the parent ID field
         entriesForExport[i][ART_PARENT_IDS[artifact.id]] = log.parentId;
       }
@@ -2667,22 +2649,19 @@ async function sendExportEntriesExcel(entriesForExport, commentEntriesForExport,
         log.parentId = getHierarchicalParentId(entriesForExport[i].indentPosition, log.entries);
       }
 
-      //if we not have a parent ID yet, set the correct parentId artifact for subtypes (needed for POST URL)
+      //if we not have a parent info yet, set the correct parentId, parentName and parentActive fields for subtypes (needed for POST URL)
       if (isUpdate && Number(log.parentId) == -1 && artifact.hasSubType && entriesForExport[i].isSubType) {
-        log.parentId = getAssociationParentId(entriesForExport, i, artifact.id);
 
-        console.log('log.parentId');
-        console.dir(log.parentId);
+        log.parentId = getAssociationParentInfo(entriesForExport, i, artifact.id, "id");
+        log.parentName = getAssociationParentInfo(entriesForExport, i, artifact.id, "name");
+        log.parentActive = getAssociationParentInfo(entriesForExport, i, artifact.id, "active");
 
-        log.parentName = getAssociationParentName(entriesForExport, i, artifact.id);
-
-        console.log('log.parentName');
-        console.dir(log.parentName);
         //let the child object to hold the parent ID field
         entriesForExport[i][ART_PARENT_IDS[artifact.id]] = log.parentId;
         if (log.parentName.length > 0) {
           entriesForExport[i].parentName = log.parentName;
         }
+        entriesForExport[i].parentActive = log.parentActive;
       }
 
 
@@ -2744,7 +2723,6 @@ async function sendExportEntriesExcel(entriesForExport, commentEntriesForExport,
           log = checkSingleEntryForErrors(entriesForExport[i], log, artifact);
           if (log.entries.length && log.entries[i] && log.entries[i].error) {
             // do nothing 
-            console.log('entrei aqui fuuuu');
           } else {
             await sendSingleEntry(i);
           }
@@ -3095,12 +3073,6 @@ function manageSendingToSpira(entry, user, projectId, templateId, artifact, fiel
       }
     };
 
-    console.log('artifactTypeIdToSend');
-    console.dir(artifactTypeIdToSend);
-
-    console.log('output');
-    console.dir(output);
-
   // send object to relevant artifact post service
   if (IS_GOOGLE) {
     if (!isComment && !isAssociation) {
@@ -3256,7 +3228,6 @@ function manageSendingToSpira(entry, user, projectId, templateId, artifact, fiel
 
       }
       else {
-        console.log('MAOE');
         return putArtifactToSpira(entry, user, projectId, templateId, artifactTypeIdToSend, parentId)
           .then(function (response) {
             var errorStatus = response.error;
@@ -3360,6 +3331,58 @@ function getHierarchicalParentId(indent, previousEntries) {
   return -1;
 }
 
+// returns the correct item for the relevant group position by looping back through the list of entries
+// returns an invalid value if no match found
+// @param: entriesForExport - the whole list of artifacts in the spreadsheet
+// @param: i - target artifact position to look for
+// @param: artifactId - artifact type
+// @mode: what to look for 
+function getAssociationParentInfo(entriesForExport, i, artifactId, mode) {
+
+  if (mode == "id") {
+    // we need to know the artifact type to look for specific parent ID fields
+    if (artifactId == ART_ENUMS.testCases || artifactId == ART_ENUMS.customLists) {
+      //look for parents in the previous rows
+      for (i; i > 0; i--) {
+        //if we found the specific parentID for the artifact type, return it
+        if (entriesForExport[i - 1].hasOwnProperty(ART_PARENT_IDS[artifactId])) {
+          return entriesForExport[i - 1][ART_PARENT_IDS[artifactId]];
+        }
+      }
+      return -1;
+    }
+  }
+  else if (mode == "name") {
+    // we need to know the artifact type to look for specific parent Name fields
+    if (artifactId == ART_ENUMS.customLists) {
+      //look for parents in the previous rows
+      for (i; i > 0; i--) {
+        //if we found the specific parentID for the artifact type, return it
+        if (entriesForExport[i - 1].hasOwnProperty("Name") && !entriesForExport[i - 1].isSubType) {
+          return entriesForExport[i - 1].Name;
+        }
+      }
+      return "";
+    }
+  }
+  else if (mode == "active") {
+    // we need to know the artifact type to look for specific parent Name fields
+    if (artifactId == ART_ENUMS.customLists) {
+      //look for parents in the previous rows
+      for (i; i > 0; i--) {
+        //if we found the specific parentID for the artifact type, return it
+        if (entriesForExport[i - 1].hasOwnProperty("Active") && !entriesForExport[i - 1].isSubType) {
+          return entriesForExport[i - 1].Active;
+        }
+      }
+      return false;
+    }
+  }
+  return null;
+}
+
+
+
 // returns the correct parentId for the relevant group position by looping back through the list of entries
 // returns -1 if no match found
 // @param: entriesForExport - the whole list of artifacts in the spreadsheet
@@ -3390,13 +3413,15 @@ function getAssociationParentName(entriesForExport, i, artifactId) {
     //look for parents in the previous rows
     for (i; i > 0; i--) {
       //if we found the specific parentID for the artifact type, return it
-      if (entriesForExport[i - 1].hasOwnProperty("Name")) {
+      if (entriesForExport[i - 1].hasOwnProperty("Name") && !entriesForExport[i - 1].isSubType) {
         return entriesForExport[i - 1].Name;
       }
     }
     return "";
   }
 }
+
+
 
 // returns an int of the total number of required fields for the passed in artifact
 // @param: fields - the relevant fields for specific artifact, along with all metadata about each
