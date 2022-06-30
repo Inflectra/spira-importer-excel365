@@ -165,6 +165,7 @@ function setEventListeners() {
   document.getElementById("btn-adminGet").onclick = getFromSpiraAttempt;
   document.getElementById("btn-template").onclick = updateTemplateAttempt;
   document.getElementById("btn-updateToSpira").onclick = updateSpiraAttempt;
+  document.getElementById("btn-admin-update").onclick = updateSpiraAttempt;
 
   document.getElementById("btn-help-back").onclick = function () { panelToggle("help") };
   document.getElementById("btn-help-section-login").onclick = function () { showChosenHelpSection('login') };
@@ -673,12 +674,18 @@ function artifactUpdateUI(mode) {
       //when clicking from-Spira button - the admin pane is different from the main pane
       if (isAdmin === false) {
         document.getElementById("main-guide-admin-2-get").disabled = false;
+        document.getElementById("btn-updateToSpira").disabled = false;
       }
       else {
-        document.getElementById('main-guide-admin-3-post').style.fontWeight = 'normal';
+        document.getElementById('main-guide-admin-2-get').style.fontWeight = 'normal';
+        document.getElementById("main-guide-admin-2-get").classList.add("pale");
         document.getElementById("main-guide-admin-3-post").classList.remove("pale");
         document.getElementById('main-guide-admin-3-post').style.fontWeight = 'bold';
-        document.getElementById("btn-admin-send").disabled = false;
+        document.getElementById("btn-admin-update").disabled = false;
+        //juliano
+        document.getElementById("btn-adminGet").classList.remove("action");
+        document.getElementById("btn-admin-update").classList.add("action");
+
       }
       break;
 
@@ -914,16 +921,21 @@ function sendToSpiraAttempt() {
 
 function prepareTemplateAdmin() {
   if (!model.isTemplateLoaded) {
+
     createTemplateAttempt();
     document.getElementById("btn-prepareTemplate").disabled = true;
     document.getElementById("main-guide-admin-2-send").classList.add("pale");
+    document.getElementById('main-guide-admin-2-send').style.fontWeight = 'normal';
+    document.getElementById('main-guide-admin-2-get').style.fontWeight = 'normal';
     document.getElementById('main-guide-1-fromSpira').style.fontWeight = 'normal';
 
     document.getElementById("main-guide-admin-3-post").classList.remove("pale");
     document.getElementById("btn-admin-send").classList.remove("pale");
+    document.getElementById("btn-prepareTemplate").classList.remove("action");
+    document.getElementById("btn-admin-send").classList.add("action");
     document.getElementById('main-guide-admin-3-post').style.fontWeight = 'bold';
-
     document.getElementById("btn-admin-send").disabled = false;
+    document.getElementById("main-guide-admin-3-post").classList.remove("pale");
 
   }
 }
@@ -936,6 +948,12 @@ function updateSpiraAttempt() {
   if (model.isTemplateLoaded) {
     showLoadingSpinner();
 
+    //handling action buttons for admin
+
+    if (isAdmin) {
+      document.getElementById("btn-admin-update").classList.remove("action");
+      document.getElementById("btn-admin-send").classList.add("action");
+    }
     //call export function
     if (isGoogle) {
       google.script.run
@@ -1060,6 +1078,7 @@ function showAdminPanel() {
   document.getElementById("main-guide-admin-3-put").style.visibility = "hidden";
   document.getElementById("main-guide-admin-3-post").style.visibility = "hidden";
   document.getElementById("btn-admin-send").style.visibility = "hidden";
+  document.getElementById("btn-admin-update").style.visibility = "hidden";
   document.getElementById("main-guide-admin-templates").style.visibility = "hidden";
   document.getElementById("select-template").style.visibility = "hidden";
 
@@ -1118,6 +1137,8 @@ function changeOperationSelect(e) {
     document.getElementById("main-guide-admin-3-put").style.visibility = "hidden";
     document.getElementById("main-guide-admin-3-post").style.visibility = "hidden";
     document.getElementById("btn-admin-send").style.visibility = "hidden";
+    document.getElementById("btn-admin-send").style.display = "";
+    document.getElementById("btn-admin-update").style.visibility = "hidden";
     document.getElementById("main-guide-admin-templates").style.visibility = "hidden";
     document.getElementById("select-template").style.visibility = "hidden";
 
@@ -1127,9 +1148,15 @@ function changeOperationSelect(e) {
 
     document.getElementById("main-guide-admin-3-post").classList.add("pale");
     document.getElementById("btn-admin-send").classList.add("pale");
+    document.getElementById("btn-admin-update").classList.add("pale");
     document.getElementById('main-guide-admin-3-post').style.fontWeight = 'normal';
 
     document.getElementById("btn-admin-send").disabled = false;
+    document.getElementById("btn-admin-update").disabled = false;
+    document.getElementById("btn-admin-update").style.display = "none";
+
+    document.getElementById("btn-prepareTemplate").classList.add("action");
+    document.getElementById("btn-admin-send").classList.remove("action");
 
     uiSelection.currentOperation = null;
 
@@ -1165,10 +1192,16 @@ function changeOperationSelect(e) {
           document.getElementById("main-guide-admin-3-put").style.display = "none";
 
           document.getElementById("btn-admin-send").style.visibility = "visible";
+          document.getElementById("btn-admin-send").style.display = "";
+          document.getElementById("btn-admin-update").style.visibility = "hidden";
+          document.getElementById("btn-admin-update").style.display = "none";
 
           document.getElementById("main-guide-admin-templates").style.visibility = "hidden";
           document.getElementById("main-guide-admin-templates").style.display = "none";
           document.getElementById("select-template").style.display = "none";
+
+          document.getElementById("btn-prepareTemplate").classList.add("action");
+          document.getElementById("btn-admin-send").classList.remove("action");
 
           uiSelection.currentOperation = 1;
           //sets the selected artifact based on admin operation
@@ -1203,12 +1236,18 @@ function changeOperationSelect(e) {
           document.getElementById("main-guide-admin-3-put").style.display = "none";
 
           document.getElementById("btn-admin-send").style.visibility = "visible";
+          document.getElementById("btn-admin-update").style.visibility = "hidden";
+          document.getElementById("btn-admin-update").style.display = "none";
+          document.getElementById("btn-admin-send").style.display = "";
 
           document.getElementById("main-guide-admin-templates").style.visibility = "visible";
           document.getElementById("select-template").style.visibility = "visible";
           document.getElementById("main-guide-admin-templates").style.display = "";
           document.getElementById("select-template").style.display = "";
           document.getElementById("select-template").selectedIndex = 0;
+
+          document.getElementById("btn-prepareTemplate").classList.add("action");
+          document.getElementById("btn-admin-send").classList.remove("action");
 
           uiSelection.currentOperation = 2;
           //sets the selected artifact based on admin operation
@@ -1238,10 +1277,14 @@ function changeOperationSelect(e) {
           document.getElementById("btn-prepareTemplate").style.display = "none";
 
           document.getElementById("main-guide-admin-3-post").style.visibility = "visible";
+          document.getElementById('main-guide-admin-3-post').style.fontWeight = 'normal';
 
           document.getElementById("main-guide-admin-3-put").style.display = "none";
 
-          document.getElementById("btn-admin-send").style.visibility = "visible";
+          document.getElementById("btn-admin-send").style.visibility = "hidden";
+          document.getElementById("btn-admin-send").style.display = "none";
+          document.getElementById("btn-admin-update").style.display = "";
+          document.getElementById("btn-admin-update").style.visibility = "visible";
 
           document.getElementById("main-guide-admin-templates").style.visibility = "visible";
           document.getElementById("select-template").style.visibility = "visible";
@@ -1249,6 +1292,13 @@ function changeOperationSelect(e) {
 
           document.getElementById("select-template").style.display = "";
           document.getElementById("select-template").selectedIndex = 0;
+
+          document.getElementById("btn-admin-update").classList.add("action");
+          document.getElementById("btn-admin-send").classList.remove("action");
+
+
+          document.getElementById("btn-adminGet").classList.add("action");
+          document.getElementById("btn-admin-update").classList.remove("action");
 
           uiSelection.currentOperation = 3;
           //sets the selected artifact based on admin operation
@@ -1680,7 +1730,7 @@ function templateLoader() {
   model.currentOperation = uiSelection.currentOperation;
   model.currentTemplate = uiSelection.currentTemplate;
   model.isAdmin = isAdmin;
-  
+
   model.projectComponents = [];
   model.projectActiveReleases = [];
   model.projectReleases = [];
