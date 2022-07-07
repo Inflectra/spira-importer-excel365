@@ -708,10 +708,11 @@ function changeArtifactSelect(e) {
     document.getElementById("btn-fromSpira").disabled = true;
     document.getElementById("btn-template").disabled = true;
     uiSelection.currentArtifact = null;
+    uiSelection.artifactCustomFields = [];
   } else {
     // get the artifact object and update artifact information if artifact has changed
     var chosenArtifact = getSelectedArtifact();
-
+    uiSelection.artifactCustomFields = [];
     if (chosenArtifact !== uiSelection.currentArtifact) {
       //set the temp date store artifact to the one selected;
       uiSelection.currentArtifact = chosenArtifact;
@@ -1431,8 +1432,13 @@ function getArtifactSpecificInformation(user, templateId, projectId, artifact) {
   }
   // get standard artifact information - eg custom fields
   if (templateId != null && projectId != null) {
-    getCustoms(user, templateId, artifact.id);
+    getCustoms(user, templateId, artifact.id, false);
+    //checking for subtypes Custom Properties (e.g.: Test Steps)
+    if (artifact.hasSubType && !artifact.skipSubCustom) {
+      getCustoms(user, templateId, artifact.subTypeId, true);
+    }
   }
+
 }
 
 
@@ -1490,61 +1496,124 @@ function getComponentsSuccess(data) {
 
 // starts GET request to Spira for project / artifact custom properties
 // @param: user - the user object of the logged in user
-// @param: projectId - int of the reqested project
+// @param: templateId - int of the reqested templateId
 // @param: artifactId - int of the reqested artifact
-function getCustoms(user, projectId, artifactId) {
+// @param: isSub - is this a subArtifact?
+
+function getCustoms(user, templateId, artifactId, isSub) {
   // call server side fetch
   if (isGoogle) {
     google.script.run
       .withSuccessHandler(getCustomsSuccess)
       .withFailureHandler(errorNetwork)
-      .getCustoms(user, projectId, artifactId);
+      .getCustoms(user, templateId, artifactId);
   } else {
-    msOffice.getCustoms(user, projectId, artifactId)
-      .then((response) => getCustomsSuccess(response.body))
+    msOffice.getCustoms(user, templateId, artifactId)
+      .then((response) => getCustomsSuccess(response.body, isSub))
       .catch((error) => errorNetwork(error));
   }
 }
 
-
-
 // formats and sets custom field data on the model - adding to a temp holding area, to allow for changes before template creation
-function getCustomsSuccess(data) {
-  // clear old values
-  uiSelection.artifactCustomFields = [];
-  // assign unparsed data to data object
-  // these values are parsed later depending on function needs
-  uiSelection.artifactCustomFields = data
-    .filter(function (item) { return !item.IsDeleted; })
-    .map(function (item) {
-      var customField = {
-        isCustom: true,
-        field: item.CustomPropertyFieldName,
-        name: item.Name,
-        propertyNumber: item.PropertyNumber,
-        type: item.CustomPropertyTypeId,
-      };
+function getCustomsSuccess(data, isSub) {
 
-      // mark as required or not - default is that it can be empty
-      var allowEmptyOption = item.Options && item.Options.filter(function (option) {
-        return option.CustomPropertyOptionId && option.CustomPropertyOptionId === 1;
-      });
-      if (allowEmptyOption && allowEmptyOption.length && allowEmptyOption[0].Value == "N") {
-        customField.required = true;
-      }
-      // add array of values for dropdowns
-      if (item.CustomPropertyTypeId == params.fieldType.drop || item.CustomPropertyTypeId == params.fieldType.multi) {
-        customField.values = item.CustomList.Values.map(function (listItem) {
-          return {
-            id: listItem.CustomPropertyValueId,
-            name: listItem.Name
-          };
+  console.log('sucess_data');
+  console.dir(data);
+  console.log('isSub? ' + isSub);
+
+  // clear old values
+  if (!isSub) {
+
+    //uiSelection.artifactCustomFields = [];
+    // assign unparsed data to data object
+    // these values are parsed later depending on function needs
+    
+    var customFields = data
+      .filter(function (item) { return !item.IsDeleted; })
+      .map(function (item) {
+
+        var customField = {
+          isCustom: true,
+          field: item.CustomPropertyFieldName,
+          name: item.Name,
+          propertyNumber: item.PropertyNumber,
+          type: item.CustomPropertyTypeId,
+        };
+
+        // mark as required or not - default is that it can be empty
+        var allowEmptyOption = item.Options && item.Options.filter(function (option) {
+          return option.CustomPropertyOptionId && option.CustomPropertyOptionId === 1;
         });
+        if (allowEmptyOption && allowEmptyOption.length && allowEmptyOption[0].Value == "N") {
+          customField.required = true;
+        }
+        // add array of values for dropdowns
+        if (item.CustomPropertyTypeId == params.fieldType.drop || item.CustomPropertyTypeId == params.fieldType.multi) {
+          customField.values = item.CustomList.Values.map(function (listItem) {
+            return {
+              id: listItem.CustomPropertyValueId,
+              name: listItem.Name
+            };
+          });
+        }
+        return customField;
       }
-      return customField;
+      );
+    model.artifactGetRequestsMade++;
+    console.log(' customFieldsA');
+    console.dir(customFields);
+
+    //if we still don't have custom fields, create a new object. Otherwise, just add to it (asynchronous nature was causing bugs)
+   /* if(uiSelection.artifactCustomFields.length == 0){
+      uiSelection.artifactCustomFields = customFields;
     }
-    );
-  model.artifactGetRequestsMade++;
+    else{*/
+      uiSelection.artifactCustomFields.push(...customFields);
+   // }
+
+    console.log(' uiSelection.artifactCustomFieldsA');
+    console.dir({ ...'', ... uiSelection.artifactCustomFields});
+  }
+  else {
+   var subCustomFields = data
+      .filter(function (item) { return !item.IsDeleted; })
+      .map(function (item) {
+
+        var customField = {
+          isCustom: true,
+          field: item.CustomPropertyFieldName,
+          name: item.Name,
+          propertyNumber: item.PropertyNumber,
+          type: item.CustomPropertyTypeId,
+          isSubTypeField: true,
+        };
+
+        // mark as required or not - default is that it can be empty
+        var allowEmptyOption = item.Options && item.Options.filter(function (option) {
+          return option.CustomPropertyOptionId && option.CustomPropertyOptionId === 1;
+        });
+        if (allowEmptyOption && allowEmptyOption.length && allowEmptyOption[0].Value == "N") {
+          customField.required = true;
+        }
+        // add array of values for dropdowns
+        if (item.CustomPropertyTypeId == params.fieldType.drop || item.CustomPropertyTypeId == params.fieldType.multi) {
+          customField.values = item.CustomList.Values.map(function (listItem) {
+            return {
+              id: listItem.CustomPropertyValueId,
+              name: listItem.Name
+            };
+          });
+        }
+        return customField;
+      }
+      );
+      console.log(' subCustomFields');
+      console.dir(subCustomFields);
+      uiSelection.artifactCustomFields.push(...subCustomFields);
+      //uiSelection.artifactCustomFields.push(subCustomFields);
+      console.log(' uiSelection.artifactCustomFieldsB');
+      console.dir({ ...'', ... uiSelection.artifactCustomFields});
+  }
 }
 
 
@@ -1743,6 +1812,15 @@ function templateLoader() {
   var customs = uiSelection.artifactCustomFields,
     fields = templateFields[model.currentArtifact.field],
     hasBespoke = fieldsWithBespokeData(fields);
+
+  console.log('customs');
+  console.dir(customs);
+
+  console.log('fields');
+  console.dir(fields);
+
+  console.log('hasBespoke');
+  console.dir(hasBespoke);
 
   // add bespoke data to relevant fields 
   if (hasBespoke) {

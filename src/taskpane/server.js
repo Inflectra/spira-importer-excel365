@@ -478,11 +478,10 @@ function getComponents(currentUser, projectId) {
 // @param: projectId - int id for current project
 // @param: artifactName - int of the current artifact - API refers to this as the artifactTypeName but the ID is required
 function getCustoms(currentUser, templateId, artifactName) {
+  console.log('artifactName ' + artifactName);
   var fetcherURL = API_TEMPLATE_BASE + templateId + '/custom-properties/' + artifactName + '?';
   return fetcher(currentUser, fetcherURL);
 }
-
-
 
 // Gets data for a bespoke specified field (for selected project and artifact)
 // @param: currentUser - object with details about the current user
@@ -2204,6 +2203,8 @@ async function sendToSpira(model, fieldTypeEnums, isUpdate) {
               var validations = [];
               //First, send the artifact entries for Spira
               var entriesForExport = createExportEntries(sheetData, model, fieldTypeEnums, fields, artifact, artifactIsHierarchical, isUpdate);
+              console.log('entriesForExport');
+              console.dir(entriesForExport);
               return sendExportEntriesExcel(entriesForExport, '', '', sheetData, sheet, sheetRange, model, fieldTypeEnums, fields, artifact, context, isUpdate, '').then(function (response) {
                 validations = getValidationsFromEntries(entriesForExport, sheetData, response);
                 entriesLog = response;
@@ -2658,22 +2659,21 @@ async function sendExportEntriesExcel(entriesForExport, commentEntriesForExport,
       if (artifact.hierarchical) {
         log.parentId = getHierarchicalParentId(entriesForExport[i].indentPosition, log.entries);
       }
-
       //if we not have a parent info yet, set the correct parentId, parentName and parentActive fields for subtypes (needed for POST URL)
       if (isUpdate && Number(log.parentId) == -1 && artifact.hasSubType && entriesForExport[i].isSubType) {
-
         log.parentId = getAssociationParentInfo(entriesForExport, i, artifact.id, "id");
         log.parentName = getAssociationParentInfo(entriesForExport, i, artifact.id, "name");
         log.parentActive = getAssociationParentInfo(entriesForExport, i, artifact.id, "active");
         //let the child object to hold the parent ID field
         entriesForExport[i][ART_PARENT_IDS[artifact.id]] = log.parentId;
-        if (log.parentName.length > 0) {
+
+        if ('parentName' in log) {
           entriesForExport[i].parentName = log.parentName;
         }
-        entriesForExport[i].parentActive = log.parentActive;
+        if ('parentActive' in log) {
+          entriesForExport[i].parentActive = log.parentActive;
+        }
       }
-
-
       await manageSendingToSpira(entriesForExport[i], model.user, model.currentProject.id, model.currentTemplate.id, artifact, fields, fieldTypeEnums, log.parentId, isUpdate, false, false)
         .then(function (response) {
           // update the parent ID for a subtypes based on the successful API call
@@ -3237,8 +3237,12 @@ function manageSendingToSpira(entry, user, projectId, templateId, artifact, fiel
 
       }
       else {
+        console.log('maoe 3!');
         return putArtifactToSpira(entry, user, projectId, templateId, artifactTypeIdToSend, parentId)
           .then(function (response) {
+            console.log('maoe 3!');
+            console.dir(response);
+
             var errorStatus = response.error;
             if (!errorStatus) {
               // get the id/subType id of the updated artifact
@@ -4473,6 +4477,9 @@ function getFromSpiraGoogle(model, fieldTypeEnums, advancedMode) {
 // @param: model: full model object from client
 // @param: enum of fieldTypeEnums used
 function getFromSpiraExcel(model, fieldTypeEnums) {
+
+  console.log('model');
+  console.dir(model);
   return Excel.run(function (context) {
     var fields = model.fields;
     var sheet = context.workbook.worksheets.getActiveWorksheet(),
