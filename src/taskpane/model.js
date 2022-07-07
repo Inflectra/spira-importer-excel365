@@ -112,7 +112,7 @@ var params = {
         { field: 'folders', name: 'Folders', id: 114, sendOnly: true },
         { field: 'components', name: 'Components', id: 99 },
         { field: 'users', name: 'Users', id: 98, disabled: false, hidden: true },
-        { field: 'customLists', name: 'Custom Lists', id: 97, disabled: false, hidden: true, hasDualValues: true, hasSubType: true, subTypeId: 96, subTypeName: "customValues", skipSubCustom: true },
+        { field: 'customLists', name: 'Custom Lists', id: 97, disabled: false, hidden: true, hasDualValues: true, hasSubType: true, subTypeId: 96, subTypeName: "customValues", skipSubCustom: true, allowsCreateOnUpdate: true },
         { field: 'customValues', name: 'Custom Values', id: 96, disabled: true, hidden: true, isSubType: true },
     ],
     //special cases enum
@@ -537,9 +537,9 @@ var templateFields = {
         { field: "Admin", name: "Admin?", type: params.fieldType.bool },
         { field: "Active", name: "Active?", type: params.fieldType.bool },
         { field: "Department", name: "Department", type: params.fieldType.text },
-        { field: "password", name: "Password", type: params.fieldType.text, isHeader: true },
-        { field: "password_question", name: "Password Question", type: params.fieldType.text, isHeader: true },
-        { field: "password_answer", name: "password Answer", type: params.fieldType.text, isHeader: true },
+        { field: "password", name: "Password", type: params.fieldType.text, isHeader: true, required: true },
+        { field: "password_question", name: "Password Question", type: params.fieldType.text, isHeader: true, required: true },
+        { field: "password_answer", name: "password Answer", type: params.fieldType.text, isHeader: true, required: true },
         {
             field: "project_id", name: "Project ID", type: params.fieldType.drop, required: false, isHeader: true,
             bespoke: {

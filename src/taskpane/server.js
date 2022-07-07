@@ -478,7 +478,6 @@ function getComponents(currentUser, projectId) {
 // @param: projectId - int id for current project
 // @param: artifactName - int of the current artifact - API refers to this as the artifactTypeName but the ID is required
 function getCustoms(currentUser, templateId, artifactName) {
-  console.log('artifactName ' + artifactName);
   var fetcherURL = API_TEMPLATE_BASE + templateId + '/custom-properties/' + artifactName + '?';
   return fetcher(currentUser, fetcherURL);
 }
@@ -2203,8 +2202,6 @@ async function sendToSpira(model, fieldTypeEnums, isUpdate) {
               var validations = [];
               //First, send the artifact entries for Spira
               var entriesForExport = createExportEntries(sheetData, model, fieldTypeEnums, fields, artifact, artifactIsHierarchical, isUpdate);
-              console.log('entriesForExport');
-              console.dir(entriesForExport);
               return sendExportEntriesExcel(entriesForExport, '', '', sheetData, sheet, sheetRange, model, fieldTypeEnums, fields, artifact, context, isUpdate, '').then(function (response) {
                 validations = getValidationsFromEntries(entriesForExport, sheetData, response);
                 entriesLog = response;
@@ -3198,7 +3195,8 @@ function manageSendingToSpira(entry, user, projectId, templateId, artifact, fiel
   } else {
     //Excel
     if (!isComment && !isAssociation) {
-      if (!isUpdate) {
+      //checks for operation - also checks for special case, when creating while updating is allowed
+      if (!isUpdate || (isUpdate && artifact.allowsCreateOnUpdate && entry.createOnUpdate)) {
         return postArtifactToSpira(entry, user, projectId, templateId, artifactTypeIdToSend, parentId)
           .then(function (response) {
             output.fromSpira = response.body;
@@ -3237,12 +3235,8 @@ function manageSendingToSpira(entry, user, projectId, templateId, artifact, fiel
 
       }
       else {
-        console.log('maoe 3!');
         return putArtifactToSpira(entry, user, projectId, templateId, artifactTypeIdToSend, parentId)
           .then(function (response) {
-            console.log('maoe 3!');
-            console.dir(response);
-
             var errorStatus = response.error;
             if (!errorStatus) {
               // get the id/subType id of the updated artifact
@@ -3584,19 +3578,27 @@ function createEntryFromRow(row, model, fieldTypeEnums, artifactIsHierarchical, 
 
   var fields = model.fields;
   var entry = {};
-
+  var missingSubId = false;
   //populate 'entry' object accordingly - include custom properties array here to avoid it being undefined later if needed
   if (!isComment) {
     var entry = {
       "CustomProperties": []
     }
   }
+
   //we need to turn an array of values in the row into a validated object
   for (var index = 0; index < row.length; index++) {
     var skipField = false;
+
     if (!isComment) {
       if ((isUpdate && fields[index].type == fieldTypeEnums.id) || (isUpdate && fields[index].type == fieldTypeEnums.subId)) {
-        //do nothing
+        //check for subTypeId
+        if (fields[index].type == fieldTypeEnums.subId) {
+          //parent values are not supposed to have subIds
+          if ((row[index - 1] === "" ||row[index - 1] == "-1") && row[index] === "") {
+            missingSubId = true;
+          }
+        }
       }
       // first ignore entry that does not match the requirement specified in the fieldsToFilter
       else if (fieldsToFilter == FIELD_MANAGEMENT_ENUMS.standard && fields[index].isSubTypeField) {
@@ -3963,6 +3965,11 @@ function createEntryFromRow(row, model, fieldTypeEnums, artifactIsHierarchical, 
       }
     }
 
+  }
+  //check for special case, when we have a new artifact on an update sheet
+  if (missingSubId && model.currentArtifact.allowsCreateOnUpdate) {
+    //set this flag
+    entry.createOnUpdate = true;
   }
   //double checking if the comment object has at least the necessary fields (i.e.: comment + ID). If not, add the correspondent fields
   if (isComment) {
@@ -4477,9 +4484,6 @@ function getFromSpiraGoogle(model, fieldTypeEnums, advancedMode) {
 // @param: model: full model object from client
 // @param: enum of fieldTypeEnums used
 function getFromSpiraExcel(model, fieldTypeEnums) {
-
-  console.log('model');
-  console.dir(model);
   return Excel.run(function (context) {
     var fields = model.fields;
     var sheet = context.workbook.worksheets.getActiveWorksheet(),
@@ -4715,21 +4719,37 @@ function matchArtifactsToFields(artifacts, artifactMeta, fields, fieldTypeEnums,
       var originalFieldValue = "";
 
       // handle custom fields
-      if (field.isCustom && !art.isSubType) {
-        // if we have any custom props
-        if (art.CustomProperties && art.CustomProperties.length) {
-          // look for a match for the current field
-          var customProp = art.CustomProperties.filter(function (custom) {
-            return custom.Definition.CustomPropertyFieldName == field.field;
-          });
-          // if the property exists and isn't null - do a null check to handle booleans properly
-          if (typeof customProp != "undefined" && customProp.length && customProp[0][CUSTOM_PROP_TYPE_ENUM[field.type]] !== null) {
-            originalFieldValue = customProp[0][CUSTOM_PROP_TYPE_ENUM[field.type]];
+      if (field.isCustom) {
+        //main artifacts field
+        if (!field.isSubTypeField && !art.isSubType) {
+          // if we have any custom props
+          if (art.CustomProperties && art.CustomProperties.length) {
+            // look for a match for the current field
+            var customProp = art.CustomProperties.filter(function (custom) {
+              return custom.Definition.CustomPropertyFieldName == field.field;
+            });
+            // if the property exists and isn't null - do a null check to handle booleans properly
+            if (typeof customProp != "undefined" && customProp.length && customProp[0][CUSTOM_PROP_TYPE_ENUM[field.type]] !== null) {
+              originalFieldValue = customProp[0][CUSTOM_PROP_TYPE_ENUM[field.type]];
+            }
+          }
+        } else if (field.isSubTypeField && art.isSubType) {
+          // subtypes custom fields
+          if (art.CustomProperties && art.CustomProperties.length) {
+            // look for a match for the current field
+            var customProp = art.CustomProperties.filter(function (custom) {
+              return custom.Definition.CustomPropertyFieldName == field.field;
+            });
+            // if the property exists and isn't null - do a null check to handle booleans properly
+            if (typeof customProp != "undefined" && customProp.length && customProp[0][CUSTOM_PROP_TYPE_ENUM[field.type]] !== null) {
+              originalFieldValue = customProp[0][CUSTOM_PROP_TYPE_ENUM[field.type]];
+            }
           }
         }
 
-        // handle subtype fields. If dual type, make sure this is a subtype (avoid main types entering here)
-      } else if (field.isSubTypeField || (field.isTypeAndSubTypeField && art.isSubType)) {
+      }
+      // handle subtype fields. If dual type, make sure this is a subtype (avoid main types entering here)
+      else if (field.isSubTypeField || (field.isTypeAndSubTypeField && art.isSubType)) {
         if (artifactMeta.hasSubType && art.isSubType) {
           // first check to make sure the field exists in the artifact data
           if (typeof art[field.field] != "undefined" && art[field.field]) {

@@ -11,7 +11,7 @@ var model = new Data();
 var uiSelection = new tempDataStore();
 
 // if devmode enabled, set the required fields and show the dev button
-var devMode = true;
+var devMode = false;
 var isGoogle = typeof UrlFetchApp != "undefined";
 
 /*
@@ -1516,18 +1516,12 @@ function getCustoms(user, templateId, artifactId, isSub) {
 
 // formats and sets custom field data on the model - adding to a temp holding area, to allow for changes before template creation
 function getCustomsSuccess(data, isSub) {
-
-  console.log('sucess_data');
-  console.dir(data);
-  console.log('isSub? ' + isSub);
-
   // clear old values
   if (!isSub) {
 
-    //uiSelection.artifactCustomFields = [];
     // assign unparsed data to data object
     // these values are parsed later depending on function needs
-    
+
     var customFields = data
       .filter(function (item) { return !item.IsDeleted; })
       .map(function (item) {
@@ -1560,22 +1554,10 @@ function getCustomsSuccess(data, isSub) {
       }
       );
     model.artifactGetRequestsMade++;
-    console.log(' customFieldsA');
-    console.dir(customFields);
-
-    //if we still don't have custom fields, create a new object. Otherwise, just add to it (asynchronous nature was causing bugs)
-   /* if(uiSelection.artifactCustomFields.length == 0){
-      uiSelection.artifactCustomFields = customFields;
-    }
-    else{*/
-      uiSelection.artifactCustomFields.push(...customFields);
-   // }
-
-    console.log(' uiSelection.artifactCustomFieldsA');
-    console.dir({ ...'', ... uiSelection.artifactCustomFields});
+    uiSelection.artifactCustomFields.push(...customFields);
   }
   else {
-   var subCustomFields = data
+    var subCustomFields = data
       .filter(function (item) { return !item.IsDeleted; })
       .map(function (item) {
 
@@ -1607,12 +1589,7 @@ function getCustomsSuccess(data, isSub) {
         return customField;
       }
       );
-      console.log(' subCustomFields');
-      console.dir(subCustomFields);
-      uiSelection.artifactCustomFields.push(...subCustomFields);
-      //uiSelection.artifactCustomFields.push(subCustomFields);
-      console.log(' uiSelection.artifactCustomFieldsB');
-      console.dir({ ...'', ... uiSelection.artifactCustomFields});
+    uiSelection.artifactCustomFields.push(...subCustomFields);
   }
 }
 
@@ -1813,16 +1790,7 @@ function templateLoader() {
     fields = templateFields[model.currentArtifact.field],
     hasBespoke = fieldsWithBespokeData(fields);
 
-  console.log('customs');
-  console.dir(customs);
-
-  console.log('fields');
-  console.dir(fields);
-
-  console.log('hasBespoke');
-  console.dir(hasBespoke);
-
-  // add bespoke data to relevant fields 
+    // add bespoke data to relevant fields 
   if (hasBespoke) {
     fields.filter(function (a) {
       var bespokeFieldHasValues = typeof uiSelection[model.currentArtifact.field][a.field] != "undefined" &&
