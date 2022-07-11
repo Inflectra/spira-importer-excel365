@@ -4601,6 +4601,7 @@ async function getDataFromSpiraExcel(model, fieldTypeEnums) {
         getNextPage = false;
       }
     })
+    .catch(/*fail quietly*/);
   }
 
   while (getNextPage && currentPage < 100) {

@@ -11,7 +11,7 @@ var model = new Data();
 var uiSelection = new tempDataStore();
 
 // if devmode enabled, set the required fields and show the dev button
-var devMode = false;
+var devMode = true;
 var isGoogle = typeof UrlFetchApp != "undefined";
 
 /*
@@ -1204,6 +1204,7 @@ function changeOperationSelect(e) {
           document.getElementById("btn-prepareTemplate").classList.add("action");
           document.getElementById("btn-admin-send").classList.remove("action");
 
+          model.isGettingDataAttempt = false;
           uiSelection.currentOperation = 1;
           //sets the selected artifact based on admin operation
           uiSelection.currentArtifact = getAdminArtifact();
@@ -1249,7 +1250,8 @@ function changeOperationSelect(e) {
 
           document.getElementById("btn-prepareTemplate").classList.add("action");
           document.getElementById("btn-admin-send").classList.remove("action");
-
+          
+          model.isGettingDataAttempt = false;
           uiSelection.currentOperation = 2;
           //sets the selected artifact based on admin operation
           uiSelection.currentArtifact = getAdminArtifact();
