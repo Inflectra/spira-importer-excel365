@@ -11,7 +11,7 @@ var model = new Data();
 var uiSelection = new tempDataStore();
 
 // if devmode enabled, set the required fields and show the dev button
-var devMode = true;
+var devMode = false;
 var isGoogle = typeof UrlFetchApp != "undefined";
 
 /*
@@ -500,25 +500,28 @@ function populateTemplates(templates) {
 // manage the switching of the UI off the login screen on succesful login and retrieval of projects
 function showMainPanel(type) {
 
-  //all the users should have access to these options
-  isAdmin = false;
-
+  var paramsDropdown = params.artifacts;
+  //all the users should have access to this option
   setDropdown("select-product", model.projects, "Select a product");
+
+  //but not for artifacts - filter accordingly
+  if(!isAdmin){
+     paramsDropdown = paramsDropdown.filter((element) => {
+      if (!element.hasOwnProperty("adminOnly")) {
+        return element;
+      }
+    })
+  }
+  //some artifacts are not to get, just to post - remove them
   if (type == "get") {
-    var paramsGet = params.artifacts.filter((element) => {
+    paramsDropdown = paramsDropdown.filter((element) => {
       if (!element.hasOwnProperty("sendOnly")) {
         return element;
       }
     })
-
-    setDropdown("select-artifact", paramsGet, "Select an artifact");
-  }
-  else {
-    setDropdown("select-artifact", params.artifacts, "Select an artifact");
   }
 
-
-
+  setDropdown("select-artifact", paramsDropdown, "Select an artifact");
 
   // set the buttons to the correct mode
   if (type == "send") {
@@ -1250,7 +1253,7 @@ function changeOperationSelect(e) {
 
           document.getElementById("btn-prepareTemplate").classList.add("action");
           document.getElementById("btn-admin-send").classList.remove("action");
-          
+
           model.isGettingDataAttempt = false;
           uiSelection.currentOperation = 2;
           //sets the selected artifact based on admin operation
@@ -1432,12 +1435,16 @@ function getArtifactSpecificInformation(user, templateId, projectId, artifact) {
       getBespoke(user, templateId, projectId, artifact.field, bespokeField);
     });
   }
+
   // get standard artifact information - eg custom fields
   if (templateId != null && projectId != null) {
-    getCustoms(user, templateId, artifact.id, false);
-    //checking for subtypes Custom Properties (e.g.: Test Steps)
     if (artifact.hasSubType && !artifact.skipSubCustom) {
-      getCustoms(user, templateId, artifact.subTypeId, true);
+      //get subtypes Custom Properties as well (e.g.: Test Steps)
+      getCustoms(user, templateId, artifact.id, artifact.subTypeId, true);
+    }
+    else {
+      //get just the main types Custom Properties
+      getCustoms(user, templateId, artifact.id, null, false);
     }
   }
 
@@ -1502,7 +1509,7 @@ function getComponentsSuccess(data) {
 // @param: artifactId - int of the reqested artifact
 // @param: isSub - is this a subArtifact?
 
-function getCustoms(user, templateId, artifactId, isSub) {
+function getCustoms(user, templateId, artifactId, subArtifactId, isSub) {
   // call server side fetch
   if (isGoogle) {
     google.script.run
@@ -1511,7 +1518,12 @@ function getCustoms(user, templateId, artifactId, isSub) {
       .getCustoms(user, templateId, artifactId);
   } else {
     msOffice.getCustoms(user, templateId, artifactId)
-      .then((response) => getCustomsSuccess(response.body, isSub))
+      .then((response) => getCustomsSuccess(response.body, false)).then(function () {
+        if (isSub) {
+          //if this artifact also have subTypes custom properties, retrieve them
+          msOffice.getCustoms(user, templateId, subArtifactId).then((response) => getCustomsSuccess(response.body, true));
+        }
+      })
       .catch((error) => errorNetwork(error));
   }
 }
@@ -1520,7 +1532,6 @@ function getCustoms(user, templateId, artifactId, isSub) {
 function getCustomsSuccess(data, isSub) {
   // clear old values
   if (!isSub) {
-
     // assign unparsed data to data object
     // these values are parsed later depending on function needs
 
@@ -1792,7 +1803,7 @@ function templateLoader() {
     fields = templateFields[model.currentArtifact.field],
     hasBespoke = fieldsWithBespokeData(fields);
 
-    // add bespoke data to relevant fields 
+  // add bespoke data to relevant fields 
   if (hasBespoke) {
     fields.filter(function (a) {
       var bespokeFieldHasValues = typeof uiSelection[model.currentArtifact.field][a.field] != "undefined" &&

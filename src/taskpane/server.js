@@ -1266,6 +1266,8 @@ function headerSetter(sheet, fields, colors, context) {
 
     // set background colors based on if it is a subtype only field or not
     var background = fields[i].isSubTypeField ? colors.bgHeaderSubType : colors.bgHeader;
+    //check for special dual type fields
+    if(fields[i].isTypeAndSubTypeField){ background = colors.bgHeaderTypeAndSubType;}
     backgrounds.push(background);
   }
 
