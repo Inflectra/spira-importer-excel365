@@ -48,7 +48,7 @@
 
     <header class="header">
         <img src="https://files.inflectra.com/google/sheets/spiraplan-icon.svg" class="header-logo">
-        <h3 class="header-heading">SpiraPlan Import/Export</h3>
+        <h3 class="header-heading">SpiraPlan Import/Export<br>[QA INT v2.0]</h3>
     </header>
 
 
@@ -56,6 +56,7 @@
     <div class="panel" id="panel-auth">
 
         <p class="well">
+            If you are an existing SpiraTest/Team/Plan user, this add-in lets you get/send data from/to Spira products and templates, as well as add new users to the system, depending on your credentials.
             Learn how to use this app via the <a id="lnk-help-login" href="#">mini help</a>, or read our <a
                 target="_blank"
                 href="http://spiradoc.inflectra.com/Migration-and-Integration/Importing-from-Microsoft-Excel-(Office365)/">full
@@ -86,7 +87,7 @@
             </li>
         </ul>
 
-        <div class="mt-md">
+        <div class="mt-md alignButtons">
             <button class="action ms-Button ms-Button--primary" id="btn-login"
                 title="Login using details filled out above" type="button">
                 Log In
@@ -119,27 +120,32 @@
 
         <h3>2. Choose which mode to use</h3>
 
-        <p class="mt-md">The Spira Import/Export Tool helps you:</p>
-        <ul>
-            <li>
-                get (export) data from Spira
-            </li>
-            <li>
-                send (import) new data to Spira</p>
-            </li>
-        </ul>
-        <p></p>
-        <p class="mt-md"><b>Choose what to do</b> or read the <a href="#" id="lnk-help-decide">help</a>.</p>
+        <div class="well">The Spira Import/Export Tool helps you:
+            <ul>
+                <li>
+                    get (export) data from Spira
+                </li>
+                <li>
+                    send (import) new data to Spira</p>
+                </li>
+            </ul>
+        </div>
+        
+        <p class="mt-md">Choose one option below or read the <a href="#" id="lnk-help-decide">help</a>.</p>
+        
+    <div class="products-box">
+        <p class="mt-md"><b>Products:</b></p>
 
         <div class="mt-md">
-            <button class="action ms-Button ms-Button--primary" id="btn-decide-get" title="Get data out of Spira"
+            <button class="action ms-Button ms-Button--primary decide-button" id="btn-decide-get" title="Download data from Spira to the worksheet"
                 type="button">
-                Get data from Spira*
+                Get data from Spira<sup>1</sup>
             </button>
+            
         </div>
         <div class="mt-md">
-            <button class="action ms-Button ms-Button--primary" id="btn-decide-send"
-                title="Prepare data to send into Spira" type="button">
+            <button class="action ms-Button ms-Button--primary decide-button" id="btn-decide-send"
+                title="Prepare data and upload it from the worksheet to Spira" type="button">
                 Send data to Spira
             </button>
         </div>
@@ -147,28 +153,33 @@
         <div class="mt-md">
 
             <input type="checkbox" id="chkAdvanced" name="chkAdvancedMain">
-            <label for="chkAdvancedMain"> Advanced Mode </label>
+            <label for="chkAdvancedMain"> Show Advanced Fields </label>
             <div class="circleHelp">
                 <p>?</p>
             </div>
-            <div class="helpBox">This mode allows you to create artifact associations and comments. Please refer to the
+            <div class="helpBox">This option allows you to create artifact associations and comments. Please refer to the
                 documentation for more details.</div>
         </div>
+    </div>
+        <h4></h4>
+        <div class="products-box" id="adminBox">
+        <p class="mt-md"><b>Product Template and System Admin:</b></p>
 
         <div class="mt-md">
-            <button class="action ms-Button ms-Button--primary" id="btn-decide-admin"
-                title="Access to admin exclusive operations" type="button">
-                Admin. Functions
+            <button class="action ms-Button ms-Button--primary decide-button" id="btn-decide-admin"
+                title="Access to advanced, admin exclusive operations" type="button">
+                Get or Send data
             </button>
         </div>
-
-        <div class="mt-lg">
+    </div>
+    <h5></h5>
+        <div class="mt-md">
             <button class="ms-Button" id="btn-decide-logout" title="Logout" type="button">
                 Logout
             </button>
         </div>
 
-        <p class="mt-md"><i>*Optionally, update the data and send it back to Spira.</p></i>
+        <p class="mt-md"><small><i><sup>1</sup> Optionally, update the data and send it back to Spira.</small></p></i>
 
     </div>
 
@@ -266,7 +277,7 @@
         <p class="secondary" id="js--loggedInAs-main">
         </p>
 
-        <h3 id="main-heading-admin">Administrator Advanced Operations</h3>
+        <h3 id="main-heading-admin">Product Template/System Admin. Operations</h3>
         
         <div id="main-guide-1">
             <p id="main-guide-1-admin">a. Choose which operation to execute</p>
@@ -291,6 +302,16 @@
                 </select>
             </li>
         </ul>
+        <ul class="form">
+            <li class="form-pair">
+                <label id="main-guide-admin-lists" class="form-label" for="select-list">
+                    Custom List:
+                </label>
+                <select class="form-input" id="select-list">
+                    <!--aysnc populated -->
+                </select>
+            </li>
+        </ul>
         <div>
             <p id="main-guide-admin-2-get" class="pale">
                 <b>b. Start the data transfer with Spira</b>
@@ -301,7 +322,7 @@
             <div class="AdminButtonAlignment">
                 <button class="action ms-Button ms-Button--primary" disabled="true" id="btn-prepareTemplate" type="button"
                     title="Prepare the active sheet so you can enter data into it">
-                    Prepare Data Template Sheet
+                    Prepare Data Template
                 </button>
               <button class="action ms-Button ms-Button--primary" disabled="true" id="btn-adminGet" type="button"
                     title="Get data for the specified operation from SpiraPlan">
@@ -320,7 +341,7 @@
                 title="Send data to Spira, creating new artifacts">
                 Send Data
             </button>
-            <button class="ms-Button ms-Button--default" disabled="true" id="btn-admin-update" type="button"
+            <button class="ms-Button ms-Button--default decide-button" disabled="true" id="btn-admin-update" type="button"
             title="Send data back to Spira, reflecting the changes from the spreadsheet">
             Send Updated Data
         </button>
@@ -402,20 +423,17 @@
 
         <div id="help-section-modes" class="help-section hidden">
             <h4>2. Choose which mode to use</h4>
-            <p>This add-in has two separate modes: exporting; and importing.</p>
+            <p>This add-in allows you to export and import data, from three different options on the menu.</p>
             <p>Once you have successfully logged in to your Spira application, you need to decide what you want to use
                 this add-in for. You can go back and change your mind at any time.</p>
             <ul class="list">
                 <li>
                     <p>
-                        <b>Get data from Spira (exporting)</b>
+                        <b>Get data from a Spira Product (exporting)</b>
                         <small>This button will prompt you to pick a product and artifact to LOAD FROM Spira loaded into
                             the spreadsheet (on the current active sheet). Exporting data in this way can be helpful to
                             share with colleagues who are not using Spira. Please note that this will bring over 100% of
                             the artifacts in that product so it may take some time.</small>
-
-
-
                     </p>
                     <p><small>Optionally, after getting data from Spira, you can make changes, then <b>update the data
                                 in Spira</b>, hitting the button 'Update Spira'. Please note that this option only
@@ -424,7 +442,7 @@
                 </li>
                 <li>
                     <p>
-                        <b>Send data to Spira (importing)</b>
+                        <b>Send data to a Spira Product (importing)</b>
                         <small>This will button will prompt you to pick a product and artifact to SEND TO Spira from the
                             current active sheet. Before you can enter data to send, the add-in creates a dynamic
                             template for that specific product and artifact to make it easier to enter data
@@ -433,14 +451,8 @@
                 </li>
                 <li>
                     <p>
-                        <b>Logout</b>
-                        <small>Close your connection with Spira and take you back to the add-in's login page</small>
-                    </p>
-                </li>
-                <li>
-                    <p>
-                        <b>Advanced Mode (optional)</b>
-                        <small>This mode allows you to create new comments and associate artifacts.</small>
+                        <b>Show Advanced Fields (optional)</b>
+                        <small>This option allows you to create new comments and associate artifacts.</small>
                     <p><small>To <b>associate artifacts</b>, find the column of the artifact type you want to associate
                             to (e.g.: "Linked Requirement") and enter the ID(s) of the artifact(s) to associate to. You
                             can associate multiple artifacts at a time using a comma-separated list of IDs, e.g.:
@@ -458,12 +470,48 @@
                          the add-on with is ordered as the first one. </p>
                     </p>
                 </li>
+                <li>
+                    <p>
+                        <b>Logout</b>
+                        <small>Close your connection with Spira and take you back to the add-in's login page</small>
+                    </p>
+                </li>
+            </ul>
+            <p>If you are a System Administrator in Spira, you will have access to the following extra functionalities:</p>
+            <ul class="list">
+                <li>
+                    <p>
+                        <b>Add new users to Spira</b>
+                        <small>Select this under "Operations" and click on "Prepare Data Template Sheet" to load the template. 
+                            Then, populate the sheet with at least the required (bold) fields and hit "Send Data". 
+                            The just-created new users don't need to be approved in Spira.</small>
+                    </p>
+                    </p>
+                </li>
+                <li>
+                    <p>
+                        <b>Add new Custom Lists and Values</b>
+                        <small>Select this under "Operations" and then select the product template you want to add the new list(s) and value(s). 
+                            Then, click on "Prepare Data Template Sheet" to load the template. Populate the sheet with at least the required (bold) fields. 
+                            Please note that you must reserve one row for a list and one or more for its values. Finally, hit "Send Data" 
+                            and wait until the data is sent to Spira.</small>
+                    </p>
+                    </p>
+                </li>
+                <li>
+                    <p>
+                        <b>Edit Existent Custom Lists and Values</b>
+                        <small>Select this under "Operations" and then select the product template to import. 
+                            Right after, choose a Custom List from the dropdown menu or select [ALL] to get all the lists from the Spira Template. 
+                            Then, click on "Get Data from Spira" to load the template. Edit the sheet values freely. 
+                            Remember to keep/provide new required (bold) fields. Additionally, you can add new lists and values to existent/new lists. 
+                            Finally, hit "Send Updated Data" and wait until the data is sent to Spira.
+                        </small>
+                    </p>
+                    </p>
+                </li>
             </ul>
         </div>
-
-
-
-
         <div id="help-section-data" class="help-section hidden">
             <h4>3. Prepare for the data transfer</h4>
 
@@ -615,13 +663,14 @@ Item 1
     <!-- warning page - ms excel only -->
     <div class="panel offscreen" id="panel-confirm">
         <p id="message-confirm"></p>
-        <button class="ms-Button ms-Button--default" id="btn-confirm-ok" type="button">
-            OK
-        </button>
-        <button class="ms-Button ms-Button--default" id="btn-confirm-cancel" type="button">
-            Cancel
-        </button>
-
+        <div class="alignButtons">
+            <button class="ms-Button ms-Button--default" id="btn-confirm-ok" type="button">
+                OK
+            </button>
+            <button class="ms-Button ms-Button--default" id="btn-confirm-cancel" type="button">
+                Cancel
+            </button>
+        </div>
     </div>
 
     <!-- footer -->

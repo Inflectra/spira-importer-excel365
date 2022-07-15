@@ -165,14 +165,76 @@ pre {
 }
 .pale { opacity: .5;}
 
+.ms-Button {
+    display: flex;
+    text-align: center;
+    vertical-align: center;
+    text-align: center;
+    align-items: center;
+}
+
+.products-box {
+    border: solid 2px transparent;
+    padding: 10px;
+    padding-top: 1px;
+    border-radius: .5rem;
+
+}
+
+.products-box:hover {
+    border: solid 2px #ddd;
+}
+
+div .alignButtons {
+    display: flex;
+}
+
+div .alignButtons button {
+    margin-right: 2px;
+    justify-content: center;
+} 
+
+.decide-button {
+    width: 60%;
+}
+
+.AdminButtonAlignment {
+    width: 60%;
+}
+
+.mt-md {
+    margin-top: 10px;
+}
+
+
+sup {
+    top: -10em;
+    font-size: 80%;
+    margin-left: 2px;
+    margin-top: -5px;
+}
+
+div .btn-group {
+    display: flex;
+}
+
+div .btn-group .ms-Button {
+    margin-right: 3px;
+    justify-content: center;
+}
+
 
 .well {
+    display: block;
     background-color: #f1f1f1;
     padding: .5rem;
     border-radius: .5rem;
     border: 1px solid #ddd;
     margin: 0;
 }
+
+
+
 .secondary {
     color: #777;
 }
@@ -185,6 +247,7 @@ pre {
 .ms-office button:disabled {
     opacity: .5;
 }
+
 
 #loader h1 {
     background-color: rgba(255, 255, 255, 0.9);

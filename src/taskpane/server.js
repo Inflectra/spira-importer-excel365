@@ -26,6 +26,7 @@ export {
   getFromSpiraExcel,
   getProjects,
   getProjectTemplates,
+  getTemplateLists,
   getReleases,
   getUsers,
   getTemplateFromProjectId,
@@ -118,7 +119,7 @@ var API_BASE = '/services/v6_0/RestService.svc/',
     3: "We're really sorry, there was a problem sending data to Spira. Some records may not have been sent correctly. Please check in Spira to confirm.",
     4: "You are not on the correct worksheet. Please go to the sheet that matches the one listed on the Spira taskpane / the selection you made in the sidebar.",
     5: "Some/all of the rows already exist in SpiraPlan. These rows have not been re-added.",
-    6: "Data sent! Since you are using the advanced mode, any errors related to comments and/or associations will be marked as red in the spreadsheet. To send more data over, clear the sheet first."
+    6: "Data sent! Since you are using the advanced fields mode, any errors related to comments and/or associations will be marked as red in the spreadsheet. To send more data over, clear the sheet first."
   },
   CUSTOM_PROP_TYPE_ENUM = {
     //internal-handling only
@@ -445,6 +446,15 @@ async function getProjectTemplates(currentUser) {
   return fetcher(currentUser, fetcherURL);
 }
 
+// Gets lists of selected template
+// This function is called as soon as a template is selected on its dropdown
+// @param: currentTemplate - object with details about the current Template
+async function getTemplateLists(currentTemplate, currentUser) {
+  var fetcherURL = API_TEMPLATE_BASE + currentTemplate + '/custom-lists?';
+  return fetcher(currentUser, fetcherURL);
+}
+
+
 // Gets projects accessible by current logged in user
 // This function is called on initial log in and therefore also acts as user validation
 // @param: currentUser - object with details about the current user
@@ -536,7 +546,6 @@ function getUsers(currentUser, projectId) {
 function getArtifacts(user, projectId, artifactTypeId, startRow, numberOfRows, artifactId, templateId) {
   var fullURL = API_PROJECT_BASE + projectId;
   var response = null;
-
   switch (artifactTypeId) {
     case ART_ENUMS.requirements:
       fullURL += "/requirements?starting_row=" + startRow + "&number_of_rows=" + numberOfRows + "&sort_field=RequirementId&sort_direction=ASC&";
@@ -587,7 +596,14 @@ function getArtifacts(user, projectId, artifactTypeId, startRow, numberOfRows, a
       response = fetcher(user, fullURL);
       break;
     case ART_ENUMS.customLists:
-      fullURL = API_TEMPLATE_BASE + templateId + "/custom-lists?start_row=" + startRow + "&number_rows=" + numberOfRows + "&sort_field=CustomPropertyListId&sort_direction=ASC&";
+      if (artifactId > 0) {
+        //if we have a valid custom list ID
+        fullURL = API_TEMPLATE_BASE + templateId + "/custom-lists/" + artifactId + "?start_row=" + startRow + "&number_rows=" + numberOfRows + "&sort_field=CustomPropertyListId&sort_direction=ASC&";
+      }
+      else {
+        //if not, retrieve all the lists
+        fullURL = API_TEMPLATE_BASE + templateId + "/custom-lists?start_row=" + startRow + "&number_rows=" + numberOfRows + "&sort_field=CustomPropertyListId&sort_direction=ASC&";
+      }
       response = fetcher(user, fullURL);
       break;
     case ART_ENUMS.customValues:
@@ -1267,7 +1283,7 @@ function headerSetter(sheet, fields, colors, context) {
     // set background colors based on if it is a subtype only field or not
     var background = fields[i].isSubTypeField ? colors.bgHeaderSubType : colors.bgHeader;
     //check for special dual type fields
-    if(fields[i].isTypeAndSubTypeField){ background = colors.bgHeaderTypeAndSubType;}
+    if (fields[i].isTypeAndSubTypeField) { background = colors.bgHeaderTypeAndSubType; }
     backgrounds.push(background);
   }
 
@@ -3597,7 +3613,7 @@ function createEntryFromRow(row, model, fieldTypeEnums, artifactIsHierarchical, 
         //check for subTypeId
         if (fields[index].type == fieldTypeEnums.subId) {
           //parent values are not supposed to have subIds
-          if ((row[index - 1] === "" ||row[index - 1] == "-1") && row[index] === "") {
+          if ((row[index - 1] === "" || row[index - 1] == "-1") && row[index] === "") {
             missingSubId = true;
           }
         }
@@ -4396,6 +4412,7 @@ function getFromSpiraGoogle(model, fieldTypeEnums, advancedMode) {
       model.currentArtifact.id,
       startRow,
       GET_PAGINATION_SIZE,
+      null,
       null
     );
     // if we got a non empty array back then we have artifacts to process
@@ -4442,7 +4459,8 @@ function getFromSpiraGoogle(model, fieldTypeEnums, advancedMode) {
           model.currentArtifact.subTypeId,
           null,
           null,
-          art[idFieldName]
+          art[idFieldName],
+          null
         );
         // take action if we got any sub types back - ie if they exist for the specific artifact
         if (subTypeArtifacts && subTypeArtifacts.length) {
@@ -4577,6 +4595,15 @@ async function getDataFromSpiraExcel(model, fieldTypeEnums) {
   var currentPage = 0;
   var artifacts = [];
   var getNextPage = true;
+  var singleArtifactId = null;
+
+  //if this artifact supports getting a single result, handle it
+  if (model.currentArtifact.allowGetSingle) {
+    // Custom Lists
+    if (model.currentArtifact.id == params.artifactEnums.customLists) {
+      singleArtifactId = model.currentList.id;
+    }
+  }
 
   async function getArtifactsPage(startRow) {
     await getArtifacts(
@@ -4585,12 +4612,17 @@ async function getDataFromSpiraExcel(model, fieldTypeEnums) {
       model.currentArtifact.id,
       startRow,
       GET_PAGINATION_SIZE,
-      null,
+      singleArtifactId,
       model.currentTemplate.id
     ).then(function (response) {
       // if we got a non empty array back then we have artifacts to process
-      if (response.body && response.body.length) {
+      if (response.body && (response.body.length || response.body.Values)) {
         artifacts = artifacts.concat(response.body);
+        //handling special allowGetSingle cases
+        if (model.currentArtifact.allowGetSingle && singleArtifactId > 0) {
+          //we just want one artifact - one query it's enough
+          getNextPage = false;
+        }
         // if we got less artifacts than the max we asked for, then we reached the end of the list in this request - and should stop
         if (response.body && response.body.length < GET_PAGINATION_SIZE) {
           getNextPage = false;
@@ -4603,7 +4635,7 @@ async function getDataFromSpiraExcel(model, fieldTypeEnums) {
         getNextPage = false;
       }
     })
-    .catch(/*fail quietly*/);
+      .catch(/*fail quietly*/);
   }
 
   while (getNextPage && currentPage < 100) {
@@ -4675,6 +4707,7 @@ async function getDataFromSpiraExcel(model, fieldTypeEnums) {
     }
   }
   return artifacts;
+
 }
 
 // EXCEL SPECIFIC to process all the data retrieved from Spira and then display it

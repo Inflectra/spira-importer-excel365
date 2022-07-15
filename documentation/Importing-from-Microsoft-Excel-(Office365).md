@@ -11,11 +11,13 @@ This add-in works with Microsoft Excel 2016+, Excel in the cloud (via a web brow
 5.  Test cases with their Test steps
 6.  Test sets
 7.  Risks
-8.  Components
-9.  Folders
-10. Custom Lists and Values
+8.  Components <sup>1</sup>
+9.  Folders <sup>1</sup>
+10. Custom Lists and Values <sup>1</sup>
 
 In legacy versions of this add-in, you needed to download a static excel template to help make sure you enter data into it in the correct way. However, this new add-in dynamically creates the sheet headers and cell validation based on the artifact and product you select.
+
+<small><sup>1</sup> Requires system administrator credentials</small>
 
 
 ## Installation 
@@ -79,11 +81,11 @@ If there are any errors during the sending process you will see relevant explana
 
 [^max-new-rows]: Please note that you can currently only send a maximum of 10,000 rows of data to Spira at a a time.
 
-** *Advanced Mode (optional):* ** When you enable advanced mode, you have more options when sending data to or updating data in Spira that are normally not available. Advanced mode lets you create new comments and add associations between specific artifacts. Check the box 'Advanced Mode' to activate it for the two previous modes of operation.
+** *Show Advanced Fields (optional):* ** When you enable this, you have more options when sending data to or updating data in Spira that are normally not available. This lets you create new comments and add associations between specific artifacts. Check the box 'Show Advanced Fields' to activate it for the two previous modes of operation.
 
 
 ### Administator Functions
-This mode is only available for Spira administrator users. When login the add-in with administrator credentials, you will see the extra button at the bottom of the second screen. This mode allows you to:
+This mode is only available for Spira administrator users. When login the add-in with administrator credentials, you will see the extra button "Get or Send data", under the "Product Template and System Admin" section, at the bottom of the second screen. This mode allows you to:
 
 #### Add new users to Spira
 Select this under "Operations" and click on "Prepare Data Template Sheet" to load the template. Then, populate the sheet with at least the required (bold) fields and hit "Send Data". The just-created new users don't need to be approved in Spira.
@@ -92,7 +94,7 @@ Select this under "Operations" and click on "Prepare Data Template Sheet" to loa
 Select this under "Operations" and then select the product template you want to add the new list(s) and value(s). Then, click on "Prepare Data Template Sheet" to load the template. Populate the sheet with at least the required (bold) fields. Please note that you must reserve one row for a list and one or more for its values. Finally, hit "Send Data" and wait until the data is sent to Spira.
 
 #### Edit Existent Custom Lists and Values
-Select this under "Operations" and then select the product template to import the lists and values from. Then, click on "Get Data from Spira" to load the template. Edit the sheet values freely. Remember to keep/provide new required (bold) fields. Additionally, you can add new lists and values to existent/new lists. Finally, hit "Send Updated Data" and wait until the data is sent to Spira.
+Select this under "Operations" and then select the product template to import. Right after, choose a Custom List from the dropdown menu or select *[ALL]* to get all the lists from the Spira Template. Then, click on "Get Data from Spira" to load the template. Edit the sheet values freely. Remember to keep/provide new required (bold) fields. Additionally, you can add new lists and values to existent/new lists. Finally, hit "Send Updated Data" and wait until the data is sent to Spira.
 
 ## 3. Prepare for the data transfer
 This section is valid for the non-admin modes only (getting data and creating new data).
@@ -108,10 +110,7 @@ After you have chosen which mode to use, select the product and artifact from th
 * Required fields are marked by their name in the title row shown as bold black text (standard fields are regular light text)                  
 * For test steps, required fields are shown in black, but not bold text.
 * For a given artifact, the required fields are:
-<<<<<<< Updated upstream
 
-=======
->>>>>>> Stashed changes
     * System Standard fields that are required for artifact creation such as name/title, type, some dates, and others
     * Custom Property fields if the `Allow Empty` at the custom property definition is toggled to `No`
 
@@ -127,14 +126,14 @@ After you have chosen which mode to use, select the product and artifact from th
 * When sending data to SpiraPlan you will only be able to select one value
 
 ### Advanced Fields: New Comments
-When advanced mode is enabled you will see a column called "New Comments". This lets you create new comments in Spira when sending the relevant items to Spira
+When Show Advanced Fields is enabled you will see a column called "New Comments". This lets you create new comments in Spira when sending the relevant items to Spira
 
 To add a new comment, enter the comment in the column "New Comment". When you send data to or update Spira, this will be saved as a new comment in the artifact.
 
 Please note that you can only create new comments. You cannot get existing comments from Spira.
 
 ### Advanced Fields: associations
-When advanced mode is enabled you will may see columns that let you create associations between artifacts. This is an advanced feature because you need to know the exact IDs and type them in manually. For a more user friendly experience associating artifacts please use the main application. 
+When Show Advanced Fields is enabled you will may see columns that let you create associations between artifacts. This is an advanced feature because you need to know the exact IDs and type them in manually. For a more user friendly experience associating artifacts please use the main application. 
 
 To create an association between artifacts:
 - find the column of the artifact type you want to associate to (e.g.: "New Linked Requirement(s)") 
@@ -217,13 +216,31 @@ This artifact does not have any special factors to take into account.
 ### Risks
 This artifact does not have any special factors to take into account.
 
+### Components
+Only system administrators can see this artifact available in the add-in menus for getting and sending data from/to Spira.
+
+### Folders
+Only system administrators can see this artifact available in the add-in menu for sending data to Spira. You can create folder for different artifact types at the same time. Just select them under the `Artifact` column in the worksheet.
+
+### Custom Lists and Custom Values
+
+Only system administrators can Add/Edit Custom Lists and Values going to the second/third option of the `Product Template/System Admin. Operations` menu. Please note that:
+
+- **Custom Lists** are columns with a darker background color (dark orange)
+- **Custom Values** are columns with a lighter background color (light orange)
+- **Custom Lists AND Custom Values** are columns with a brighter background color (yellow)
+- **Required fields** are those with black text. It's not possible to create/update data without them
+
+![Spira example of date and sheet](img/excel365-add-in-store-3.jpg)
+
+### Users
+Only system administrators can create new users going to the first option of the `Product Template/System Admin Operations` menu.
+
+
 ## Other actions you can do on after you have logged in to the add-in
 * **Back**: Go back to select which add-in mode to run
 * **Help**: Open the add-ins help menu to this page
 * **Logout**: Close your connection with Spira and take you back to the login page
-
-![Spira example of date and sheet](img/excel365-add-in-store-3.jpg)
-
 
 --- 
 

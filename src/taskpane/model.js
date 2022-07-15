@@ -112,7 +112,7 @@ var params = {
         { field: 'folders', name: 'Folders', id: 114, sendOnly: true, adminOnly: true },
         { field: 'components', name: 'Components', id: 99, adminOnly: true },
         { field: 'users', name: 'Users', id: 98, disabled: false, hidden: true },
-        { field: 'customLists', name: 'Custom Lists', id: 97, disabled: false, hidden: true, hasDualValues: true, hasSubType: true, subTypeId: 96, subTypeName: "customValues", skipSubCustom: true, allowsCreateOnUpdate: true },
+        { field: 'customLists', name: 'Custom Lists', id: 97, disabled: false, hidden: true, hasDualValues: true, hasSubType: true, subTypeId: 96, subTypeName: "customValues", skipSubCustom: true, allowsCreateOnUpdate: true, allowGetSingle: true },
         { field: 'customValues', name: 'Custom Values', id: 96, disabled: true, hidden: true, isSubType: true },
     ],
     //special cases enum
@@ -569,7 +569,7 @@ var templateFields = {
         { field: "Name", name: "Value Name", type: params.fieldType.text, requiredForSubType: true, isSubTypeField: true },
         // { field: "Active", name: "List Active?", type: params.fieldType.bool, blocksSubType: true},
         // { field: "Active", name: "Value Active?", type: params.fieldType.bool, isSubTypeField: true},
-        { field: "Active", name: "Active?", type: params.fieldType.bool, isTypeAndSubTypeField: true,required: true},
+        { field: "Active", name: "Active?", type: params.fieldType.bool, isTypeAndSubTypeField: true, required: true },
         { field: "SortedOnValue", name: "SortedOnValue", type: params.fieldType.text, isReadOnly: true, isHidden: true },
     ],
 
@@ -598,6 +598,8 @@ function Data() {
         { name: "Edit existent Custom Lists and Values", id: 3, type: "get-template", artifactId: 97 },
     ];
 
+    this.templateLists = [];
+
     this.currentProject = '';
     this.currentTemplate = '';
     this.projectComponents = [];
@@ -609,7 +611,7 @@ function Data() {
     this.currentArtifact = '';
 
     this.currentOperation = '';
-    this.currentTemplate = '';
+    this.currentList = '';
 
     this.projectGetRequestsToMake = 3; // users, components, releases
     this.projectGetRequestsMade = 0;
