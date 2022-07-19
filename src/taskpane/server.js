@@ -4404,6 +4404,14 @@ function getFromSpiraGoogle(model, fieldTypeEnums, advancedMode) {
   var artifacts = [];
   var getNextPage = true;
 
+  //if this artifact supports getting a single result, handle it
+  if (model.currentArtifact.allowGetSingle) {
+    // Custom Lists
+    if (model.currentArtifact.id == params.artifactEnums.customLists) {
+      singleArtifactId = model.currentList.id;
+    }
+  }
+
   while (getNextPage && currentPage < 100) {
     var startRow = (currentPage * GET_PAGINATION_SIZE) + 1;
     var pageOfArtifacts = getArtifacts(
@@ -4412,12 +4420,17 @@ function getFromSpiraGoogle(model, fieldTypeEnums, advancedMode) {
       model.currentArtifact.id,
       startRow,
       GET_PAGINATION_SIZE,
-      null,
-      null
+      singleArtifactId,
+      model.currentTemplate.id
     );
     // if we got a non empty array back then we have artifacts to process
-    if (pageOfArtifacts.length) {
+    if (pageOfArtifacts.length || pageOfArtifacts.Values) {
       artifacts = artifacts.concat(pageOfArtifacts);
+      //handling special allowGetSingle cases
+      if (model.currentArtifact.allowGetSingle && singleArtifactId > 0) {
+        //we just want one artifact - one query it's enough
+        getNextPage = false;
+      }
       // if we got less artifacts than the max we asked for, then we reached the end of the list in this request - and should stop
       if (pageOfArtifacts.length < GET_PAGINATION_SIZE) {
         getNextPage = false;
@@ -4460,10 +4473,16 @@ function getFromSpiraGoogle(model, fieldTypeEnums, advancedMode) {
           null,
           null,
           art[idFieldName],
-          null
+          model.currentTemplate.id
         );
         // take action if we got any sub types back - ie if they exist for the specific artifact
-        if (subTypeArtifacts && subTypeArtifacts.length) {
+        if (subTypeArtifacts && (subTypeArtifacts.length || subTypeArtifacts.Values.length)) {
+
+          if (subTypeArtifacts.Values) {
+            //some subArtifacts, such as Custom Values, require this adjustment
+            subTypeArtifacts = subTypeArtifacts.Values;
+          }
+
           var subTypeArtifactsWithMeta = subTypeArtifacts.map(function (sub) {
             sub.isSubType = true;
             sub.parentId = art[idFieldName];

@@ -11,7 +11,7 @@ var model = new Data();
 var uiSelection = new tempDataStore();
 
 // if devmode enabled, set the required fields and show the dev button
-var devMode = false;
+var devMode = true;
 var isGoogle = typeof UrlFetchApp != "undefined";
 
 /*
@@ -253,6 +253,7 @@ function newTemplateHandler(shouldContinue) {
     // all data should already be loaded (as otherwise template button is disabled)
     // but check again that all data is present before kicking off template creation
     // if so, kicks off template creation, otherwise waits and tries again
+    // the exception is when using advanced admin mode operations not based on projects
 
     if (allGetsSucceeded()) {
       templateLoader();
@@ -260,7 +261,7 @@ function newTemplateHandler(shouldContinue) {
     } else {
       var checkGetsSuccess = setInterval(attemptTemplateLoader, 1500);
       function attemptTemplateLoader() {
-        if (allGetsSucceeded()) {
+        if (allGetsSucceeded() || uiSelection.currentOperation == 1 || uiSelection.currentOperation == 2 || uiSelection.currentOperation == 3) {
           templateLoader();
           clearInterval(checkGetsSuccess);
         }
