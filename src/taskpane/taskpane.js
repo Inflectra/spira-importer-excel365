@@ -11,7 +11,7 @@ var model = new Data();
 var uiSelection = new tempDataStore();
 
 // if devmode enabled, set the required fields and show the dev button
-var devMode = true;
+var devMode = false;
 var isGoogle = typeof UrlFetchApp != "undefined";
 
 /*
@@ -112,7 +112,7 @@ function setDevStuff(devMode) {
     document.getElementById("btn-dev").classList.remove("hidden");
     model.user.url = "";
     model.user.userName = "administrator";
-    model.user.api_key = btoa("&api-key=" + encodeURIComponent("{}"));
+    model.user.api_key = btoa("&api-key=" + encodeURIComponent(""));
 
     loginAttempt();
   }
@@ -1558,9 +1558,17 @@ function getCustoms(user, templateId, artifactId, subArtifactId, isSub) {
   // call server side fetch
   if (isGoogle) {
     google.script.run
+      .withUserObject(false)
       .withSuccessHandler(getCustomsSuccess)
       .withFailureHandler(errorNetwork)
       .getCustoms(user, templateId, artifactId);
+    if (isSub) {
+      google.script.run
+        .withUserObject(true)
+        .withSuccessHandler(getCustomsSuccess)
+        .withFailureHandler(errorNetwork)
+        .getCustoms(user, templateId, subArtifactId);
+    }
   } else {
     msOffice.getCustoms(user, templateId, artifactId)
       .then((response) => getCustomsSuccess(response.body, false)).then(function () {
@@ -1572,6 +1580,7 @@ function getCustoms(user, templateId, artifactId, subArtifactId, isSub) {
       .catch((error) => errorNetwork(error));
   }
 }
+
 
 // formats and sets custom field data on the model - adding to a temp holding area, to allow for changes before template creation
 function getCustomsSuccess(data, isSub) {

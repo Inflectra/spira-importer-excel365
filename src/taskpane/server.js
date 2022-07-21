@@ -2552,12 +2552,23 @@ function sendExportEntriesGoogle(entriesForExport, commentEntriesForExport, asso
       //if we not have a parent ID yet, set the correct parentId artifact for subtypes (needed for POST URL)
       if (isUpdate && Number(log.parentId) == -1 && artifact.hasSubType && entriesForExport[i].isSubType) {
         log.parentId = getAssociationParentInfo(entriesForExport, i, artifact.id, "id");
+        log.parentName = getAssociationParentInfo(entriesForExport, i, artifact.id, "name");
+        log.parentActive = getAssociationParentInfo(entriesForExport, i, artifact.id, "active");
         //let the child object to hold the parent ID field
         entriesForExport[i][ART_PARENT_IDS[artifact.id]] = log.parentId;
+
+        if ('parentName' in log) {
+          entriesForExport[i].parentName = log.parentName;
+        }
+        if ('parentActive' in log) {
+          entriesForExport[i].parentActive = log.parentActive;
+        }
       }
       var logResponse = manageSendingToSpira(entriesForExport[i], model.user, model.currentProject.id, model.currentTemplate.id, artifact, fields, fieldTypeEnums, log.parentId, isUpdate, false, false);
       // update the parent ID for a subtypes based on the successful API call
-      if (artifact.hasSubType && !entriesForExport[i].isSubType) {
+      //if (artifact.hasSubType && !entriesForExport[i].isSubType) {
+      if (artifact.hasSubType) {
+        //BRUNO
         log.parentId = logResponse.newId;
       }
       log = processSendToSpiraResponse(i, logResponse, entriesForExport, artifact, log, false, false);
@@ -3100,11 +3111,11 @@ function manageSendingToSpira(entry, user, projectId, templateId, artifact, fiel
   // send object to relevant artifact post service
   if (IS_GOOGLE) {
     if (!isComment && !isAssociation) {
-      if (isUpdate) {
-        data = putArtifactToSpira(entry, user, projectId, templateId, artifactTypeIdToSend, parentId);
+      if (!isUpdate || (isUpdate && artifact.allowsCreateOnUpdate && entry.createOnUpdate)) {
+        data = postArtifactToSpira(entry, user, projectId, templateId, artifactTypeIdToSend, parentId);
       }
       else {
-        data = postArtifactToSpira(entry, user, projectId, templateId, artifactTypeIdToSend, parentId);
+        data = putArtifactToSpira(entry, user, projectId, templateId, artifactTypeIdToSend, parentId);
       }
       // save data for logging to client
       output.entry = entry;
@@ -3136,16 +3147,15 @@ function manageSendingToSpira(entry, user, projectId, templateId, artifact, fiel
           var idField = params.IdFolders[entry.artifact];
           output.newId = output.fromSpira[idField];
         }
-        else {
-          if (isUpdate) {
-            //just repeat the id - it's the same 
-            output.newId = entry[artifactIdField];
-          }
-          else {
-            //get the just-created ID from the server response
-            output.newId = output.fromSpira[artifactIdField];
-          }
+        else if (output.fromSpira && output.fromSpira != null) {
+          //get the just-created ID from the server response
+          output.newId = output.fromSpira[artifactIdField];
         }
+        else {
+          //just repeat the id - it's the same 
+          output.newId = entry[artifactIdField];
+        }
+
         // repeats the output parent ID only if the artifact has a subtype and this entry is NOT a subtype
         if (artifact.hasSubType && !entry.isSubType) {
           output.parentId = parentId;
@@ -4355,6 +4365,7 @@ function processSendToSpiraResponse(i, sentToSpira, entriesForExport, artifact, 
 // @param: fieldTypeEnums - enum of fieldTypes used
 function getFromSpiraGoogle(model, fieldTypeEnums, advancedMode) {
   var requiredSheetName;
+  var singleArtifactId = null;
 
   if (model.currentOperation) {
     //administrator mode
