@@ -308,3 +308,7 @@ div .btn-group .ms-Button {
         transform: rotate(360deg);
     }
 }
+.is-internal-text {
+    font-size: .75rem;
+    opacity: 25%;
+}
