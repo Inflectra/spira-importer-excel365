@@ -312,3 +312,25 @@ div .btn-group .ms-Button {
     font-size: .75rem;
     opacity: 25%;
 }
+
+
+.page-label {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    margin: 0;
+}
+.page-label p {
+margin-right: 10px;
+margin-bottom: 0px;
+margin-top: 0px;
+}
+
+.page-label input {
+    width: 50px;
+}
+
+p.page-label {
+    font-size: 0.75rem;
+    font-style: italic;
+}

@@ -92,7 +92,7 @@ var API_BASE = '/services/v6_0/RestService.svc/',
   },
   INITIAL_HIERARCHY_OUTDENT = -20,
   GET_PAGINATION_SIZE = 100,
-  EXCEL_MAX_ROWS = 10000,
+  EXCEL_MAX_ROWS = 1000,
   FIELD_MANAGEMENT_ENUMS = {
     all: 1,
     standard: 2,
@@ -4622,7 +4622,8 @@ function resetSheet(model) {
 async function getDataFromSpiraExcel(model, fieldTypeEnums) {
   // 1. get from spira
   // note we don't do this by getting the count of each artifact first, because of a bug in getting the release count
-  var currentPage = 0;
+  var currentPage = (EXCEL_MAX_ROWS/GET_PAGINATION_SIZE)*(model.selectedPage - 1);
+  console.log('currentPage ' + currentPage);
   var artifacts = [];
   var getNextPage = true;
   var singleArtifactId = null;
@@ -4660,6 +4661,10 @@ async function getDataFromSpiraExcel(model, fieldTypeEnums) {
         } else {
           currentPage++;
         }
+        //if we got more artfacts than the maximum global variable, we should stop
+        if(startRow >= ((EXCEL_MAX_ROWS*model.selectedPage) - GET_PAGINATION_SIZE)){
+          getNextPage = false;
+        }
         // if we got no artifacts back, stop now
       } else {
         getNextPage = false;
@@ -4668,8 +4673,11 @@ async function getDataFromSpiraExcel(model, fieldTypeEnums) {
       .catch(/*fail quietly*/);
   }
 
+  
   while (getNextPage && currentPage < 100) {
     var startRow = (currentPage * GET_PAGINATION_SIZE) + 1;
+    console.log('currentPage ' + currentPage);
+    console.log('startRow ' + startRow);
     await getArtifactsPage(startRow);
   }
 
