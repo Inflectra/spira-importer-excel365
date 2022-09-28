@@ -110,7 +110,7 @@ var params = {
         { field: 'testSets', name: 'Test Sets', id: 8, hasFolders: true },
         { field: 'risks', name: 'Risks', id: 14 },
         { field: 'folders', name: 'Folders', id: 114, sendOnly: true, adminOnly: true },
-        { field: 'components', name: 'Components', id: 99, adminOnly: true },
+        { field: 'components', name: 'Components', id: 99, adminOnly: true, noPagination: true },
         { field: 'users', name: 'Users', id: 98, disabled: false, hidden: true },
         { field: 'customLists', name: 'Custom Lists', id: 97, disabled: false, hidden: true, hasDualValues: true, hasSubType: true, subTypeId: 96, subTypeName: "customValues", skipSubCustom: true, allowsCreateOnUpdate: true, allowGetSingle: true },
         { field: 'customValues', name: 'Custom Values', id: 96, disabled: true, hidden: true, isSubType: true },

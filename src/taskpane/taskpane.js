@@ -686,6 +686,10 @@ function artifactUpdateUI(mode) {
       document.getElementById('btn-fromSpira').classList.remove('ms-Button--default');
       document.getElementById('btn-fromSpira').classList.add('ms-Button--primary');
 
+      document.getElementById("input-page").disabled = true;
+      document.getElementById("input-page-div").classList.add("pale");
+      document.getElementById("input-page-label").classList.add("pale");
+
       break;
 
     case UI_MODE.newProject:
@@ -695,12 +699,18 @@ function artifactUpdateUI(mode) {
       document.getElementById("main-guide-3").classList.add("pale");
       document.getElementById("btn-fromSpira").disabled = true;
       document.getElementById("btn-updateToSpira").disabled = true;
+      document.getElementById("input-page").disabled = true;
+      document.getElementById("input-page-div").classList.add("pale");
+      document.getElementById("input-page-label").classList.add("pale");
       break;
 
     case UI_MODE.newArtifact:
       //when selecting a new artifact
       document.getElementById("main-guide-3").classList.add("pale");
       document.getElementById("btn-updateToSpira").disabled = true;
+      document.getElementById("input-page").disabled = false;
+      document.getElementById("input-page-div").classList.remove("pale");
+      document.getElementById("input-page-label").classList.remove("pale");
       break;
 
     case UI_MODE.getData:
@@ -740,11 +750,20 @@ function changeArtifactSelect(e) {
   } else {
     // get the artifact object and update artifact information if artifact has changed
     var chosenArtifact = getSelectedItem("select-artifact", params.artifacts);
+
+    //handling skip-pagination if aplicable
+    if(chosenArtifact && chosenArtifact.noPagination){
+      document.getElementById("input-page").disabled = true;
+      document.getElementById("input-page-div").classList.add("pale");
+      document.getElementById("input-page-label").classList.add("pale");
+      document.getElementById("input-page").value = "1";
+    }
+
+
     uiSelection.artifactCustomFields = [];
     if (chosenArtifact !== uiSelection.currentArtifact) {
       //set the temp date store artifact to the one selected;
       uiSelection.currentArtifact = chosenArtifact;
-
       // enable template button only when all info is received - otherwise keep it disabled
       manageTemplateBtnState();
       // kick off API calls - if we have a current template and project
@@ -902,6 +921,12 @@ function getFromSpiraAttempt() {
 
 
 function getFromSpiraComplete(log) {
+
+  //update the page label to inform what results were shown
+  if(log && log.firstRecord && log.lastRecord){
+    document.getElementById("input-page-label").textContent = "Records from " + log.firstRecord  + " to " + log.lastRecord + "."
+  }
+  
   if (devMode)
     //if array (which holds error responses) is present, and errors present
     if (log && log.errorCount) {

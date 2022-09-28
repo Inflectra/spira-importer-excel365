@@ -92,7 +92,8 @@ var API_BASE = '/services/v6_0/RestService.svc/',
   },
   INITIAL_HIERARCHY_OUTDENT = -20,
   GET_PAGINATION_SIZE = 100,
-  EXCEL_MAX_ROWS = 1000,
+  EXCEL_MAX_ROWS_PER_PAGE = 2000,
+  ARTIFACT_MAX_PAGES = 500,
   FIELD_MANAGEMENT_ENUMS = {
     all: 1,
     standard: 2,
@@ -103,7 +104,9 @@ var API_BASE = '/services/v6_0/RestService.svc/',
     someError: 2,
     allError: 3,
     wrongSheet: 4,
-    existingEntries: 5
+    existingEntries: 5,
+    advancedMode:6,
+    noData:7
   },
   SUBTYPE_IDS = ["TestCaseId", "TestStepId"],
   STATUS_MESSAGE_GOOGLE = {
@@ -111,7 +114,9 @@ var API_BASE = '/services/v6_0/RestService.svc/',
     2: "Sorry, but there were some problems (see the cells marked in red). Check any notes on the relevant ID field for explanations.",
     3: "We're really sorry, there was a problem sending data to Spira. Some records may not have been sent correctly. Please check in Spira to confirm.",
     4: "You are not on the correct worksheet. Please go to the sheet that matches the one listed on the Spira taskpane / the selection you made in the sidebar.",
-    5: "Some/all of the rows already exist in SpiraPlan. These rows have not been re-added."
+    5: "Some/all of the rows already exist in SpiraPlan. These rows have not been re-added.",
+    6: "Data sent! Since you are using the advanced fields mode, any errors related to comments and/or associations will be marked as red in the spreadsheet. To send more data over, clear the sheet first.",
+    7: "No records were returned from Spira. Please verify the page number, product, and artifact. If the problem persists, contact your Spira administrator."
   },
   STATUS_MESSAGE_EXCEL = {
     1: "All done! To send more data over, clear the sheet first.",
@@ -119,7 +124,8 @@ var API_BASE = '/services/v6_0/RestService.svc/',
     3: "We're really sorry, there was a problem sending data to Spira. Some records may not have been sent correctly. Please check in Spira to confirm.",
     4: "You are not on the correct worksheet. Please go to the sheet that matches the one listed on the Spira taskpane / the selection you made in the sidebar.",
     5: "Some/all of the rows already exist in SpiraPlan. These rows have not been re-added.",
-    6: "Data sent! Since you are using the advanced fields mode, any errors related to comments and/or associations will be marked as red in the spreadsheet. To send more data over, clear the sheet first."
+    6: "Data sent! Since you are using the advanced fields mode, any errors related to comments and/or associations will be marked as red in the spreadsheet. To send more data over, clear the sheet first.",
+    7: "No records were returned from Spira. Please verify the page number, product, and artifact. If the problem persists, contact your Spira administrator."
   },
   CUSTOM_PROP_TYPE_ENUM = {
     //internal-handling only
@@ -1208,7 +1214,7 @@ function templateLoader(model, fieldTypeEnums, advancedMode) {
       sheet = context.workbook.worksheets.getActiveWorksheet();
 
       //reset the hidden status of the spreadsheet
-      var range = sheet.getRangeByIndexes(0, 0, 1, EXCEL_MAX_ROWS);
+      var range = sheet.getRangeByIndexes(0, 0, 1, EXCEL_MAX_ROWS_PER_PAGE);
       range.columnHidden = false;
 
       var worksheets = context.workbook.worksheets;
@@ -2204,7 +2210,7 @@ async function sendToSpira(model, fieldTypeEnums, isUpdate) {
   } else {
     return await Excel.run({ delayForCellEdit: true }, function (context) {
       var sheet = context.workbook.worksheets.getActiveWorksheet(),
-        sheetRange = sheet.getRangeByIndexes(1, 0, EXCEL_MAX_ROWS, fields.length);
+        sheetRange = sheet.getRangeByIndexes(1, 0, EXCEL_MAX_ROWS_PER_PAGE, fields.length);
       sheet.load("name");
       sheetRange.load("values");
 
@@ -4537,7 +4543,7 @@ function getFromSpiraExcel(model, fieldTypeEnums) {
   return Excel.run(function (context) {
     var fields = model.fields;
     var sheet = context.workbook.worksheets.getActiveWorksheet(),
-      sheetRange = sheet.getRangeByIndexes(1, 0, EXCEL_MAX_ROWS, fields.length);
+      sheetRange = sheet.getRangeByIndexes(1, 0, EXCEL_MAX_ROWS_PER_PAGE, fields.length);
     sheet.load("name");
     sheetRange.load("values");
     var requiredSheetName;
@@ -4574,8 +4580,8 @@ function getFromSpiraExcel(model, fieldTypeEnums) {
           resetSheetColors(model, fieldTypeEnums, sheetRange);
           dataBaseValidationSetter(requiredSheetName, model, fieldTypeEnums, context);
           return getDataFromSpiraExcel(model, fieldTypeEnums).then((response) => {
-            //error handling
-            if (response == 'noData') {
+            //error handling           
+            if (typeof(response) === 'string' && (response.indexOf('noData') !== -1 || response.indexOf('no artifacts')!== -1)) {
               return operationComplete(STATUS_ENUM.noData, false);
             }
             else {
@@ -4597,7 +4603,7 @@ function resetSheet(model) {
     var fields = model.fields;
     //complete data range from old data
     var sheet = ctx.workbook.worksheets.getActiveWorksheet();
-    var range = sheet.getRangeByIndexes(1, 0, EXCEL_MAX_ROWS, fields.length);
+    var range = sheet.getRangeByIndexes(1, 0, EXCEL_MAX_ROWS_PER_PAGE, fields.length);
     range.delete(Excel.DeleteShiftDirection.up);
 
     ctx.sync();
@@ -4622,8 +4628,9 @@ function resetSheet(model) {
 async function getDataFromSpiraExcel(model, fieldTypeEnums) {
   // 1. get from spira
   // note we don't do this by getting the count of each artifact first, because of a bug in getting the release count
-  var currentPage = (EXCEL_MAX_ROWS/GET_PAGINATION_SIZE)*(model.selectedPage - 1);
-  console.log('currentPage ' + currentPage);
+  var currentPage = (EXCEL_MAX_ROWS_PER_PAGE / GET_PAGINATION_SIZE) * (model.selectedPage - 1);
+  var results = {};
+  results.firstRecord = (currentPage * GET_PAGINATION_SIZE) + 1;
   var artifacts = [];
   var getNextPage = true;
   var singleArtifactId = null;
@@ -4662,7 +4669,7 @@ async function getDataFromSpiraExcel(model, fieldTypeEnums) {
           currentPage++;
         }
         //if we got more artfacts than the maximum global variable, we should stop
-        if(startRow >= ((EXCEL_MAX_ROWS*model.selectedPage) - GET_PAGINATION_SIZE)){
+        if (startRow >= ((EXCEL_MAX_ROWS_PER_PAGE * model.selectedPage) - GET_PAGINATION_SIZE)) {
           getNextPage = false;
         }
         // if we got no artifacts back, stop now
@@ -4673,11 +4680,11 @@ async function getDataFromSpiraExcel(model, fieldTypeEnums) {
       .catch(/*fail quietly*/);
   }
 
-  
-  while (getNextPage && currentPage < 100) {
+
+  while (getNextPage && currentPage < ARTIFACT_MAX_PAGES) {
     var startRow = (currentPage * GET_PAGINATION_SIZE) + 1;
-    console.log('currentPage ' + currentPage);
-    console.log('startRow ' + startRow);
+    //update the log every time - to capture the last one
+    results.lastRecord = startRow + GET_PAGINATION_SIZE - 1;
     await getArtifactsPage(startRow);
   }
 
@@ -4744,15 +4751,21 @@ async function getDataFromSpiraExcel(model, fieldTypeEnums) {
       artifacts = artifactsWithSubTypes;
     }
   }
-  return artifacts;
-
+  results.artifacts = artifacts;
+  return results;
 }
 
 // EXCEL SPECIFIC to process all the data retrieved from Spira and then display it
 // @param: artifacts: array of raw data from Spira (with subtypes already present if needed)
 // @param: model: full model object from client
 // @param: enum object of the different fieldTypeEnums
-function processDataFromSpiraExcel(artifacts, model, fieldTypeEnums) {
+function processDataFromSpiraExcel(log, model, fieldTypeEnums) {
+  //pre-handling the log info
+  var results = {};
+  results.firstRecord = log.firstRecord;
+  results.lastRecord = log.lastRecord;
+
+  var artifacts = log.artifacts;
 
   // 5. create 2d array from data to put into sheet
   var artifactsAsCells = matchArtifactsToFields(
@@ -4774,7 +4787,10 @@ function processDataFromSpiraExcel(artifacts, model, fieldTypeEnums) {
 
     return context.sync()
       .then(function () {
-        return artifactsAsCells;
+
+        results.artifacts = artifactsAsCells;
+
+        return results;
       })
   })
 }
