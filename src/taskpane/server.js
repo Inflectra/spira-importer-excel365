@@ -92,7 +92,7 @@ var API_BASE = '/services/v6_0/RestService.svc/',
   },
   INITIAL_HIERARCHY_OUTDENT = -20,
   GET_PAGINATION_SIZE = 100,
-  EXCEL_MAX_ROWS_PER_PAGE = 2000,
+  MAX_ROWS_PER_PAGE = 2000,
   ARTIFACT_MAX_PAGES = 500,
   FIELD_MANAGEMENT_ENUMS = {
     all: 1,
@@ -1214,7 +1214,7 @@ function templateLoader(model, fieldTypeEnums, advancedMode) {
       sheet = context.workbook.worksheets.getActiveWorksheet();
 
       //reset the hidden status of the spreadsheet
-      var range = sheet.getRangeByIndexes(0, 0, 1, EXCEL_MAX_ROWS_PER_PAGE);
+      var range = sheet.getRangeByIndexes(0, 0, 1, MAX_ROWS_PER_PAGE);
       range.columnHidden = false;
 
       var worksheets = context.workbook.worksheets;
@@ -2210,7 +2210,7 @@ async function sendToSpira(model, fieldTypeEnums, isUpdate) {
   } else {
     return await Excel.run({ delayForCellEdit: true }, function (context) {
       var sheet = context.workbook.worksheets.getActiveWorksheet(),
-        sheetRange = sheet.getRangeByIndexes(1, 0, EXCEL_MAX_ROWS_PER_PAGE, fields.length);
+        sheetRange = sheet.getRangeByIndexes(1, 0, MAX_ROWS_PER_PAGE, fields.length);
       sheet.load("name");
       sheetRange.load("values");
 
@@ -4418,6 +4418,14 @@ function getFromSpiraGoogle(model, fieldTypeEnums, advancedMode) {
   // 1. get from spira
   // note we don't do this by getting the count of each artifact first, because of a bug in getting the release count
   var currentPage = 0;
+  if(model.selectedPage){
+    currentPage = (MAX_ROWS_PER_PAGE / GET_PAGINATION_SIZE) * (model.selectedPage - 1);
+  }
+  console.log(currentPage);
+  console.dir(currentPage);
+
+  var results = {};
+  results.firstRecord = (currentPage * GET_PAGINATION_SIZE) + 1; 
   var artifacts = [];
   var getNextPage = true;
 
@@ -4429,8 +4437,19 @@ function getFromSpiraGoogle(model, fieldTypeEnums, advancedMode) {
     }
   }
 
-  while (getNextPage && currentPage < 100) {
+  while (getNextPage && currentPage < ARTIFACT_MAX_PAGES) {
     var startRow = (currentPage * GET_PAGINATION_SIZE) + 1;
+    //update the log every time - to capture the last one
+    results.lastRecord = startRow + GET_PAGINATION_SIZE - 1;
+
+    //limiting the query to the page size
+    if((results.lastRecord - results.firstRecord)>MAX_ROWS_PER_PAGE)
+    {
+      //adjustment
+      results.lastRecord = results.lastRecord - GET_PAGINATION_SIZE;
+      break;
+    }
+
     var pageOfArtifacts = getArtifacts(
       model.user,
       model.currentProject.id,
@@ -4462,7 +4481,7 @@ function getFromSpiraGoogle(model, fieldTypeEnums, advancedMode) {
   }
 
   // 2. if there were no artifacts at all break out now
-  if (!artifacts.length) return "no artifacts were returned";
+  if (!artifacts.length) return operationComplete(STATUS_ENUM.noData, false);;
 
   // 3. Make sure hierarchical artifacts are ordered correctly
   if (model.currentArtifact.hierarchical) {
@@ -4533,7 +4552,8 @@ function getFromSpiraGoogle(model, fieldTypeEnums, advancedMode) {
 
   range.setValues(artifactsAsCells);
 
-  return JSON.parse(JSON.stringify(artifactsAsCells));
+  results.artifacts = JSON.parse(JSON.stringify(artifactsAsCells));
+  return results;
 }
 
 // EXCEL SPECIFIC VARIATION OF THIS FUNCTION handles getting paginated artifacts from Spira and displaying them in the UI
@@ -4543,7 +4563,7 @@ function getFromSpiraExcel(model, fieldTypeEnums) {
   return Excel.run(function (context) {
     var fields = model.fields;
     var sheet = context.workbook.worksheets.getActiveWorksheet(),
-      sheetRange = sheet.getRangeByIndexes(1, 0, EXCEL_MAX_ROWS_PER_PAGE, fields.length);
+      sheetRange = sheet.getRangeByIndexes(1, 0, MAX_ROWS_PER_PAGE, fields.length);
     sheet.load("name");
     sheetRange.load("values");
     var requiredSheetName;
@@ -4603,7 +4623,7 @@ function resetSheet(model) {
     var fields = model.fields;
     //complete data range from old data
     var sheet = ctx.workbook.worksheets.getActiveWorksheet();
-    var range = sheet.getRangeByIndexes(1, 0, EXCEL_MAX_ROWS_PER_PAGE, fields.length);
+    var range = sheet.getRangeByIndexes(1, 0, MAX_ROWS_PER_PAGE, fields.length);
     range.delete(Excel.DeleteShiftDirection.up);
 
     ctx.sync();
@@ -4628,7 +4648,7 @@ function resetSheet(model) {
 async function getDataFromSpiraExcel(model, fieldTypeEnums) {
   // 1. get from spira
   // note we don't do this by getting the count of each artifact first, because of a bug in getting the release count
-  var currentPage = (EXCEL_MAX_ROWS_PER_PAGE / GET_PAGINATION_SIZE) * (model.selectedPage - 1);
+  var currentPage = (MAX_ROWS_PER_PAGE / GET_PAGINATION_SIZE) * (model.selectedPage - 1);
   var results = {};
   results.firstRecord = (currentPage * GET_PAGINATION_SIZE) + 1;
   var artifacts = [];
@@ -4669,7 +4689,7 @@ async function getDataFromSpiraExcel(model, fieldTypeEnums) {
           currentPage++;
         }
         //if we got more artfacts than the maximum global variable, we should stop
-        if (startRow >= ((EXCEL_MAX_ROWS_PER_PAGE * model.selectedPage) - GET_PAGINATION_SIZE)) {
+        if (startRow >= ((MAX_ROWS_PER_PAGE * model.selectedPage) - GET_PAGINATION_SIZE)) {
           getNextPage = false;
         }
         // if we got no artifacts back, stop now

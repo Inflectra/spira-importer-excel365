@@ -58,7 +58,7 @@ The add-in has three main modes: *getting data **from** Spira*, *Sending data **
 Once you have successfully connected the Excel add-in to your Spira app, you need to decide what you want to use this add-in for. You can go back and change your mind at any time.
 
 ### Get data from Spira (exporting)
-This button will prompt you to pick a product and artifact to get from Spira and load it into the spreadsheet (on the current active sheet). Exporting data from Spira in this way can be helpful to share with colleagues who are not using Spira. Please note that this will bring over every one of the artifacts selected in the chosen product so it may take some time. 
+This button will prompt you to pick a product and artifact to get from Spira and load into the spreadsheet (on the current active sheet). Exporting data from Spira in this way can be helpful to share with colleagues who are not using Spira. Please note that this will bring over the first 2,000 artifacts and it may take some time. If there are more than 2,000 artifacts in the selected product, use the "Page" option to get more artifacts. Selecting page 3 for example, will retrieve artifacts 4001 to 6000 and so on. Please note that the pagination feature may not be available for all the artifacts.
 
 !!! info "Updating Data in Spira"
     Once you have the data from Spira loaded into Excel you can freely edit it. You can then, optionally, update the data in Spira by clicking the "Update Spira" button. This will send every artifact on the sheet back to Spira, updating each and every one. Each row will be sent in full to Spira - if you blank out a cell, that value will be blanked out in Spira.
