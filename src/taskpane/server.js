@@ -105,8 +105,8 @@ var API_BASE = '/services/v6_0/RestService.svc/',
     allError: 3,
     wrongSheet: 4,
     existingEntries: 5,
-    advancedMode:6,
-    noData:7
+    advancedMode: 6,
+    noData: 7
   },
   SUBTYPE_IDS = ["TestCaseId", "TestStepId"],
   STATUS_MESSAGE_GOOGLE = {
@@ -3919,6 +3919,10 @@ function createEntryFromRow(row, model, fieldTypeEnums, artifactIsHierarchical, 
         // RELEASE fields - get id from relevant name, if one is present
         case fieldTypeEnums.release:
           idFromName = getIdFromName(row[index], model.projectActiveReleases);
+          //double-checking, as this can come as inactive from Spira
+          if (!idFromName) {
+            idFromName = getIdFromName(row[index], model.projectReleases);
+          }
           if (idFromName) {
             value = idFromName;
             customType = "IntegerValue";
@@ -4418,14 +4422,14 @@ function getFromSpiraGoogle(model, fieldTypeEnums, advancedMode) {
   // 1. get from spira
   // note we don't do this by getting the count of each artifact first, because of a bug in getting the release count
   var currentPage = 0;
-  if(model.selectedPage){
+  if (model.selectedPage) {
     currentPage = (MAX_ROWS_PER_PAGE / GET_PAGINATION_SIZE) * (model.selectedPage - 1);
   }
   console.log(currentPage);
   console.dir(currentPage);
 
   var results = {};
-  results.firstRecord = (currentPage * GET_PAGINATION_SIZE) + 1; 
+  results.firstRecord = (currentPage * GET_PAGINATION_SIZE) + 1;
   var artifacts = [];
   var getNextPage = true;
 
@@ -4443,8 +4447,7 @@ function getFromSpiraGoogle(model, fieldTypeEnums, advancedMode) {
     results.lastRecord = startRow + GET_PAGINATION_SIZE - 1;
 
     //limiting the query to the page size
-    if((results.lastRecord - results.firstRecord)>MAX_ROWS_PER_PAGE)
-    {
+    if ((results.lastRecord - results.firstRecord) > MAX_ROWS_PER_PAGE) {
       //adjustment
       results.lastRecord = results.lastRecord - GET_PAGINATION_SIZE;
       break;
@@ -4601,7 +4604,7 @@ function getFromSpiraExcel(model, fieldTypeEnums) {
           dataBaseValidationSetter(requiredSheetName, model, fieldTypeEnums, context);
           return getDataFromSpiraExcel(model, fieldTypeEnums).then((response) => {
             //error handling           
-            if (typeof(response) === 'string' && (response.indexOf('noData') !== -1 || response.indexOf('no artifacts')!== -1)) {
+            if (typeof (response) === 'string' && (response.indexOf('noData') !== -1 || response.indexOf('no artifacts') !== -1)) {
               return operationComplete(STATUS_ENUM.noData, false);
             }
             else {
@@ -5015,6 +5018,9 @@ function getListValueFromId(id, type, fieldTypeEnums, fieldValues, users, compon
       break;
     case fieldTypeEnums.release:
       match = activeReleases.filter(function (val) { return val.id == id; });
+      if (match.length == 0) {
+        match = releases.filter(function (val) { return val.id == id; });
+      }
       break;
     case fieldTypeEnums.customRelease:
       match = releases.filter(function (val) { return val.id == id; });
