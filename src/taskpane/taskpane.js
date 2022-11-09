@@ -163,6 +163,7 @@ function setEventListeners() {
   document.getElementById("select-template").onchange = changeTemplateSelect;
   document.getElementById("select-list").onchange = changeListSelect;
   document.getElementById("select-artifact-folder").onchange = changeArtifactFolderSelect;
+  document.getElementById("select-admin-product").onchange = changeAdminProductSelect;
 
   document.getElementById("btn-toSpira").onclick = sendToSpiraAttempt;
   document.getElementById("btn-prepareTemplate").onclick = prepareTemplateAdmin;
@@ -876,7 +877,7 @@ function createTemplate(shouldContinue) {
     // but check again that all data is present before kicking off template creation
     // if so, kicks off template creation, otherwise waits and tries again
     // the exception is when using advanced admin mode operations not based on projects
-    if (allGetsSucceeded() || uiSelection.currentOperation == 1 || uiSelection.currentOperation == 3 || uiSelection.currentOperation == 4) {
+    if (allGetsSucceeded() || uiSelection.currentOperation == 1 || uiSelection.currentOperation == 2 || uiSelection.currentOperation == 3 || uiSelection.currentOperation == 4) {
       templateLoader();
       // otherwise, run an interval loop (should never get called as template button should be disabled)
     } else {
@@ -1142,8 +1143,14 @@ function showAdminPanel() {
   document.getElementById("main-guide-admin-folders").style.visibility = "hidden";
   document.getElementById("main-guide-admin-folders").style.display = "none";
 
+  document.getElementById("main-guide-admin-products").style.visibility = "hidden";
+  document.getElementById("main-guide-admin-products").style.display = "none";
+
   document.getElementById("select-artifact-folder").style.visibility = "hidden";
   document.getElementById("select-artifact-folder").style.display = "none";
+
+  document.getElementById("select-admin-product").style.visibility = "hidden";
+  document.getElementById("select-admin-product").style.display = "none";
 
   document.getElementById("btn-admin-send").disabled = false;
 
@@ -1219,8 +1226,14 @@ function changeOperationSelect(e) {
     document.getElementById("main-guide-admin-folders").style.visibility = "hidden";
     document.getElementById("main-guide-admin-folders").style.display = "none";
 
+    document.getElementById("main-guide-admin-products").style.visibility = "hidden";
+    document.getElementById("main-guide-admin-products").style.display = "none";
+
     document.getElementById("select-artifact-folder").style.visibility = "hidden";
     document.getElementById("select-artifact-folder").style.display = "none";
+
+    document.getElementById("select-admin-product").style.visibility = "hidden";
+    document.getElementById("select-admin-product").style.display = "none";
 
     uiSelection.currentOperation = null;
 
@@ -1276,8 +1289,14 @@ function changeOperationSelect(e) {
           document.getElementById("main-guide-admin-folders").style.visibility = "hidden";
           document.getElementById("main-guide-admin-folders").style.display = "none";
 
+          document.getElementById("main-guide-admin-products").style.visibility = "hidden";
+          document.getElementById("main-guide-admin-products").style.display = "none";
+
           document.getElementById("select-artifact-folder").style.visibility = "hidden";
           document.getElementById("select-artifact-folder").style.display = "none";
+
+          document.getElementById("select-admin-product").style.visibility = "hidden";
+          document.getElementById("select-admin-product").style.display = "none";
 
           model.isGettingDataAttempt = false;
           uiSelection.currentOperation = 1;
@@ -1297,8 +1316,15 @@ function changeOperationSelect(e) {
           document.getElementById("main-guide-admin-folders").style.visibility = "visible";
           document.getElementById("main-guide-admin-folders").style.display = "";
 
+          document.getElementById("main-guide-admin-products").style.visibility = "visible";
+          document.getElementById("main-guide-admin-products").style.display = "";
+
           document.getElementById("select-artifact-folder").style.visibility = "visible";
           document.getElementById("select-artifact-folder").style.display = "";
+
+          document.getElementById("select-admin-product").style.visibility = "visible";
+          document.getElementById("select-admin-product").style.display = "";
+          document.getElementById("select-admin-product").disabled = true;
 
           document.getElementById("main-guide-admin-templates").style.visibility = "hidden";
           document.getElementById("main-guide-admin-templates").style.display = "none";
@@ -1346,8 +1372,10 @@ function changeOperationSelect(e) {
           model.isGettingDataAttempt = false;
           uiSelection.currentOperation = 2;
 
-          //populates the templates dropdown menu
-          setDropdown("select-artifact-folder", model.artifactFolders, "Select an artifact");
+          //populates the artifacts dropdown menu
+          setDropdown("select-artifact-folder", model.artifactFolders, "Select an Artifact");
+          //populate the products dropdown menu
+          setDropdown("select-admin-product", model.projects, "Select a Spira Product");
         }
         break;
 
@@ -1399,8 +1427,14 @@ function changeOperationSelect(e) {
           document.getElementById("main-guide-admin-folders").style.visibility = "hidden";
           document.getElementById("main-guide-admin-folders").style.display = "none";
 
+          document.getElementById("main-guide-admin-products").style.visibility = "hidden";
+          document.getElementById("main-guide-admin-products").style.display = "none";
+
           document.getElementById("select-artifact-folder").style.visibility = "hidden";
           document.getElementById("select-artifact-folder").style.display = "none";
+
+          document.getElementById("select-admin-product").style.visibility = "hidden";
+          document.getElementById("select-admin-product").style.display = "none";
 
           model.isGettingDataAttempt = false;
           uiSelection.currentOperation = 3;
@@ -1465,8 +1499,14 @@ function changeOperationSelect(e) {
           document.getElementById("main-guide-admin-folders").style.visibility = "hidden";
           document.getElementById("main-guide-admin-folders").style.display = "none";
 
+          document.getElementById("main-guide-admin-products").style.visibility = "hidden";
+          document.getElementById("main-guide-admin-products").style.display = "none";
+
           document.getElementById("select-artifact-folder").style.visibility = "hidden";
           document.getElementById("select-artifact-folder").style.display = "none";
+
+          document.getElementById("select-admin-product").style.visibility = "hidden";
+          document.getElementById("select-admin-product").style.display = "none";
 
           uiSelection.currentOperation = 4;
           //sets the selected artifact based on admin operation
@@ -1538,18 +1578,45 @@ function changeListSelect(e) {
 function changeArtifactFolderSelect(e) {
   //First, enable the respective operation next button
   if (e.target.value != 0) {
+    document.getElementById("main-guide-admin-products").disabled = false;
+    document.getElementById("select-admin-product").disabled = false;
+    uiSelection.currentArtifact = getSelectedItem("select-artifact-folder", model.artifactFolders);
+
+    if (document.getElementById("select-admin-product").selectedIndex != 0) {
+      document.getElementById("btn-prepareTemplate").disabled = false;
+    }
+  }
+  else {
+    document.getElementById("main-guide-admin-products").disabled = true;
+    document.getElementById("select-admin-product").disabled = true;
+    document.getElementById("btn-prepareTemplate").disabled = true;
+  }
+
+  if (uiSelection.currentArtifact.id != model.currentArtifact.id && document.getElementById("select-admin-product").selectedIndex != 0
+    && document.getElementById("select-artifact-folder").selectedIndex != 0) {
+    model.isTemplateLoaded = false;
+    document.getElementById("btn-prepareTemplate").classList.add("action");
+    document.getElementById("btn-prepareTemplate").disabled = false;
+    document.getElementById("btn-prepareTemplate").style.display = "";
+
+
+    document.getElementById("btn-admin-send").classList.remove("action");
+    document.getElementById("btn-admin-send").disabled = true;
+  }
+}
+
+function changeAdminProductSelect(e) {
+  //First, enable the respective operation next button
+  if (e.target.value != 0) {
     document.getElementById("main-guide-admin-2-send").disabled = false;
     document.getElementById("btn-prepareTemplate").disabled = false;
 
-    uiSelection.chosenArtifact = getSelectedItem("select-artifact-folder", model.artifactFolders);
-    console.log('uiSelection.chosenArtifact ');
-    console.dir(uiSelection.chosenArtifact);
+    uiSelection.currentProject = getSelectedItem("select-admin-product", model.projects);
   }
   else {
     document.getElementById("main-guide-admin-2-send").disabled = true;
     document.getElementById("btn-prepareTemplate").disabled = true;
   }
-  model.currentList = uiSelection.currentList;
 }
 
 //returns the artifactId associated with the given admin operation
@@ -1991,6 +2058,14 @@ function templateLoader() {
   model.projectActiveReleases = uiSelection.projectActiveReleases;
   model.projectReleases = uiSelection.projectReleases;
   model.projectUsers = uiSelection.projectUsers;
+
+
+
+
+  var fields;
+
+  //handling special case - send-product admin (folders)
+
   // get variables ready
   var customs = uiSelection.artifactCustomFields,
     fields = templateFields[model.currentArtifact.field],

@@ -109,7 +109,7 @@ var params = {
         { field: 'testSteps', name: 'Test Steps', id: 7, disabled: true, hidden: true, isSubType: true },
         { field: 'testSets', name: 'Test Sets', id: 8, hasFolders: true },
         { field: 'risks', name: 'Risks', id: 14 },
-        { field: 'folders', name: 'Folders', id: 114, sendOnly: true, adminOnly: true},
+        { field: 'folders', name: 'Folders', id: 114, sendOnly: true, adminOnly: true },
         { field: 'components', name: 'Components', id: 99, adminOnly: true, noPagination: true },
         { field: 'users', name: 'Users', id: 98, disabled: false, hidden: true },
         { field: 'customLists', name: 'Custom Lists', id: 97, disabled: false, hidden: true, hasDualValues: true, hasSubType: true, subTypeId: 96, subTypeName: "customValues", skipSubCustom: true, allowsCreateOnUpdate: true, allowGetSingle: true },
@@ -458,17 +458,8 @@ var templateFields = {
     ],
     folders: [
         { field: "FolderId", name: "Folder ID", type: params.fieldType.id },
-        {
-            field: "artifact", name: "Artifact", type: params.fieldType.drop, required: true,
-            values: [
-                { id: 2, name: "Test Case" },
-                { id: 8, name: "Test Set" },
-                { id: 6, name: "Task" },
-            ]
-        },
         { field: "Name", name: "Name", type: params.fieldType.text, required: true },
-        { field: "Description", name: "Description", type: params.fieldType.text },
-        { field: "Parent", name: "Parent Folder ID", type: params.fieldType.int },
+        { field: "Description", name: "Description", type: params.fieldType.text }
     ],
     risks: [
         { field: "RiskId", name: "ID", type: params.fieldType.id },
@@ -597,13 +588,13 @@ function Data() {
         { name: "Add new Artifact Folders to Spira", id: 2, type: "send-product", artifactId: 114 },//4
         { name: "Add new Custom Lists and Values to Spira", id: 3, type: "send-template", artifactId: 97 },//2
         { name: "Edit existent Custom Lists and Values from Spira", id: 4, type: "get-template", artifactId: 97 },//3
-        
+
     ];
 
     this.artifactFolders = [
-        { name: "Test Cases", id: 2 },
-        { name: "Test Sets", id: 8 },
-        { name: "Tasks", id: 6 }       
+        { name: "Test Cases", id: 2, field: "folders", mainArtifactId: 114 },
+        { name: "Test Sets", id: 8, field: "folders", mainArtifactId: 114 },
+        { name: "Tasks", id: 6, field: "folders", mainArtifactId: 114 },
     ];
 
     this.templateLists = [];

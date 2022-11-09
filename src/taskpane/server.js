@@ -1256,19 +1256,6 @@ function templateLoader(model, fieldTypeEnums, advancedMode) {
 
 // wrapper function to set the header row, validation rules, and any extra formatting 
 function sheetSetForTemplate(sheet, model, fieldTypeEnums, context, newSheetName) {
-
-  PAREI AQUI - LOGO APOS CLICAR EM PREPARE DATA templateLoader
-
-  console.log('sheet');
-  console.dir(sheet);
-  console.log('model');
-  console.dir(model);
-  console.log('fieldTypeEnums');
-  console.dir(fieldTypeEnums);
-  console.log('newSheetName');
-  console.dir(newSheetName);
-
-
   // heading row - sets names and formatting (standard sheet) 
   headerSetter(sheet, model.fields, model.colors, context);
   // set validation rules on the columns (standard sheet) 
@@ -2184,6 +2171,11 @@ async function sendToSpira(model, fieldTypeEnums, isUpdate) {
       //template-based operations
       requiredSheetName = model.currentArtifact.name + ", TP-" + model.currentTemplate.id;
     }
+    else if (operation.type == "send-product") {
+      //product-based operations
+      //folders
+      requiredSheetName = "Folders, PR-" + model.currentProject.id;
+    }
   }
   else {
     //stardard artifact functions
@@ -2281,28 +2273,33 @@ async function sendToSpira(model, fieldTypeEnums, isUpdate) {
 
 // function that verifies if a row correspond to a special case, that should be skipped
 function isSpecialCase(rowToPrep, model, fieldTypeEnums, fields, artifact, artifactIsHierarchical, isUpdate) {
-  // 1. Linked Test Steps
-  var skipSpecial = false;
-  for (const specialCase of params.specialCases) {
+  //this is not valid for folders
+  if (model.currentOperation != 2) {
+    // 1. Linked Test Steps
+    var skipSpecial = false;
+    for (const specialCase of params.specialCases) {
 
-    //if true, we already found it
-    var parameterIndex = 1;
-    var fieldIndex = 4;
+      //if true, we already found it
+      var parameterIndex = 1;
+      var fieldIndex = 4;
 
-    //checking if it's a test case and it's a test step 
-    if (specialCase.artifactId == model.currentArtifact.id && rowToPrep[parameterIndex]) {
-      var stepName = rowToPrep[fieldIndex];
-      if (stepName.startsWith(specialCase.target)) {
-        skipSpecial = true;
-        break;
+      //checking if it's a test case and it's a test step 
+      if (specialCase.artifactId == model.currentArtifact.id && rowToPrep[parameterIndex]) {
+        var stepName = rowToPrep[fieldIndex];
+        if (stepName.startsWith(specialCase.target)) {
+          skipSpecial = true;
+          break;
+        }
       }
     }
+    if (skipSpecial) { return true; }
+    else {
+      return false;
+    }
   }
-  if (skipSpecial) { return true; }
   else {
     return false;
   }
-
 }
 
 //function that verifies if a test Step has a valid TestCase parent
@@ -2384,37 +2381,42 @@ function createExportEntries(sheetData, model, fieldTypeEnums, fields, artifact,
 
         //treating special Folders Creation
 
-        if (artifact.id == params.artifactEnums.folders) {
-          //We need to retrieve the Artifact we're creating the folder to and
-          //use that to get the specific Parent Folder ID field
-          var folderArtifact = params.artifacts.filter(function (artifact) {
-            return artifact.id == entry.artifact;
-          })[0];
-
-          var newkey = "";
-
-          //replacing Parent field, accordingly
-          if (entry.Parent) {
-            newkey = params.parentFolders[folderArtifact.id];
-            Object.defineProperty(entry, newkey,
-              Object.getOwnPropertyDescriptor(entry, "Parent"));
-
-            //deleting the temporary (for internal reference only) Parent field
-            delete entry.Parent;
-          }
-
-          //replacing folder ID field, accordingly
-
-          /* newkey = params.IdFolders[folderArtifact.id];
-           Object.defineProperty(entry, newkey, {
-             //temp value
-             value: 0
-           })*/
-
-          //deleting the temporary (for internal reference only) FolderId field
-          //delete entry.FolderId;
-
+        if (model.currentOperation == 2) {
+          entry.artifact = model.currentArtifact.id;
         }
+
+        // if (artifact.id == params.artifactEnums.folders) {
+        //   //We need to retrieve the Artifact we're creating the folder to and
+        //   //use that to get the specific Parent Folder ID field
+        //   var folderArtifact = params.artifacts.filter(function (artifact) {
+        //     return artifact.id == entry.artifact;
+        //   })[0];
+
+        //   var newkey = "";
+
+        //   //replacing Parent field, accordingly
+        //   if (entry.Parent) {
+        //     newkey = params.parentFolders[folderArtifact.id];
+        //     Object.defineProperty(entry, newkey,
+        //       Object.getOwnPropertyDescriptor(entry, "Parent"));
+
+        //     //deleting the temporary (for internal reference only) Parent field
+        //     delete entry.Parent;
+        //   }
+
+        //   //replacing folder ID field, accordingly
+
+        //   /* newkey = params.IdFolders[folderArtifact.id];
+        //    Object.defineProperty(entry, newkey, {
+        //      //temp value
+        //      value: 0
+        //    })*/
+
+        //   //deleting the temporary (for internal reference only) FolderId field
+        //   //delete entry.FolderId;
+
+        // }
+
         if (entry) { entriesForExport.push(entry); }
       }
       else {
@@ -2699,7 +2701,6 @@ async function sendExportEntriesExcel(entriesForExport, commentEntriesForExport,
       entriesLength: entriesForExport.length,
       entries: []
     };
-
 
     // loop through objects to send and update the log
     async function sendSingleEntry(i) {
@@ -3120,16 +3121,19 @@ function setFeedbackValue(cell, error, field, fieldTypeEnums, newId, isSubType, 
 function manageSendingToSpira(entry, user, projectId, templateId, artifact, fields, fieldTypeEnums, parentId, isUpdate, isComment, isAssociation) {
   var data,
     // make sure correct artifact ID is sent to handler (ie type vs subtype)
-    artifactTypeIdToSend = entry.isSubType ? artifact.subTypeId : artifact.id,
-    // set output parent id here so we know this function will always return a value for this
-    output = {
-      parentId: parentId,
-      entry: entry,
-      artifact: {
-        artifactId: artifactTypeIdToSend,
-        artifactObject: artifact
-      }
-    };
+    artifactTypeIdToSend = entry.isSubType ? artifact.subTypeId : artifact.id;
+
+  //handling special case (admin-advanced-folders-creation)
+  if (artifact.mainArtifactId) { artifactTypeIdToSend = artifact.mainArtifactId; }
+  // set output parent id here so we know this function will always return a value for this
+  var output = {
+    parentId: parentId,
+    entry: entry,
+    artifact: {
+      artifactId: artifactTypeIdToSend,
+      artifactObject: artifact
+    }
+  };
 
   // send object to relevant artifact post service
   if (IS_GOOGLE) {
