@@ -162,6 +162,7 @@ function setEventListeners() {
   document.getElementById("select-operation").onchange = changeOperationSelect;
   document.getElementById("select-template").onchange = changeTemplateSelect;
   document.getElementById("select-list").onchange = changeListSelect;
+  document.getElementById("select-artifact-folder").onchange = changeArtifactFolderSelect;
 
   document.getElementById("btn-toSpira").onclick = sendToSpiraAttempt;
   document.getElementById("btn-prepareTemplate").onclick = prepareTemplateAdmin;
@@ -261,7 +262,7 @@ function newTemplateHandler(shouldContinue) {
     } else {
       var checkGetsSuccess = setInterval(attemptTemplateLoader, 1500);
       function attemptTemplateLoader() {
-        if (allGetsSucceeded() || uiSelection.currentOperation == 1 || uiSelection.currentOperation == 2 || uiSelection.currentOperation == 3) {
+        if (allGetsSucceeded() || uiSelection.currentOperation == 1 || uiSelection.currentOperation == 3 || uiSelection.currentOperation == 4) {
           templateLoader();
           clearInterval(checkGetsSuccess);
         }
@@ -354,7 +355,7 @@ function setDropdown(selectId, array, firstMessage) {
 
 function isModelDifferentToSelection() {
   if (model.isTemplateLoaded) {
-    if (uiSelection.currentOperation == 2 || uiSelection.currentOperation == 3) {
+    if (uiSelection.currentOperation == 3 || uiSelection.currentOperation == 4) {
       var templatetHasChanged = model.currentTemplate.id !== getSelectedItem("select-template", model.templates).id;
       return templatetHasChanged;
     } else {
@@ -752,7 +753,7 @@ function changeArtifactSelect(e) {
     var chosenArtifact = getSelectedItem("select-artifact", params.artifacts);
 
     //handling skip-pagination if aplicable
-    if(chosenArtifact && chosenArtifact.noPagination){
+    if (chosenArtifact && chosenArtifact.noPagination) {
       document.getElementById("input-page").disabled = true;
       document.getElementById("input-page-div").classList.add("pale");
       document.getElementById("input-page-label").classList.add("pale");
@@ -875,7 +876,7 @@ function createTemplate(shouldContinue) {
     // but check again that all data is present before kicking off template creation
     // if so, kicks off template creation, otherwise waits and tries again
     // the exception is when using advanced admin mode operations not based on projects
-    if (allGetsSucceeded() || uiSelection.currentOperation == 1 || uiSelection.currentOperation == 2 || uiSelection.currentOperation == 3) {
+    if (allGetsSucceeded() || uiSelection.currentOperation == 1 || uiSelection.currentOperation == 3 || uiSelection.currentOperation == 4) {
       templateLoader();
       // otherwise, run an interval loop (should never get called as template button should be disabled)
     } else {
@@ -923,10 +924,10 @@ function getFromSpiraAttempt() {
 function getFromSpiraComplete(log) {
 
   //update the page label to inform what results were shown
-  if(log && log.firstRecord && log.lastRecord){
-    document.getElementById("input-page-label").textContent = "Records from " + log.firstRecord  + " to " + log.lastRecord + "."
+  if (log && log.firstRecord && log.lastRecord) {
+    document.getElementById("input-page-label").textContent = "Records from " + log.firstRecord + " to " + log.lastRecord + "."
   }
-  
+
   if (devMode)
     //if array (which holds error responses) is present, and errors present
     if (log && log.errorCount) {
@@ -1138,6 +1139,12 @@ function showAdminPanel() {
   document.getElementById("btn-admin-send").classList.add("pale");
   document.getElementById('main-guide-admin-3-post').style.fontWeight = 'normal';
 
+  document.getElementById("main-guide-admin-folders").style.visibility = "hidden";
+  document.getElementById("main-guide-admin-folders").style.display = "none";
+
+  document.getElementById("select-artifact-folder").style.visibility = "hidden";
+  document.getElementById("select-artifact-folder").style.display = "none";
+
   document.getElementById("btn-admin-send").disabled = false;
 
   //Get the project templates now we know this user is an admin
@@ -1209,6 +1216,12 @@ function changeOperationSelect(e) {
     document.getElementById("btn-prepareTemplate").classList.add("action");
     document.getElementById("btn-admin-send").classList.remove("action");
 
+    document.getElementById("main-guide-admin-folders").style.visibility = "hidden";
+    document.getElementById("main-guide-admin-folders").style.display = "none";
+
+    document.getElementById("select-artifact-folder").style.visibility = "hidden";
+    document.getElementById("select-artifact-folder").style.display = "none";
+
     uiSelection.currentOperation = null;
 
   } else {
@@ -1260,6 +1273,12 @@ function changeOperationSelect(e) {
           document.getElementById("btn-prepareTemplate").classList.add("action");
           document.getElementById("btn-admin-send").classList.remove("action");
 
+          document.getElementById("main-guide-admin-folders").style.visibility = "hidden";
+          document.getElementById("main-guide-admin-folders").style.display = "none";
+
+          document.getElementById("select-artifact-folder").style.visibility = "hidden";
+          document.getElementById("select-artifact-folder").style.display = "none";
+
           model.isGettingDataAttempt = false;
           uiSelection.currentOperation = 1;
           //sets the selected artifact based on admin operation
@@ -1269,9 +1288,72 @@ function changeOperationSelect(e) {
         }
         break;
 
+      case "send-product":
+        //product-based operations that requires send data only
+        if (chosenOperation.id == 2) {
+          //Artifact Folder Creation
+          //Display the necessary objects on the taskpane
+
+          document.getElementById("main-guide-admin-folders").style.visibility = "visible";
+          document.getElementById("main-guide-admin-folders").style.display = "";
+
+          document.getElementById("select-artifact-folder").style.visibility = "visible";
+          document.getElementById("select-artifact-folder").style.display = "";
+
+          document.getElementById("main-guide-admin-templates").style.visibility = "hidden";
+          document.getElementById("main-guide-admin-templates").style.display = "none";
+
+
+          document.getElementById("main-guide-admin-2-get").style.display = "none";
+          document.getElementById("main-guide-admin-2-get").style.visibility = "hidden";
+
+          document.getElementById("main-guide-admin-2-send").classList.remove("pale");
+          document.getElementById("main-guide-admin-2-send").style.visibility = "visible";
+          document.getElementById("main-guide-admin-2-send").style.display = "";
+
+          document.getElementById("btn-prepareTemplate").classList.remove("pale");
+          document.getElementById("btn-prepareTemplate").style.visibility = "visible";
+          document.getElementById("btn-prepareTemplate").disabled = false;
+          document.getElementById("btn-prepareTemplate").style.display = "";
+
+          document.getElementById("select-template").style.display = "none";
+          document.getElementById("select-template").style.visibility = "hidden";
+          document.getElementById("select-list").style.visibility = "hidden";
+          document.getElementById("select-list").style.display = "none";
+          document.getElementById("select-list").disabled = true;
+
+          document.getElementById("btn-adminGet").style.display = "none";
+          document.getElementById("btn-adminGet").style.visibility = "hidden";
+
+          document.getElementById("main-guide-admin-3-post").style.visibility = "visible";
+
+          document.getElementById("main-guide-admin-3-put").style.display = "none";
+
+          document.getElementById("btn-admin-send").style.visibility = "visible";
+          document.getElementById("btn-admin-send").style.display = "";
+          document.getElementById("btn-admin-update").style.visibility = "hidden";
+          document.getElementById("btn-admin-update").style.display = "none";
+
+          document.getElementById("main-guide-admin-templates").style.visibility = "hidden";
+          document.getElementById("main-guide-admin-templates").style.display = "none";
+
+          document.getElementById("main-guide-admin-lists").style.visibility = "hidden";
+          document.getElementById("main-guide-admin-lists").style.display = "none";
+
+          document.getElementById("btn-prepareTemplate").classList.add("action");
+          document.getElementById("btn-admin-send").classList.remove("action");
+
+          model.isGettingDataAttempt = false;
+          uiSelection.currentOperation = 2;
+
+          //populates the templates dropdown menu
+          setDropdown("select-artifact-folder", model.artifactFolders, "Select an artifact");
+        }
+        break;
+
       case "send-template":
         //template-based operations that requires send data only
-        if (chosenOperation.id == 2) {
+        if (chosenOperation.id == 3) {
           //Create custom lists and values operation
           //Display the necessary objects on the taskpane
           document.getElementById("main-guide-admin-2-get").style.display = "none";
@@ -1314,8 +1396,14 @@ function changeOperationSelect(e) {
           document.getElementById("btn-prepareTemplate").classList.add("action");
           document.getElementById("btn-admin-send").classList.remove("action");
 
+          document.getElementById("main-guide-admin-folders").style.visibility = "hidden";
+          document.getElementById("main-guide-admin-folders").style.display = "none";
+
+          document.getElementById("select-artifact-folder").style.visibility = "hidden";
+          document.getElementById("select-artifact-folder").style.display = "none";
+
           model.isGettingDataAttempt = false;
-          uiSelection.currentOperation = 2;
+          uiSelection.currentOperation = 3;
           //sets the selected artifact based on admin operation
           uiSelection.currentArtifact = getAdminArtifact();
         }
@@ -1323,7 +1411,7 @@ function changeOperationSelect(e) {
 
       case "get-template":
         //template-based operations that requires get data + send later
-        if (chosenOperation.id == 3) {
+        if (chosenOperation.id == 4) {
           //Create custom lists and values operation
           //Display the necessary objects on the taskpane
           document.getElementById("main-guide-admin-2-send").style.display = "none";
@@ -1374,7 +1462,13 @@ function changeOperationSelect(e) {
           document.getElementById("btn-adminGet").classList.add("action");
           document.getElementById("btn-admin-update").classList.remove("action");
 
-          uiSelection.currentOperation = 3;
+          document.getElementById("main-guide-admin-folders").style.visibility = "hidden";
+          document.getElementById("main-guide-admin-folders").style.display = "none";
+
+          document.getElementById("select-artifact-folder").style.visibility = "hidden";
+          document.getElementById("select-artifact-folder").style.display = "none";
+
+          uiSelection.currentOperation = 4;
           //sets the selected artifact based on admin operation
           uiSelection.currentArtifact = getAdminArtifact();
         }
@@ -1389,9 +1483,9 @@ function changeOperationSelect(e) {
 function changeTemplateSelect(e) {
   //First, enable the respective operation next button
   if (e.target.value != 0) {
-    if (uiSelection.currentOperation == 2) {
+    if (uiSelection.currentOperation == 3) {
       document.getElementById("btn-prepareTemplate").disabled = false;
-    } else if (uiSelection.currentOperation == 3) {
+    } else if (uiSelection.currentOperation == 4) {
       document.getElementById("btn-adminGet").disabled = false;
     }
     var chosenTemplate = getSelectedItem("select-template", model.templates);
@@ -1400,7 +1494,7 @@ function changeTemplateSelect(e) {
       uiSelection.currentTemplate = chosenTemplate;
     }
     //Get the template custom lists now we know which the template is, if the operation requires it
-    if (uiSelection.currentOperation == 3) {
+    if (uiSelection.currentOperation == 4) {
       // call server side function to get lists
       if (isGoogle) {
         google.script.run
@@ -1437,6 +1531,23 @@ function changeListSelect(e) {
       //set the temp data store project to the one selected;
       uiSelection.currentList = chosenList;
     }
+  }
+  model.currentList = uiSelection.currentList;
+}
+
+function changeArtifactFolderSelect(e) {
+  //First, enable the respective operation next button
+  if (e.target.value != 0) {
+    document.getElementById("main-guide-admin-2-send").disabled = false;
+    document.getElementById("btn-prepareTemplate").disabled = false;
+
+    uiSelection.chosenArtifact = getSelectedItem("select-artifact-folder", model.artifactFolders);
+    console.log('uiSelection.chosenArtifact ');
+    console.dir(uiSelection.chosenArtifact);
+  }
+  else {
+    document.getElementById("main-guide-admin-2-send").disabled = true;
+    document.getElementById("btn-prepareTemplate").disabled = true;
   }
   model.currentList = uiSelection.currentList;
 }

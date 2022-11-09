@@ -109,7 +109,7 @@ var params = {
         { field: 'testSteps', name: 'Test Steps', id: 7, disabled: true, hidden: true, isSubType: true },
         { field: 'testSets', name: 'Test Sets', id: 8, hasFolders: true },
         { field: 'risks', name: 'Risks', id: 14 },
-        { field: 'folders', name: 'Folders', id: 114, sendOnly: true, adminOnly: true },
+        { field: 'folders', name: 'Folders', id: 114, sendOnly: true, adminOnly: true},
         { field: 'components', name: 'Components', id: 99, adminOnly: true, noPagination: true },
         { field: 'users', name: 'Users', id: 98, disabled: false, hidden: true },
         { field: 'customLists', name: 'Custom Lists', id: 97, disabled: false, hidden: true, hasDualValues: true, hasSubType: true, subTypeId: 96, subTypeName: "customValues", skipSubCustom: true, allowsCreateOnUpdate: true, allowGetSingle: true },
@@ -593,9 +593,17 @@ function Data() {
     this.templates = [];
 
     this.operations = [
-        { name: "Add new Users to Spira", id: 1, type: "send-system", artifactId: 98 },
-        { name: "Add new Custom Lists and Values", id: 2, type: "send-template", artifactId: 97 },
-        { name: "Edit existent Custom Lists and Values", id: 3, type: "get-template", artifactId: 97 },
+        { name: "Add new Users to Spira", id: 1, type: "send-system", artifactId: 98 },//1
+        { name: "Add new Artifact Folders to Spira", id: 2, type: "send-product", artifactId: 114 },//4
+        { name: "Add new Custom Lists and Values to Spira", id: 3, type: "send-template", artifactId: 97 },//2
+        { name: "Edit existent Custom Lists and Values from Spira", id: 4, type: "get-template", artifactId: 97 },//3
+        
+    ];
+
+    this.artifactFolders = [
+        { name: "Test Cases", id: 2 },
+        { name: "Test Sets", id: 8 },
+        { name: "Tasks", id: 6 }       
     ];
 
     this.templateLists = [];

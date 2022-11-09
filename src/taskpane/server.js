@@ -1183,6 +1183,11 @@ function templateLoader(model, fieldTypeEnums, advancedMode) {
       //template-based operations
       newSheetName = model.currentArtifact.name + ", TP-" + model.currentTemplate.id;
     }
+    else if (operation.type == "send-product") {
+      //product-based operations
+      //folders
+      newSheetName = "Folders, PR-" + model.currentProject.id;
+    }
   }
   else {
     //stardard artifact functions
@@ -1251,6 +1256,18 @@ function templateLoader(model, fieldTypeEnums, advancedMode) {
 
 // wrapper function to set the header row, validation rules, and any extra formatting 
 function sheetSetForTemplate(sheet, model, fieldTypeEnums, context, newSheetName) {
+
+  PAREI AQUI - LOGO APOS CLICAR EM PREPARE DATA templateLoader
+
+  console.log('sheet');
+  console.dir(sheet);
+  console.log('model');
+  console.dir(model);
+  console.log('fieldTypeEnums');
+  console.dir(fieldTypeEnums);
+  console.log('newSheetName');
+  console.dir(newSheetName);
+
 
   // heading row - sets names and formatting (standard sheet) 
   headerSetter(sheet, model.fields, model.colors, context);
@@ -4425,8 +4442,6 @@ function getFromSpiraGoogle(model, fieldTypeEnums, advancedMode) {
   if (model.selectedPage) {
     currentPage = (MAX_ROWS_PER_PAGE / GET_PAGINATION_SIZE) * (model.selectedPage - 1);
   }
-  console.log(currentPage);
-  console.dir(currentPage);
 
   var results = {};
   results.firstRecord = (currentPage * GET_PAGINATION_SIZE) + 1;
