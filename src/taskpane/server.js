@@ -2235,6 +2235,8 @@ async function sendToSpira(model, fieldTypeEnums, isUpdate) {
               var validations = [];
               //First, send the artifact entries for Spira
               var entriesForExport = createExportEntries(sheetData, model, fieldTypeEnums, fields, artifact, artifactIsHierarchical, isUpdate);
+              console.log('entriesForExport');
+              console.dir(entriesForExport);
               return sendExportEntriesExcel(entriesForExport, '', '', sheetData, sheet, sheetRange, model, fieldTypeEnums, fields, artifact, context, isUpdate, '').then(function (response) {
                 validations = getValidationsFromEntries(entriesForExport, sheetData, response);
                 entriesLog = response;
@@ -2384,38 +2386,6 @@ function createExportEntries(sheetData, model, fieldTypeEnums, fields, artifact,
         if (model.currentOperation == 2) {
           entry.artifact = model.currentArtifact.id;
         }
-
-        // if (artifact.id == params.artifactEnums.folders) {
-        //   //We need to retrieve the Artifact we're creating the folder to and
-        //   //use that to get the specific Parent Folder ID field
-        //   var folderArtifact = params.artifacts.filter(function (artifact) {
-        //     return artifact.id == entry.artifact;
-        //   })[0];
-
-        //   var newkey = "";
-
-        //   //replacing Parent field, accordingly
-        //   if (entry.Parent) {
-        //     newkey = params.parentFolders[folderArtifact.id];
-        //     Object.defineProperty(entry, newkey,
-        //       Object.getOwnPropertyDescriptor(entry, "Parent"));
-
-        //     //deleting the temporary (for internal reference only) Parent field
-        //     delete entry.Parent;
-        //   }
-
-        //   //replacing folder ID field, accordingly
-
-        //   /* newkey = params.IdFolders[folderArtifact.id];
-        //    Object.defineProperty(entry, newkey, {
-        //      //temp value
-        //      value: 0
-        //    })*/
-
-        //   //deleting the temporary (for internal reference only) FolderId field
-        //   //delete entry.FolderId;
-
-        // }
 
         if (entry) { entriesForExport.push(entry); }
       }
@@ -2704,9 +2674,21 @@ async function sendExportEntriesExcel(entriesForExport, commentEntriesForExport,
 
     // loop through objects to send and update the log
     async function sendSingleEntry(i) {
+      console.log('log.entries');
+      console.dir(log.entries);
+
+      //getting the parentFolderId, if present
+      if(model.currentOperation == 2){
+        var parentResult = getHierarchicalParentId(entriesForExport[i].indentPosition, log.entries);
+        if(parentResult != -1){
+          //if not a root folder
+          var parentkey = params.parentFolders[artifact.id];
+          entriesForExport[i][parentkey] = parentResult;
+        }
+      }
       // set the correct parentId for hierarchical artifacts
       // set before launching the API call as we need to look back through previous entries
-      if (artifact.hierarchical) {
+      else if (artifact.hierarchical) {
         log.parentId = getHierarchicalParentId(entriesForExport[i].indentPosition, log.entries);
       }
       //if we not have a parent info yet, set the correct parentId, parentName and parentActive fields for subtypes (needed for POST URL)
@@ -3630,7 +3612,6 @@ function relevantFields(rowChecks) {
 // @param: isUpdate - bool to flag id this is an update operation. If false, it is a creation operation
 // @param: isComment - bool to flag if we will return a comment entry (true) or custom/standard (false)
 function createEntryFromRow(row, model, fieldTypeEnums, artifactIsHierarchical, lastIndentPosition, fieldsToFilter, isUpdate, isComment, sourceId) {
-
   var fields = model.fields;
   var entry = {};
   var missingSubId = false;

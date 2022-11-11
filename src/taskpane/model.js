@@ -457,8 +457,8 @@ var templateFields = {
         { field: "ExecutionStatusId", name: "ExecutionStatusId", type: params.fieldType.text, isReadOnly: true, isSubTypeField: true, isHidden: true }
     ],
     folders: [
-        { field: "FolderId", name: "Folder ID", type: params.fieldType.id },
-        { field: "Name", name: "Name", type: params.fieldType.text, required: true },
+        { field: "FolderId", name: "Folder ID", type: params.fieldType.id},
+        { field: "Name", name: "Name", type: params.fieldType.text, required: true, setsHierarchy: true},
         { field: "Description", name: "Description", type: params.fieldType.text }
     ],
     risks: [
@@ -592,9 +592,9 @@ function Data() {
     ];
 
     this.artifactFolders = [
-        { name: "Test Cases", id: 2, field: "folders", mainArtifactId: 114 },
-        { name: "Test Sets", id: 8, field: "folders", mainArtifactId: 114 },
-        { name: "Tasks", id: 6, field: "folders", mainArtifactId: 114 },
+        { name: "Test Cases", id: 2, field: "folders", mainArtifactId: 114, hierarchical: true  },
+        { name: "Test Sets", id: 8, field: "folders", mainArtifactId: 114, hierarchical: true  },
+        { name: "Tasks", id: 6, field: "folders", mainArtifactId: 114, hierarchical: true  },
     ];
 
     this.templateLists = [];
