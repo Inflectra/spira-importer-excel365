@@ -353,6 +353,12 @@ function setDropdown(selectId, array, firstMessage) {
   });
 }
 
+function removeOptions(selectElement) {
+  var i, L = selectElement.options.length - 1;
+  for (i = L; i >= 0; i--) {
+    selectElement.remove(i);
+  }
+}
 
 function isModelDifferentToSelection() {
   if (model.isTemplateLoaded) {
@@ -1119,6 +1125,7 @@ function showHideAdminButton(spiraUser) {
 function showAdminPanel() {
   //menu exclusive for system administrator users
   //hide information we don't want to be displayed yet
+  document.getElementById('main-guide-1-admin').style.fontWeight = 'bold';
   document.getElementById("main-guide-admin-2-get").style.visibility = "hidden";
   document.getElementById("main-guide-admin-2-send").style.visibility = "hidden";
   document.getElementById("btn-prepareTemplate").style.visibility = "hidden";
@@ -1192,6 +1199,8 @@ function changeOperationSelect(e) {
   // if the operation field has not been selected all other objects in this panel will be hidden
   if (e.target.value == 0) {
     //hide information we don't want to be displayed
+    document.getElementById('main-guide-1-admin').style.fontWeight = 'bold';
+
     document.getElementById("main-guide-admin-2-get").style.visibility = "hidden";
     document.getElementById("main-guide-admin-2-send").style.visibility = "hidden";
     document.getElementById("btn-prepareTemplate").style.visibility = "hidden";
@@ -1240,6 +1249,7 @@ function changeOperationSelect(e) {
   } else {
     // enable other objects, depending on the oparation selected
     var chosenOperation = getSelectedItem("select-operation", model.operations);
+    document.getElementById('main-guide-1-admin').style.fontWeight = 'normal';
 
     switch (chosenOperation.type) {
       case "send-system":
@@ -1337,9 +1347,8 @@ function changeOperationSelect(e) {
           document.getElementById("main-guide-admin-2-send").style.visibility = "visible";
           document.getElementById("main-guide-admin-2-send").style.display = "";
 
-          document.getElementById("btn-prepareTemplate").classList.remove("pale");
           document.getElementById("btn-prepareTemplate").style.visibility = "visible";
-          document.getElementById("btn-prepareTemplate").disabled = false;
+          document.getElementById("btn-prepareTemplate").disabled = true;
           document.getElementById("btn-prepareTemplate").style.display = "";
 
           document.getElementById("select-template").style.display = "none";
@@ -1447,7 +1456,7 @@ function changeOperationSelect(e) {
         //template-based operations that requires get data + send later
         if (chosenOperation.id == 4) {
           //Create custom lists and values operation
-          //Display the necessary objects on the taskpane
+          //Display the necessary objects on the taskpane         
           document.getElementById("main-guide-admin-2-send").style.display = "none";
           document.getElementById("main-guide-admin-2-send").style.visibility = "hidden";
 
@@ -1516,6 +1525,8 @@ function changeOperationSelect(e) {
     }
 
   }
+  document.getElementById("btn-admin-send").disabled = true;
+  document.getElementById("btn-admin-update").disabled = true;
   model.isTemplateLoaded = false;
 }
 
@@ -1523,13 +1534,14 @@ function changeOperationSelect(e) {
 function changeTemplateSelect(e) {
   //First, enable the respective operation next button
   if (e.target.value != 0) {
+
+    var chosenTemplate = getSelectedItem("select-template", model.templates);
+
     if (uiSelection.currentOperation == 3) {
       document.getElementById("btn-prepareTemplate").disabled = false;
-    } else if (uiSelection.currentOperation == 4) {
-      document.getElementById("btn-adminGet").disabled = false;
     }
-    var chosenTemplate = getSelectedItem("select-template", model.templates);
-    if (chosenTemplate.id && chosenTemplate.id !== uiSelection.currentTemplate.id) {
+
+    if (chosenTemplate.id) {
       //set the temp data store project to the one selected;
       uiSelection.currentTemplate = chosenTemplate;
     }
@@ -1560,7 +1572,21 @@ function changeTemplateSelect(e) {
     document.getElementById("btn-prepareTemplate").disabled = true;
     document.getElementById("btn-adminGet").disabled = true;
     uiSelection.currentTemplate = null;
+
+    //resets the list dropdown
+    document.getElementById("select-list").disabled = true;
+    document.getElementById("select-list").selectedIndex = 0;
+    removeOptions(document.getElementById('select-list'));
   }
+
+  //the buttons should not be available yet
+  if (uiSelection.currentOperation == 4) {
+    document.getElementById("btn-prepareTemplate").disabled = true;
+    document.getElementById("btn-adminGet").disabled = true;
+  }
+  
+  document.getElementById("btn-admin-send").disabled = true;
+  document.getElementById("btn-admin-update").disabled = true;
 }
 
 function changeListSelect(e) {
@@ -1571,6 +1597,12 @@ function changeListSelect(e) {
       //set the temp data store project to the one selected;
       uiSelection.currentList = chosenList;
     }
+    document.getElementById("btn-adminGet").disabled = false;
+    document.getElementById("btn-admin-update").disabled = true;
+  }
+  else {
+    document.getElementById("btn-adminGet").disabled = true;
+    document.getElementById("btn-admin-update").disabled = true;
   }
   model.currentList = uiSelection.currentList;
 }
@@ -1616,6 +1648,10 @@ function changeAdminProductSelect(e) {
   else {
     document.getElementById("main-guide-admin-2-send").disabled = true;
     document.getElementById("btn-prepareTemplate").disabled = true;
+
+    document.getElementById("btn-admin-send").disabled = true;
+    document.getElementById("btn-admin-update").disabled = true;
+    
   }
 }
 

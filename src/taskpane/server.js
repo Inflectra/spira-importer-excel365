@@ -2235,8 +2235,6 @@ async function sendToSpira(model, fieldTypeEnums, isUpdate) {
               var validations = [];
               //First, send the artifact entries for Spira
               var entriesForExport = createExportEntries(sheetData, model, fieldTypeEnums, fields, artifact, artifactIsHierarchical, isUpdate);
-              console.log('entriesForExport');
-              console.dir(entriesForExport);
               return sendExportEntriesExcel(entriesForExport, '', '', sheetData, sheet, sheetRange, model, fieldTypeEnums, fields, artifact, context, isUpdate, '').then(function (response) {
                 validations = getValidationsFromEntries(entriesForExport, sheetData, response);
                 entriesLog = response;
@@ -2674,9 +2672,6 @@ async function sendExportEntriesExcel(entriesForExport, commentEntriesForExport,
 
     // loop through objects to send and update the log
     async function sendSingleEntry(i) {
-      console.log('log.entries');
-      console.dir(log.entries);
-
       //getting the parentFolderId, if present
       if(model.currentOperation == 2){
         var parentResult = getHierarchicalParentId(entriesForExport[i].indentPosition, log.entries);

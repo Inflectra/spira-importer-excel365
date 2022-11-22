@@ -398,7 +398,7 @@ var templateFields = {
         { field: "Description", name: "Test Case Description", type: params.fieldType.text, blocksSubType: true },
         { field: "Description", name: "Test Step Description", type: params.fieldType.text, isSubTypeField: true, requiredForSubType: true, extraDataField: "LinkedTestCaseId", extraDataPrefix: "TC" },
         { field: "Position", name: "Position", type: params.fieldType.text, isSubTypeField: true, isReadOnly: true, isHidden: true },
-        { field: "ExpectedResult", name: "Test Step Expected Result", type: params.fieldType.text, isSubTypeField: true, requiredForSubType: true },
+        { field: "ExpectedResult", name: "Test Step Expected Result", type: params.fieldType.text, isSubTypeField: true},
         { field: "SampleData", name: "Test Step Sample Data", type: params.fieldType.text, isSubTypeField: true },
         {
             field: "TestCasePriorityId", name: "Test Case Priority", type: params.fieldType.drop,
