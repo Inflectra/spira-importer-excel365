@@ -234,8 +234,7 @@ Only system administrators can Add/Edit Custom Lists and Values going to the sec
 ![Spira example of date and sheet](img/excel365-add-in-store-3.jpg)
 
 ### Users
-Only system administrators can create new users going to the first option of the `Product Template/System Admin Operations` menu.
-
+Only system administrators can create new users by going to the first option of the `Product Template/System Admin Operations` menu. Please note that if an already existing username is attempted creation, no data will actually be created or updated in Spira and the username's ID will be shown in the first column.
 
 ## Other actions you can do on after you have logged in to the add-in
 * **Back**: Go back to select which add-in mode to run
