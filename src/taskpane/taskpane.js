@@ -505,6 +505,8 @@ function populateTemplates(templates) {
 // prepare custom lists data to be displayed in the admin panel
 // @param: lists - passed in lists data returned from the server following successful API call to Spira
 function populateLists(lists) {
+  console.log('lists');
+  console.dir(lists);
   // take projects data from Spira API call, strip out unwanted fields, add to data model
   var pairedDownListsData = lists.map(function (list) {
     var result = {
@@ -568,12 +570,16 @@ function showMainPanel(type) {
     document.getElementById("main-heading-fromSpira").style.display = "none";
     document.getElementById("btn-updateToSpira").style.visibility = "hidden";
     document.getElementById("main-guide-3").style.visibility = "hidden";
+    document.getElementById("input-page-div").style.display = "none";
+    document.getElementById("input-page-label").style.display = "none";
   } else {
     document.getElementById("btn-toSpira").style.display = "none";
     document.getElementById("main-guide-1-toSpira").style.display = "none";
     document.getElementById("main-heading-toSpira").style.display = "none";
     document.getElementById("main-guide-3").style.visibility = "visible";
     document.getElementById("btn-updateToSpira").style.visibility = "visible";
+    document.getElementById("input-page-div").style.display = "";
+    document.getElementById("input-page-label").style.display = "";
   }
 
   // opens the panel
@@ -975,7 +981,15 @@ function sendToSpiraAttempt() {
     } else {
       msOffice.sendToSpira(model, params.fieldType, false)
         .then((response) => sendToSpiraComplete(response))
-        .catch((error) => errorImpExp(error));
+        .catch((error) => {
+          if (model.currentOperation == 3 || model.currentOperation == 4) {
+            //lists
+            errorLists(error);
+          }
+          else {
+            errorImpExp(error);
+          }
+        });
     }
   } else {
     //if no template - then get the template
@@ -1557,7 +1571,7 @@ function changeTemplateSelect(e) {
         msOffice.getTemplateLists(uiSelection.currentTemplate.id, model.user)
           .then(response => populateLists(response.body))
           .catch(err => {
-            return errorNetwork(err)
+            return errorLists(err)
           }
           );
       }
@@ -1584,7 +1598,7 @@ function changeTemplateSelect(e) {
     document.getElementById("btn-prepareTemplate").disabled = true;
     document.getElementById("btn-adminGet").disabled = true;
   }
-  
+
   document.getElementById("btn-admin-send").disabled = true;
   document.getElementById("btn-admin-update").disabled = true;
 }
@@ -1651,7 +1665,7 @@ function changeAdminProductSelect(e) {
 
     document.getElementById("btn-admin-send").disabled = true;
     document.getElementById("btn-admin-update").disabled = true;
-    
+
   }
 }
 
@@ -2231,4 +2245,8 @@ function errorUnknown(err) {
 }
 function errorExcel(err) {
   errorPopUp('excel', err);
+}
+function errorLists(err) {
+  hideLoadingSpinner();
+  errorPopUp("list", err);
 }

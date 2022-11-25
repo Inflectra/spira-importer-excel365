@@ -1081,7 +1081,12 @@ function error(type, err) {
     message = 'Unknown error. Please try again later or contact your system administrator';
   } else if (type == 'sheet') {
     message = 'There was a problem while retrieving data from the active spreadsheet. Please check the details below and try again. <br><br><b>Details:</b><br>' + err;
-  } else {
+  } else if (type == "list") {
+    message = 'There was an error processing your request. Please make sure that the current user has access to the selected Template.' +
+    ' Also, make sure the selected Template has at least one (1) active product.';
+    details = "<br> <b>Spira Server Response:</b> 401 - Not Authorized";
+  } 
+  else {
     message = 'Unknown error. Please try again later or contact your system administrator';
   }
 
@@ -4479,7 +4484,7 @@ function getFromSpiraGoogle(model, fieldTypeEnums, advancedMode) {
   }
 
   // 2. if there were no artifacts at all break out now
-  if (!artifacts.length) return operationComplete(STATUS_ENUM.noData, false);;
+  if (!artifacts.length) return operationComplete(STATUS_ENUM.noData, false);
 
   // 3. Make sure hierarchical artifacts are ordered correctly
   if (model.currentArtifact.hierarchical) {
