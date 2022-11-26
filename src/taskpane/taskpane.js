@@ -505,8 +505,6 @@ function populateTemplates(templates) {
 // prepare custom lists data to be displayed in the admin panel
 // @param: lists - passed in lists data returned from the server following successful API call to Spira
 function populateLists(lists) {
-  console.log('lists');
-  console.dir(lists);
   // take projects data from Spira API call, strip out unwanted fields, add to data model
   var pairedDownListsData = lists.map(function (list) {
     var result = {

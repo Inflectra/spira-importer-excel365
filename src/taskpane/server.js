@@ -1083,9 +1083,9 @@ function error(type, err) {
     message = 'There was a problem while retrieving data from the active spreadsheet. Please check the details below and try again. <br><br><b>Details:</b><br>' + err;
   } else if (type == "list") {
     message = 'There was an error processing your request. Please make sure that the current user has access to the selected Template.' +
-    ' Also, make sure the selected Template has at least one (1) active product.';
+      ' Also, make sure the selected Template has at least one (1) active product.';
     details = "<br> <b>Spira Server Response:</b> 401 - Not Authorized";
-  } 
+  }
   else {
     message = 'Unknown error. Please try again later or contact your system administrator';
   }
@@ -1443,14 +1443,18 @@ function dataBaseValidationSetter(mainSheetName, model, fieldTypeEnums, context)
           for (var l = 0; l < model.projectActiveReleases.length; l++) {
             list.push(setListItemDisplayName(model.projectActiveReleases[l]));
           }
-          setDropdownValidation(mainSheetName, columnNumber, list, true, context, model);
+          if (list.length > 0) {
+            setDropdownValidation(mainSheetName, columnNumber, list, true, context, model);
+          }
         }
         else {
           //show all the releases - including inactives
           for (var l = 0; l < model.projectReleases.length; l++) {
             list.push(setListItemDisplayName(model.projectReleases[l]));
           }
-          setDropdownValidation(mainSheetName, columnNumber, list, true, context, model);
+          if (list.length > 0) {
+            setDropdownValidation(mainSheetName, columnNumber, list, true, context, model);
+          }
           break;
         }
         break;
@@ -1458,7 +1462,9 @@ function dataBaseValidationSetter(mainSheetName, model, fieldTypeEnums, context)
         for (var l = 0; l < model.projectReleases.length; l++) {
           list.push(setListItemDisplayName(model.projectReleases[l]));
         }
-        setDropdownValidation(mainSheetName, columnNumber, list, true, context, model);
+        if (list.length > 0) {
+          setDropdownValidation(mainSheetName, columnNumber, list, true, context, model);
+        }
         break;
 
       // BOOL as Sheets has no bool validation, a yes/no dropdown is used
@@ -2678,9 +2684,9 @@ async function sendExportEntriesExcel(entriesForExport, commentEntriesForExport,
     // loop through objects to send and update the log
     async function sendSingleEntry(i) {
       //getting the parentFolderId, if present
-      if(model.currentOperation == 2){
+      if (model.currentOperation == 2) {
         var parentResult = getHierarchicalParentId(entriesForExport[i].indentPosition, log.entries);
-        if(parentResult != -1){
+        if (parentResult != -1) {
           //if not a root folder
           var parentkey = params.parentFolders[artifact.id];
           entriesForExport[i][parentkey] = parentResult;
@@ -4657,7 +4663,6 @@ async function getDataFromSpiraExcel(model, fieldTypeEnums) {
   var artifacts = [];
   var getNextPage = true;
   var singleArtifactId = null;
-
   //if this artifact supports getting a single result, handle it
   if (model.currentArtifact.allowGetSingle) {
     // Custom Lists
@@ -4703,7 +4708,6 @@ async function getDataFromSpiraExcel(model, fieldTypeEnums) {
       .catch(/*fail quietly*/);
   }
 
-
   while (getNextPage && currentPage < ARTIFACT_MAX_PAGES) {
     var startRow = (currentPage * GET_PAGINATION_SIZE) + 1;
     //update the log every time - to capture the last one
@@ -4726,8 +4730,6 @@ async function getDataFromSpiraExcel(model, fieldTypeEnums) {
     var idFieldNameArray = model.fields.filter(function (field) {
       return field.type === fieldTypeEnums.id;
     });
-
-
     // if we have an id field, then we can find the id number for each artifact in the array
     if (idFieldNameArray && idFieldNameArray[0].field) {
       //function called below in the foreach call
