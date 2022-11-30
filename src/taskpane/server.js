@@ -272,7 +272,6 @@ async function checkSheetExists(sheetName) {
 
 //clears active sheet in spreadsheet
 function clearAll(model) {
-
   if (IS_GOOGLE) {
     // get active spreadsheet
     var spreadSheet = SpreadsheetApp.getActiveSpreadsheet(),
@@ -318,7 +317,7 @@ function clearAll(model) {
       var newDataBaseSheet = SpreadsheetApp.getActiveSpreadsheet().insertSheet(dataBaseSheetName);
       newDataBaseSheet.hideSheet();
     }
-
+    console.log('2 - clear all done ');
     return true;
   } else {
     return Excel.run(context => {
@@ -1197,15 +1196,14 @@ function templateLoader(model, fieldTypeEnums, advancedMode) {
   else {
     //stardard artifact functions
     newSheetName = model.currentArtifact.name + ", PR-" + model.currentProject.id;
-  }
-
+  } 
   var response;
   // select active sheet
   if (IS_GOOGLE) {
     sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
     // set sheet (tab) name to model name
     sheet.setName(newSheetName);
-    sheetSetForTemplate(sheet, model, fieldTypeEnums, null);
+    sheetSetForTemplate(sheet, model, fieldTypeEnums, null, newSheetName);
     response = true;
   } else {
 
@@ -4521,9 +4519,8 @@ function getFromSpiraGoogle(model, fieldTypeEnums, advancedMode) {
           model.currentTemplate.id
         );
         // take action if we got any sub types back - ie if they exist for the specific artifact
-        if (subTypeArtifacts && (subTypeArtifacts.length || subTypeArtifacts.Values.length)) {
-
-          if (subTypeArtifacts.Values) {
+        if (subTypeArtifacts && subTypeArtifacts.length) {
+          if (subTypeArtifacts.Values && subTypeArtifacts.Values.length) {
             //some subArtifacts, such as Custom Values, require this adjustment
             subTypeArtifacts = subTypeArtifacts.Values;
           }

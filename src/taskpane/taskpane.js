@@ -248,6 +248,7 @@ function clearSheet(shouldClear) {
 
 //Handles the first step 
 function newTemplateHandler(shouldContinue) {
+  console.log('3 - shouldContinue ' + shouldContinue);
   if (shouldContinue) {
     showLoadingSpinner();
     manageTemplateBtnState();
@@ -258,12 +259,15 @@ function newTemplateHandler(shouldContinue) {
     // the exception is when using advanced admin mode operations not based on projects
 
     if (allGetsSucceeded()) {
+      console.log('3 - SUCEDEU ');
       templateLoader();
       // otherwise, run an interval loop (should never get called as template button should be disabled)
     } else {
+      console.log('3 - NAO SUCEDEU ');
+      console.log(uiSelection);
       var checkGetsSuccess = setInterval(attemptTemplateLoader, 1500);
       function attemptTemplateLoader() {
-        if (allGetsSucceeded() || uiSelection.currentOperation == 1 || uiSelection.currentOperation == 3 || uiSelection.currentOperation == 4) {
+        if (allGetsSucceeded() || uiSelection.currentOperation == 1 || uiSelection.currentOperation == 2 || uiSelection.currentOperation == 3 || uiSelection.currentOperation == 4) {
           templateLoader();
           clearInterval(checkGetsSuccess);
         }
@@ -996,6 +1000,7 @@ function sendToSpiraAttempt() {
 }
 
 function prepareTemplateAdmin() {
+  console.log('1 - model.isTemplateLoaded ' + model.isTemplateLoaded);
   if (!model.isTemplateLoaded) {
 
     createTemplateAttempt();
@@ -2081,6 +2086,7 @@ function getUsersSuccess(data) {
 // check to see that all project and artifact requests have been made - ie that successes match required requests
 // returns boolean
 function allGetsSucceeded() {
+  
   var projectGetsDone = model.projectGetRequestsToMake === model.projectGetRequestsMade,
     artifactGetsDone = model.artifactGetRequestsToMake === model.artifactGetRequestsMade;
   return projectGetsDone && artifactGetsDone;
