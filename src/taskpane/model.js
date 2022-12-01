@@ -555,11 +555,8 @@ var templateFields = {
     customLists: [
         { field: "CustomPropertyListId", name: "List ID", type: params.fieldType.id },
         { field: "CustomPropertyValueId", name: "Value ID", type: params.fieldType.subId, isSubTypeField: true },
-        //{ field: "ProjectTemplateId", name: "Template ID", type: params.fieldType.text, isReadOnly: true, isHidden: true },
         { field: "Name", name: "List Name", type: params.fieldType.text, required: true, blocksSubType: true },
         { field: "Name", name: "Value Name", type: params.fieldType.text, requiredForSubType: true, isSubTypeField: true },
-        // { field: "Active", name: "List Active?", type: params.fieldType.bool, blocksSubType: true},
-        // { field: "Active", name: "Value Active?", type: params.fieldType.bool, isSubTypeField: true},
         { field: "Active", name: "Active?", type: params.fieldType.bool, isTypeAndSubTypeField: true, required: true },
         { field: "SortedOnValue", name: "SortedOnValue", type: params.fieldType.text, isReadOnly: true, isHidden: true },
     ],
@@ -584,10 +581,10 @@ function Data() {
     this.templates = [];
 
     this.operations = [
-        { name: "Add new Users to Spira", id: 1, type: "send-system", artifactId: 98 },//1
-        { name: "Add new Artifact Folders to Spira", id: 2, type: "send-product", artifactId: 114 },//4
-        { name: "Add new Custom Lists and Values to Spira", id: 3, type: "send-template", artifactId: 97 },//2
-        { name: "Edit existent Custom Lists and Values from Spira", id: 4, type: "get-template", artifactId: 97 },//3
+        { name: "Add new Users to Spira", id: 1, type: "send-system", artifactId: 98 },
+        { name: "Add new Artifact Folders to Spira", id: 2, type: "send-product", artifactId: 114 },
+        { name: "Add new Custom Lists and Values to Spira", id: 3, type: "send-template", artifactId: 97 },
+        { name: "Edit existent Custom Lists and Values from Spira", id: 4, type: "get-template", artifactId: 97 },
 
     ];
 

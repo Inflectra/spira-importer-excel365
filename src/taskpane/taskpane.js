@@ -233,6 +233,21 @@ function clearSheet(shouldClear) {
   var shouldClearToUse = typeof shouldClear !== 'undefined' ? shouldClear : true;
   if (shouldClearToUse) {
     if (isGoogle) {
+
+      document.getElementById("btn-prepareTemplate").disabled = true;
+      document.getElementById("main-guide-admin-2-send").classList.add("pale");
+      document.getElementById('main-guide-admin-2-send').style.fontWeight = 'normal';
+      document.getElementById('main-guide-admin-2-get').style.fontWeight = 'normal';
+      document.getElementById('main-guide-1-fromSpira').style.fontWeight = 'normal';
+
+      document.getElementById("main-guide-admin-3-post").classList.remove("pale");
+      document.getElementById("btn-admin-send").classList.remove("pale");
+      document.getElementById("btn-prepareTemplate").classList.remove("action");
+      document.getElementById("btn-admin-send").classList.add("action");
+      document.getElementById('main-guide-admin-3-post').style.fontWeight = 'bold';
+      document.getElementById("btn-admin-send").disabled = false;
+      document.getElementById("main-guide-admin-3-post").classList.remove("pale");
+
       google.script.run
         .withSuccessHandler(newTemplateHandler)
         .clearAll(uiSelection);
@@ -248,7 +263,6 @@ function clearSheet(shouldClear) {
 
 //Handles the first step 
 function newTemplateHandler(shouldContinue) {
-  console.log('3 - shouldContinue ' + shouldContinue);
   if (shouldContinue) {
     showLoadingSpinner();
     manageTemplateBtnState();
@@ -259,12 +273,9 @@ function newTemplateHandler(shouldContinue) {
     // the exception is when using advanced admin mode operations not based on projects
 
     if (allGetsSucceeded()) {
-      console.log('3 - SUCEDEU ');
       templateLoader();
       // otherwise, run an interval loop (should never get called as template button should be disabled)
     } else {
-      console.log('3 - NAO SUCEDEU ');
-      console.log(uiSelection);
       var checkGetsSuccess = setInterval(attemptTemplateLoader, 1500);
       function attemptTemplateLoader() {
         if (allGetsSucceeded() || uiSelection.currentOperation == 1 || uiSelection.currentOperation == 2 || uiSelection.currentOperation == 3 || uiSelection.currentOperation == 4) {
@@ -977,7 +988,7 @@ function sendToSpiraAttempt() {
     //call export function
     if (isGoogle) {
       google.script.run
-        .withFailureHandler(errorImpExp)
+        .withFailureHandler(GoogleErrorHandler)
         .withSuccessHandler(sendToSpiraComplete)
         .sendToSpira(model, params.fieldType, false);
     } else {
@@ -999,25 +1010,36 @@ function sendToSpiraAttempt() {
   }
 }
 
+function GoogleErrorHandler() {
+  console.log(model);
+  if (model.currentOperation == 3 || model.currentOperation == 4) {
+    //lists
+    errorLists(error);
+  }
+  else {
+    errorImpExp(error);
+  }
+}
+
 function prepareTemplateAdmin() {
-  console.log('1 - model.isTemplateLoaded ' + model.isTemplateLoaded);
   if (!model.isTemplateLoaded) {
 
     createTemplateAttempt();
-    document.getElementById("btn-prepareTemplate").disabled = true;
-    document.getElementById("main-guide-admin-2-send").classList.add("pale");
-    document.getElementById('main-guide-admin-2-send').style.fontWeight = 'normal';
-    document.getElementById('main-guide-admin-2-get').style.fontWeight = 'normal';
-    document.getElementById('main-guide-1-fromSpira').style.fontWeight = 'normal';
+    if (!isGoogle) {
+      document.getElementById("btn-prepareTemplate").disabled = true;
+      document.getElementById("main-guide-admin-2-send").classList.add("pale");
+      document.getElementById('main-guide-admin-2-send').style.fontWeight = 'normal';
+      document.getElementById('main-guide-admin-2-get').style.fontWeight = 'normal';
+      document.getElementById('main-guide-1-fromSpira').style.fontWeight = 'normal';
 
-    document.getElementById("main-guide-admin-3-post").classList.remove("pale");
-    document.getElementById("btn-admin-send").classList.remove("pale");
-    document.getElementById("btn-prepareTemplate").classList.remove("action");
-    document.getElementById("btn-admin-send").classList.add("action");
-    document.getElementById('main-guide-admin-3-post').style.fontWeight = 'bold';
-    document.getElementById("btn-admin-send").disabled = false;
-    document.getElementById("main-guide-admin-3-post").classList.remove("pale");
-
+      document.getElementById("main-guide-admin-3-post").classList.remove("pale");
+      document.getElementById("btn-admin-send").classList.remove("pale");
+      document.getElementById("btn-prepareTemplate").classList.remove("action");
+      document.getElementById("btn-admin-send").classList.add("action");
+      document.getElementById('main-guide-admin-3-post').style.fontWeight = 'bold';
+      document.getElementById("btn-admin-send").disabled = false;
+      document.getElementById("main-guide-admin-3-post").classList.remove("pale");
+    }
   }
 }
 
@@ -1054,7 +1076,6 @@ function updateSpiraAttempt() {
 }
 
 function sendToSpiraComplete(log) {
-
   if (isGoogle && log) {
     log = JSON.parse(log);
   }
@@ -2086,7 +2107,7 @@ function getUsersSuccess(data) {
 // check to see that all project and artifact requests have been made - ie that successes match required requests
 // returns boolean
 function allGetsSucceeded() {
-  
+
   var projectGetsDone = model.projectGetRequestsToMake === model.projectGetRequestsMade,
     artifactGetsDone = model.artifactGetRequestsToMake === model.artifactGetRequestsMade;
   return projectGetsDone && artifactGetsDone;

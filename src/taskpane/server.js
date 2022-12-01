@@ -116,7 +116,8 @@ var API_BASE = '/services/v6_0/RestService.svc/',
     4: "You are not on the correct worksheet. Please go to the sheet that matches the one listed on the Spira taskpane / the selection you made in the sidebar.",
     5: "Some/all of the rows already exist in SpiraPlan. These rows have not been re-added.",
     6: "Data sent! Since you are using the advanced fields mode, any errors related to comments and/or associations will be marked as red in the spreadsheet. To send more data over, clear the sheet first.",
-    7: "No records were returned from Spira. Please verify the page number, product, and artifact. If the problem persists, contact your Spira administrator."
+    7: "No records were returned from Spira. Please verify the page number, product, and artifact. If the problem persists, contact your Spira administrator.",
+    8: "There was an error processing your request. Please make sure that all the required fields are populated and the current user has access to the selected Template. Also, make sure the selected Template has at least one (1) active product."
   },
   STATUS_MESSAGE_EXCEL = {
     1: "All done! To send more data over, clear the sheet first.",
@@ -317,7 +318,6 @@ function clearAll(model) {
       var newDataBaseSheet = SpreadsheetApp.getActiveSpreadsheet().insertSheet(dataBaseSheetName);
       newDataBaseSheet.hideSheet();
     }
-    console.log('2 - clear all done ');
     return true;
   } else {
     return Excel.run(context => {
@@ -1196,7 +1196,7 @@ function templateLoader(model, fieldTypeEnums, advancedMode) {
   else {
     //stardard artifact functions
     newSheetName = model.currentArtifact.name + ", PR-" + model.currentProject.id;
-  } 
+  }
   var response;
   // select active sheet
   if (IS_GOOGLE) {
@@ -2218,6 +2218,11 @@ async function sendToSpira(model, fieldTypeEnums, isUpdate) {
       var associationEntriesForExport = createExportAssociationEntries(sheetData, model, fieldTypeEnums, artifact, artifactEntries, entriesLog);
       var associationsLog = sendExportEntriesGoogle('', '', associationEntriesForExport, sheetData, sheet, sheetRange, model, fieldTypeEnums, fields, artifact, isUpdate, validations);
       var finalLog = updateSheetWithExportResults(entriesLog, commentsLog, associationsLog, entriesForExport, sheetData, sheet, sheetRange, model, fieldTypeEnums, fields, artifact, isUpdate, null);
+
+      //adjust the error message for custom lists
+      if ((model.currentOperation == 3 || model.currentOperation == 4) && finalLog.status == 3) {
+        finalLog.status = 8;
+      }
       return JSON.stringify(finalLog);
     } else {
       var errorLog = {
@@ -2543,12 +2548,20 @@ function sendExportEntriesGoogle(entriesForExport, commentEntriesForExport, asso
       entriesLength: entriesForExport.length,
       entries: []
     };
-
     // loop through objects to send and update the log
     function sendSingleEntry(i) {
+      //getting the parentFolderId, if present
+      if (model.currentOperation == 2) {
+        var parentResult = getHierarchicalParentId(entriesForExport[i].indentPosition, log.entries);
+        if (parentResult != -1) {
+          //if not a root folder
+          var parentkey = params.parentFolders[artifact.id];
+          entriesForExport[i][parentkey] = parentResult;
+        }
+      }
       // set the correct parentId for hierarchical artifacts
       // set before launching the API call as we need to look back through previous entries
-      if (artifact.hierarchical) {
+      else if (artifact.hierarchical) {
         log.parentId = getHierarchicalParentId(entriesForExport[i].indentPosition, log.entries);
       }
       //if we not have a parent ID yet, set the correct parentId artifact for subtypes (needed for POST URL)
@@ -2568,10 +2581,8 @@ function sendExportEntriesGoogle(entriesForExport, commentEntriesForExport, asso
       }
       var logResponse = manageSendingToSpira(entriesForExport[i], model.user, model.currentProject.id, model.currentTemplate.id, artifact, fields, fieldTypeEnums, log.parentId, isUpdate, false, false);
       // update the parent ID for a subtypes based on the successful API call
-      //if (artifact.hasSubType && !entriesForExport[i].isSubType) {
       if (artifact.hasSubType) {
-        //BRUNO
-        log.parentId = logResponse.newId;
+        log.parentId = logResponse.parentId;
       }
       log = processSendToSpiraResponse(i, logResponse, entriesForExport, artifact, log, false, false);
 
@@ -3164,14 +3175,14 @@ function manageSendingToSpira(entry, user, projectId, templateId, artifact, fiel
           //get the just-created ID from the server response
           output.newId = output.fromSpira[artifactIdField];
         }
-        else {
+        /*else {
           //just repeat the id - it's the same 
           output.newId = entry[artifactIdField];
-        }
+        }*/
 
         // repeats the output parent ID only if the artifact has a subtype and this entry is NOT a subtype
         if (artifact.hasSubType && !entry.isSubType) {
-          output.parentId = parentId;
+          output.parentId = output.newId;
         }
       }
       return output;
