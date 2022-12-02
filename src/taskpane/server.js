@@ -1074,7 +1074,7 @@ function error(type, err) {
     message = 'Network error. Please check your username, url, and password. If correct make sure you have the correct permissions.';
     details = err ? `<br><br><b>STATUS:</b> ${err.status ? err.status : "unknown"}<br><br><b>MESSAGE:</b> ${err.stack ? err.stack : "unknown"}` : "";
   } else if (type == 'excel') {
-    message = 'Excel reported an error!';
+    message = 'The program reported an error!';
     details = err ? `<br><br>Description: ${err.description}` : "";
   } else if (type == 'unknown' || err == 'unknown') {
     message = 'Unknown error. Please try again later or contact your system administrator';
@@ -3175,10 +3175,10 @@ function manageSendingToSpira(entry, user, projectId, templateId, artifact, fiel
           //get the just-created ID from the server response
           output.newId = output.fromSpira[artifactIdField];
         }
-        /*else {
+        else {
           //just repeat the id - it's the same 
           output.newId = entry[artifactIdField];
-        }*/
+        }
 
         // repeats the output parent ID only if the artifact has a subtype and this entry is NOT a subtype
         if (artifact.hasSubType && !entry.isSubType) {
@@ -4423,6 +4423,8 @@ function getFromSpiraGoogle(model, fieldTypeEnums, advancedMode) {
     return operationComplete(STATUS_ENUM.wrongSheet, false);
   }
 
+  //first, reset sheet rows (if we had data from the last run)
+  resetSheet(model, sheet);
   resetSheetColors(model, fieldTypeEnums, sheet);
 
   //0. If we are not using advanced mode, we need to make sure the model excludes the non-advanced fields
@@ -4518,8 +4520,10 @@ function getFromSpiraGoogle(model, fieldTypeEnums, advancedMode) {
     if (idFieldNameArray && idFieldNameArray[0].field) {
       var idFieldName = idFieldNameArray[0].field;
       var artifactsWithSubTypes = [];
+
       artifacts.forEach(function (art) {
         artifactsWithSubTypes.push(art);
+
         var subTypeArtifacts = getArtifacts(
           model.user,
           model.currentProject.id,
@@ -4530,8 +4534,8 @@ function getFromSpiraGoogle(model, fieldTypeEnums, advancedMode) {
           model.currentTemplate.id
         );
         // take action if we got any sub types back - ie if they exist for the specific artifact
-        if (subTypeArtifacts && subTypeArtifacts.length) {
-          if (subTypeArtifacts.Values && subTypeArtifacts.Values.length) {
+        if (subTypeArtifacts) {
+          if (subTypeArtifacts.Values) {
             //some subArtifacts, such as Custom Values, require this adjustment
             subTypeArtifacts = subTypeArtifacts.Values;
           }
@@ -4612,7 +4616,7 @@ function getFromSpiraExcel(model, fieldTypeEnums) {
         // only get the data if we are on the right sheet - the one with the template loaded on it
         if (sheet.name == requiredSheetName) {
           //first, reset sheet rows (if we had data from the last run)
-          resetSheet(model);
+          resetSheet(model, null);
           //then, clear the background colors of the spreadsheet (in case we had any errors in the last run)
           resetSheetColors(model, fieldTypeEnums, sheetRange);
           dataBaseValidationSetter(requiredSheetName, model, fieldTypeEnums, context);
@@ -4634,28 +4638,41 @@ function getFromSpiraExcel(model, fieldTypeEnums) {
 
 // resets validations - used before a GET command
 // @param: sheetName - current sheet name
-function resetSheet(model) {
+function resetSheet(model, currentSheet) {
+  if (IS_GOOGLE) {
+      var fields = model.fields;
+      var columnCount = Object.keys(fields).length + 1;
+      var rowCount = currentSheet.getLastRow();
+      if (rowCount == 0) { rowCount = 1; } //avoid errors
 
-  Excel.run(function (ctx) {
-    var fields = model.fields;
-    //complete data range from old data
-    var sheet = ctx.workbook.worksheets.getActiveWorksheet();
-    var range = sheet.getRangeByIndexes(1, 0, MAX_ROWS_PER_PAGE, fields.length);
-    range.delete(Excel.DeleteShiftDirection.up);
+      //reset each column color schema (depending on property type)
+      for (var j = 1; j < columnCount; j++) {
+          var subColumnRange = currentSheet.getRange(2, j, rowCount, 1);
+          subColumnRange.clearContent();
+      }
+  }
+  else {
+      Excel.run(function (ctx) {
+          var fields = model.fields;
+          //complete data range from old data
+          var sheet = ctx.workbook.worksheets.getActiveWorksheet();
+          var range = sheet.getRangeByIndexes(1, 0, MAX_ROWS_PER_PAGE, fields.length);
+          range.delete(Excel.DeleteShiftDirection.up);
 
-    ctx.sync();
+          ctx.sync();
 
-    var dataBaseSheetName = createDatabaseSheetName(params.dataSheetName, model.currentProject.id, model.currentArtifact.id);
+          var dataBaseSheetName = createDatabaseSheetName(params.dataSheetName, model.currentProject.id, model.currentArtifact.id);
 
-    //clear database worksheet
-    var worksheet = context.workbook.worksheets.getItemOrNullObject(dataBaseSheetName);
-    worksheet.getRange().clear();
+          //clear database worksheet
+          var worksheet = context.workbook.worksheets.getItemOrNullObject(dataBaseSheetName);
+          worksheet.getRange().clear();
 
-    return ctx.sync();
-  }).catch(function (error) {
-    if (error instanceof OfficeExtension.Error) {
-    }
-  });
+          return ctx.sync();
+      }).catch(function (error) {
+          if (error instanceof OfficeExtension.Error) {
+          }
+      });
+  }
 }
 
 

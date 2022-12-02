@@ -534,7 +534,12 @@ function populateLists(lists) {
     name: "[ALL]"
   };
 
-  pairedDownListsData.unshift(allObject);
+  if (isGoogle) {
+    pairedDownListsData = [allObject].concat(pairedDownListsData);
+  }
+  else {
+    pairedDownListsData.unshift(allObject);
+  }
 
   //stores it for future use
   model.templateLists = pairedDownListsData;
@@ -938,14 +943,13 @@ function getFromSpiraAttempt() {
         .then((response) => getFromSpiraComplete(response))
         .catch((error) => errorImpExp(error));
     }
+    //sets the UI to correspond to this mode
+    artifactUpdateUI(UI_MODE.getData);
   } else {
-    //if no template - then get the template
-    createTemplateAttempt();
+    if (isGoogle) { createTemplateAttempt(() => artifactUpdateUI(UI_MODE.getData)); }
+    else { createTemplateAttempt(); artifactUpdateUI(UI_MODE.getData); }
   }
-  //sets the UI to correspond to this mode
-  artifactUpdateUI(UI_MODE.getData);
 }
-
 
 function getFromSpiraComplete(log) {
 
@@ -1011,7 +1015,6 @@ function sendToSpiraAttempt() {
 }
 
 function GoogleErrorHandler() {
-  console.log(model);
   if (model.currentOperation == 3 || model.currentOperation == 4) {
     //lists
     errorLists(error);
@@ -1589,7 +1592,7 @@ function changeTemplateSelect(e) {
       if (isGoogle) {
         google.script.run
           .withSuccessHandler(populateLists)
-          .withFailureHandler(errorNetwork)
+          .withFailureHandler(errorLists)
           .getTemplateLists(uiSelection.currentTemplate.id, model.user);
       } else {
         msOffice.getTemplateLists(uiSelection.currentTemplate.id, model.user)
