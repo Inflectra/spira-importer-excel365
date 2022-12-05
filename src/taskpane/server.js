@@ -4460,15 +4460,6 @@ function getFromSpiraGoogle(model, fieldTypeEnums, advancedMode) {
 
   while (getNextPage && currentPage < ARTIFACT_MAX_PAGES) {
     var startRow = (currentPage * GET_PAGINATION_SIZE) + 1;
-    //update the log every time - to capture the last one
-    results.lastRecord = startRow + GET_PAGINATION_SIZE - 1;
-
-    //limiting the query to the page size
-    if ((results.lastRecord - results.firstRecord) > MAX_ROWS_PER_PAGE) {
-      //adjustment
-      results.lastRecord = results.lastRecord - GET_PAGINATION_SIZE;
-      break;
-    }
 
     var pageOfArtifacts = getArtifacts(
       model.user,
@@ -4482,6 +4473,9 @@ function getFromSpiraGoogle(model, fieldTypeEnums, advancedMode) {
     // if we got a non empty array back then we have artifacts to process
     if (pageOfArtifacts.length || pageOfArtifacts.Values) {
       artifacts = artifacts.concat(pageOfArtifacts);
+
+      results.lastRecord = (artifacts.length + (MAX_ROWS_PER_PAGE * model.selectedPage)) - MAX_ROWS_PER_PAGE;
+
       //handling special allowGetSingle cases
       if (model.currentArtifact.allowGetSingle && singleArtifactId > 0) {
         //we just want one artifact - one query it's enough
@@ -4493,6 +4487,10 @@ function getFromSpiraGoogle(model, fieldTypeEnums, advancedMode) {
         // if we got the full page size back then there may be more artifacts to get
       } else {
         currentPage++;
+      }
+      //if we got more artfacts than the maximum global variable, we should stop
+      if (startRow >= ((MAX_ROWS_PER_PAGE * model.selectedPage) - GET_PAGINATION_SIZE)) {
+        getNextPage = false;
       }
       // if we got no artifacts back, stop now
     } else {
@@ -4640,38 +4638,38 @@ function getFromSpiraExcel(model, fieldTypeEnums) {
 // @param: sheetName - current sheet name
 function resetSheet(model, currentSheet) {
   if (IS_GOOGLE) {
-      var fields = model.fields;
-      var columnCount = Object.keys(fields).length + 1;
-      var rowCount = currentSheet.getLastRow();
-      if (rowCount == 0) { rowCount = 1; } //avoid errors
+    var fields = model.fields;
+    var columnCount = Object.keys(fields).length + 1;
+    var rowCount = currentSheet.getLastRow();
+    if (rowCount == 0) { rowCount = 1; } //avoid errors
 
-      //reset each column color schema (depending on property type)
-      for (var j = 1; j < columnCount; j++) {
-          var subColumnRange = currentSheet.getRange(2, j, rowCount, 1);
-          subColumnRange.clearContent();
-      }
+    //reset each column color schema (depending on property type)
+    for (var j = 1; j < columnCount; j++) {
+      var subColumnRange = currentSheet.getRange(2, j, rowCount, 1);
+      subColumnRange.clearContent();
+    }
   }
   else {
-      Excel.run(function (ctx) {
-          var fields = model.fields;
-          //complete data range from old data
-          var sheet = ctx.workbook.worksheets.getActiveWorksheet();
-          var range = sheet.getRangeByIndexes(1, 0, MAX_ROWS_PER_PAGE, fields.length);
-          range.delete(Excel.DeleteShiftDirection.up);
+    Excel.run(function (ctx) {
+      var fields = model.fields;
+      //complete data range from old data
+      var sheet = ctx.workbook.worksheets.getActiveWorksheet();
+      var range = sheet.getRangeByIndexes(1, 0, MAX_ROWS_PER_PAGE, fields.length);
+      range.delete(Excel.DeleteShiftDirection.up);
 
-          ctx.sync();
+      ctx.sync();
 
-          var dataBaseSheetName = createDatabaseSheetName(params.dataSheetName, model.currentProject.id, model.currentArtifact.id);
+      var dataBaseSheetName = createDatabaseSheetName(params.dataSheetName, model.currentProject.id, model.currentArtifact.id);
 
-          //clear database worksheet
-          var worksheet = context.workbook.worksheets.getItemOrNullObject(dataBaseSheetName);
-          worksheet.getRange().clear();
+      //clear database worksheet
+      var worksheet = context.workbook.worksheets.getItemOrNullObject(dataBaseSheetName);
+      worksheet.getRange().clear();
 
-          return ctx.sync();
-      }).catch(function (error) {
-          if (error instanceof OfficeExtension.Error) {
-          }
-      });
+      return ctx.sync();
+    }).catch(function (error) {
+      if (error instanceof OfficeExtension.Error) {
+      }
+    });
   }
 }
 
@@ -4736,8 +4734,8 @@ async function getDataFromSpiraExcel(model, fieldTypeEnums) {
   while (getNextPage && currentPage < ARTIFACT_MAX_PAGES) {
     var startRow = (currentPage * GET_PAGINATION_SIZE) + 1;
     //update the log every time - to capture the last one
-    results.lastRecord = startRow + GET_PAGINATION_SIZE - 1;
     await getArtifactsPage(startRow);
+    results.lastRecord = (artifacts.length + (MAX_ROWS_PER_PAGE * model.selectedPage)) - MAX_ROWS_PER_PAGE;
   }
 
   // 2. if there were no artifacts at all break out now
