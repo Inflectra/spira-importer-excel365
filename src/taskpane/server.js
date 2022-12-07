@@ -74,22 +74,6 @@ var API_BASE = '/services/v6_0/RestService.svc/',
   API_TEMPLATE_BASE = '/services/v6_0/RestService.svc/project-templates/',
   API_TEMPLATE_BASE_NO_SLASH = '/services/v6_0/RestService.svc/project-templates',
   API_USER_BASE = '/services/v6_0/RestService.svc/users/usernames/',
-  ART_ENUMS = {
-    requirements: 1,
-    testCases: 2,
-    incidents: 3,
-    releases: 4,
-    testRuns: 5,
-    tasks: 6,
-    testSteps: 7,
-    testSets: 8,
-    risks: 14,
-    folders: 114,
-    components: 99,
-    users: 98,
-    customLists: 97,
-    customValues: 96,
-  },
   INITIAL_HIERARCHY_OUTDENT = -20,
   GET_PAGINATION_SIZE = 100,
   MAX_ROWS_PER_PAGE = 2000,
@@ -552,40 +536,40 @@ function getArtifacts(user, projectId, artifactTypeId, startRow, numberOfRows, a
   var fullURL = API_PROJECT_BASE + projectId;
   var response = null;
   switch (artifactTypeId) {
-    case ART_ENUMS.requirements:
+    case params.artifactEnums.requirements:
       fullURL += "/requirements?starting_row=" + startRow + "&number_of_rows=" + numberOfRows + "&sort_field=RequirementId&sort_direction=ASC&";
       response = fetcher(user, fullURL);
       break;
-    case ART_ENUMS.testCases:
+    case params.artifactEnums.testCases:
       fullURL += "/test-cases?starting_row=" + startRow + "&number_of_rows=" + numberOfRows + "&sort_field=TestCaseId&sort_direction=ASC&";
       response = fetcher(user, fullURL);
       break;
-    case ART_ENUMS.testSteps:
+    case params.artifactEnums.testSteps:
       if (artifactId) {
         fullURL += "/test-cases/" + artifactId + "/test-steps?&";
         response = fetcher(user, fullURL);
       }
       break;
-    case ART_ENUMS.incidents:
+    case params.artifactEnums.incidents:
       fullURL += "/incidents/search?start_row=" + startRow + "&number_rows=" + numberOfRows + "&sort_field=Name&sort_direction=ASC&";
       response = fetcher(user, fullURL);
       break;
-    case ART_ENUMS.releases:
+    case params.artifactEnums.releases:
       fullURL += "/releases/search?start_row=" + startRow + "&number_rows=" + numberOfRows + "&sort_field=ReleaseId&sort_direction=ASC&";
       var rawResponse = poster("", user, fullURL);
       response = IS_GOOGLE ? JSON.parse(rawResponse) : rawResponse; // this particular return needs to be parsed here
       break;
-    case ART_ENUMS.tasks:
+    case params.artifactEnums.tasks:
       fullURL += "/tasks?starting_row=" + startRow + "&number_of_rows=" + numberOfRows + "&sort_field=TaskId&sort_direction=ASC&";
       var rawResponse = poster("", user, fullURL);
       response = IS_GOOGLE ? JSON.parse(rawResponse) : rawResponse; // this particular return needs to be parsed here
       break;
-    case ART_ENUMS.risks:
+    case params.artifactEnums.risks:
       fullURL += "/risks?starting_row=" + startRow + "&number_of_rows=" + numberOfRows + "&sort_field=RiskId&sort_direction=ASC&";
       var rawResponse = poster("", user, fullURL);
       response = IS_GOOGLE ? JSON.parse(rawResponse) : rawResponse; // this particular return needs to be parsed here
       break;
-    case ART_ENUMS.testSets:
+    case params.artifactEnums.testSets:
       fullURL += "/test-sets?starting_row=" + startRow + "&number_of_rows=" + numberOfRows + "&sort_field=TestSetId&sort_direction=ASC&";
       if (IS_GOOGLE) {
         var rawResponse = JSON.stringify(fetcher(user, fullURL));
@@ -596,11 +580,11 @@ function getArtifacts(user, projectId, artifactTypeId, startRow, numberOfRows, a
         response = rawResponse; // this particular return needs to be parsed here
       }
       break;
-    case ART_ENUMS.components:
+    case params.artifactEnums.components:
       fullURL += "/components?active_only=false&include_deleted=false&start_row=" + startRow + "&number_rows=" + numberOfRows + "&sort_field=ComponentId&sort_direction=ASC&";
       response = fetcher(user, fullURL);
       break;
-    case ART_ENUMS.customLists:
+    case params.artifactEnums.customLists:
       if (artifactId > 0) {
         //if we have a valid custom list ID
         fullURL = API_TEMPLATE_BASE + templateId + "/custom-lists/" + artifactId + "?start_row=" + startRow + "&number_rows=" + numberOfRows + "&sort_field=CustomPropertyListId&sort_direction=ASC&";
@@ -611,7 +595,7 @@ function getArtifacts(user, projectId, artifactTypeId, startRow, numberOfRows, a
       }
       response = fetcher(user, fullURL);
       break;
-    case ART_ENUMS.customValues:
+    case params.artifactEnums.customValues:
       if (artifactId) {
         fullURL = API_TEMPLATE_BASE + templateId + "/custom-lists/" + artifactId + "?";
         response = fetcher(user, fullURL);
@@ -711,7 +695,7 @@ function putUpdater(body, currentUser, PUTUrl) {
 function getAssociationType(artifactTypeId, entry) {
 
   //Associations for Test Cases:
-  if (artifactTypeId == ART_ENUMS.testCases) {
+  if (artifactTypeId == params.artifactEnums.testCases) {
     //TC and Requirement
     if (entry.RequirementId && entry.TestCaseId) {
       return params.associationEnums.tc2req;
@@ -725,7 +709,7 @@ function getAssociationType(artifactTypeId, entry) {
       return params.associationEnums.tc2ts;
     }
   }
-  else if (artifactTypeId == ART_ENUMS.requirements) {
+  else if (artifactTypeId == params.artifactEnums.requirements) {
     return params.associationEnums.req2req;
   }
 }
@@ -748,39 +732,39 @@ function postCommentToSpira(entry, user, projectId, artifactTypeId) {
   switch (artifactTypeId) {
 
     // REQUIREMENTS
-    case ART_ENUMS.requirements:
+    case params.artifactEnums.requirements:
       postUrl = API_PROJECT_BASE + projectId + '/requirements/' + entry.ArtifactId + "/comments?";
       break;
 
     // TEST CASES
-    case ART_ENUMS.testCases:
+    case params.artifactEnums.testCases:
       postUrl = API_PROJECT_BASE + projectId + '/test-cases/' + entry.ArtifactId + "/comments?";
       break;
 
     // INCIDENTS
-    case ART_ENUMS.incidents:
+    case params.artifactEnums.incidents:
       postUrl = API_PROJECT_BASE + projectId + '/incidents/' + entry.ArtifactId + "/comments?";
       //creating comments for incidents requires the POST body to be array-like
       JSON_body = "[" + JSON_body + "]";
       break;
 
     // RELEASES
-    case ART_ENUMS.releases:
+    case params.artifactEnums.releases:
       postUrl = API_PROJECT_BASE + projectId + '/releases/' + entry.ArtifactId + "/comments?";
       break;
 
     // TASKS
-    case ART_ENUMS.tasks:
+    case params.artifactEnums.tasks:
       postUrl = API_PROJECT_BASE + projectId + '/tasks/' + entry.ArtifactId + "/comments?";
       break;
 
     // RISKS
-    case ART_ENUMS.risks:
+    case params.artifactEnums.risks:
       postUrl = API_PROJECT_BASE + projectId + '/risks/' + entry.ArtifactId + "/comments?";
       break;
 
     // TEST SETS
-    case ART_ENUMS.testSets:
+    case params.artifactEnums.testSets:
       postUrl = API_PROJECT_BASE + projectId + '/test-sets/' + entry.ArtifactId + "/comments?";
       break;
   }
@@ -806,7 +790,7 @@ function postAssociationToSpira(entry, user, projectId, artifactTypeId) {
   switch (artifactTypeId) {
 
     // REQUIREMENTS
-    case ART_ENUMS.requirements:
+    case params.artifactEnums.requirements:
       var associationType = getAssociationType(artifactTypeId, entry);
       if (associationType == params.associationEnums.req2req) {
         postUrl = API_PROJECT_BASE + projectId + '/associations?';
@@ -814,7 +798,7 @@ function postAssociationToSpira(entry, user, projectId, artifactTypeId) {
       break;
 
     // TEST CASES
-    case ART_ENUMS.testCases:
+    case params.artifactEnums.testCases:
       //decide what association to handle
       var associationType = getAssociationType(artifactTypeId, entry);
       if (associationType == params.associationEnums.tc2req) {
@@ -855,7 +839,7 @@ function postArtifactToSpira(entry, user, projectId, templateId, artifactTypeId,
   //send JSON object of new item to artifact specific export function
   switch (artifactTypeId) {
     // REQUIREMENTS
-    case ART_ENUMS.requirements:
+    case params.artifactEnums.requirements:
       // url to post initial RQ to ensure it is fully outdented
       if (entry.indentPosition === 0) {
         postUrl = API_PROJECT_BASE + projectId + '/requirements/indent/' + INITIAL_HIERARCHY_OUTDENT + '?';
@@ -869,17 +853,17 @@ function postArtifactToSpira(entry, user, projectId, templateId, artifactTypeId,
       break;
 
     // TEST CASES
-    case ART_ENUMS.testCases:
+    case params.artifactEnums.testCases:
       postUrl = API_PROJECT_BASE + projectId + '/test-cases?';
       break;
 
     // INCIDENTS
-    case ART_ENUMS.incidents:
+    case params.artifactEnums.incidents:
       postUrl = API_PROJECT_BASE + projectId + '/incidents?';
       break;
 
     // RELEASES
-    case ART_ENUMS.releases:
+    case params.artifactEnums.releases:
       // if no parentId then post as a regular release
       if (parentId === -1) {
         postUrl = API_PROJECT_BASE + projectId + '/releases?';
@@ -890,46 +874,46 @@ function postArtifactToSpira(entry, user, projectId, templateId, artifactTypeId,
       break;
 
     // TASKS
-    case ART_ENUMS.tasks:
+    case params.artifactEnums.tasks:
       postUrl = API_PROJECT_BASE + projectId + '/tasks?';
       break;
 
     // TEST STEPS
-    case ART_ENUMS.testSteps:
+    case params.artifactEnums.testSteps:
       postUrl = parentId !== -1 ? API_PROJECT_BASE + projectId + '/test-cases/' + parentId + '/test-steps?' : null;
       // only post the test step if we have a parent id
       break;
 
     // RISKS
-    case ART_ENUMS.risks:
+    case params.artifactEnums.risks:
       postUrl = API_PROJECT_BASE + projectId + '/risks?';
       entry['CreationDate'] = new Date().toISOString();
       JSON_body = JSON.stringify(entry);
       break;
 
     // TEST SETS
-    case ART_ENUMS.testSets:
+    case params.artifactEnums.testSets:
       postUrl = API_PROJECT_BASE + projectId + '/test-sets?';
       break;
 
     // FOLDERS
-    case ART_ENUMS.folders:
-      if (entry.artifact == ART_ENUMS.testCases) {
+    case params.artifactEnums.folders:
+      if (entry.artifact == params.artifactEnums.testCases) {
         postUrl = API_PROJECT_BASE + projectId + '/test-folders?';
-      } else if (entry.artifact == ART_ENUMS.testSets) {
+      } else if (entry.artifact == params.artifactEnums.testSets) {
         postUrl = API_PROJECT_BASE + projectId + '/test-set-folders?';
-      } else if (entry.artifact == ART_ENUMS.tasks) {
+      } else if (entry.artifact == params.artifactEnums.tasks) {
         postUrl = API_PROJECT_BASE + projectId + '/task-folders?';
       }
       break;
 
     // COMPONENTS
-    case ART_ENUMS.components:
+    case params.artifactEnums.components:
       postUrl = API_PROJECT_BASE + projectId + '/components?';
       break;
 
     // USERS
-    case ART_ENUMS.users:
+    case params.artifactEnums.users:
 
       postUrl = API_BASE + 'users?';
       //adding the optional URL paramenters
@@ -945,14 +929,14 @@ function postArtifactToSpira(entry, user, projectId, templateId, artifactTypeId,
       break;
 
     //CUSTOM LISTS
-    case ART_ENUMS.customLists:
+    case params.artifactEnums.customLists:
       postUrl = API_TEMPLATE_BASE + templateId + '/custom-lists?';
       break;
 
     //CUSTOM VALUES
-    case ART_ENUMS.customValues:
+    case params.artifactEnums.customValues:
       postUrl = API_TEMPLATE_BASE + templateId + '/custom-lists/' + parentId + '/values?';
-      entry[ART_PARENT_IDS[ART_ENUMS.customValues]] = parentId;
+      entry[ART_PARENT_IDS[params.artifactEnums.customValues]] = parentId;
       JSON_body = JSON.stringify(entry);
       break;
 
@@ -977,13 +961,13 @@ function putArtifactToSpira(entry, user, projectId, templateId, artifactTypeId, 
   switch (artifactTypeId) {
 
     // REQUIREMENTS
-    case ART_ENUMS.requirements:
+    case params.artifactEnums.requirements:
       // url to update RQs
       putUrl = API_PROJECT_BASE + projectId + '/requirements?';
       break;
 
     // TEST CASES
-    case ART_ENUMS.testCases:
+    case params.artifactEnums.testCases:
       putUrl = API_PROJECT_BASE + projectId + '/test-cases?';
       if (!IS_GOOGLE) {
         entry.TestSteps = null;
@@ -992,12 +976,12 @@ function putArtifactToSpira(entry, user, projectId, templateId, artifactTypeId, 
       break;
 
     // INCIDENTS
-    case ART_ENUMS.incidents:
+    case params.artifactEnums.incidents:
       putUrl = API_PROJECT_BASE + projectId + '/incidents/' + entry.IncidentId + '?';
       break;
 
     // RELEASES
-    case ART_ENUMS.releases:
+    case params.artifactEnums.releases:
       // if no parentId then post as a regular release
       if (parentId === -1) {
         putUrl = API_PROJECT_BASE + projectId + '/releases?';
@@ -1008,35 +992,35 @@ function putArtifactToSpira(entry, user, projectId, templateId, artifactTypeId, 
       break;
 
     // TASKS
-    case ART_ENUMS.tasks:
+    case params.artifactEnums.tasks:
       putUrl = API_PROJECT_BASE + projectId + '/tasks?';
       break;
 
     // TEST STEPS
-    case ART_ENUMS.testSteps:
+    case params.artifactEnums.testSteps:
       putUrl = parentId !== -1 ? API_PROJECT_BASE + projectId + '/test-cases/' + parentId + '/test-steps?' : null;
       // only post the test step if we have a parent id
       break;
 
     // RISKS
-    case ART_ENUMS.risks:
+    case params.artifactEnums.risks:
       putUrl = API_PROJECT_BASE + projectId + '/risks?';
       break;
     // TEST SETS
-    case ART_ENUMS.testSets:
+    case params.artifactEnums.testSets:
       putUrl = API_PROJECT_BASE + projectId + '/test-sets/?';
       break;
     //COMPONENTS
-    case ART_ENUMS.components:
+    case params.artifactEnums.components:
       putUrl = API_PROJECT_BASE + projectId + '/components/' + entry.ComponentId + '?';
       break;
     //CUSTOM LISTS
-    case ART_ENUMS.customLists:
-      putUrl = API_TEMPLATE_BASE + templateId + '/custom-lists/' + entry[ART_PARENT_IDS[ART_ENUMS.customLists]] + '?';
+    case params.artifactEnums.customLists:
+      putUrl = API_TEMPLATE_BASE + templateId + '/custom-lists/' + entry[ART_PARENT_IDS[params.artifactEnums.customLists]] + '?';
       break;
     //CUSTOM VALUES
-    case ART_ENUMS.customValues:
-      putUrl = API_TEMPLATE_BASE + templateId + '/custom-lists/' + entry[ART_PARENT_IDS[ART_ENUMS.customLists]] + '?';
+    case params.artifactEnums.customValues:
+      putUrl = API_TEMPLATE_BASE + templateId + '/custom-lists/' + entry[ART_PARENT_IDS[params.artifactEnums.customLists]] + '?';
       //due to the API nature, this query requires some extra steps before sending the object
       var finalEntry = {
         Name: "",
@@ -1171,32 +1155,8 @@ function templateLoader(model, fieldTypeEnums, advancedMode) {
   var sheet;
   var newSheetName;
 
-  if (model.currentOperation) {
-    //administrator mode
+  newSheetName = matchSheetName(model);
 
-    var operation = model.operations.filter(function (operation) {
-      return operation.id == model.currentOperation;
-    })[0];
-
-    if (operation.type == "send-system") {
-      //system wide operations
-      newSheetName = model.currentArtifact.name + ", system";
-
-    }
-    else if (operation.type == "send-template" || operation.type == "get-template") {
-      //template-based operations
-      newSheetName = model.currentArtifact.name + ", TP-" + model.currentTemplate.id;
-    }
-    else if (operation.type == "send-product") {
-      //product-based operations
-      //folders
-      newSheetName = "Folders, PR-" + model.currentProject.id;
-    }
-  }
-  else {
-    //stardard artifact functions
-    newSheetName = model.currentArtifact.name + ", PR-" + model.currentProject.id;
-  }
   var response;
   // select active sheet
   if (IS_GOOGLE) {
@@ -1525,27 +1485,7 @@ async function setDropdownValidation(mainSheetName, columnNumber, list, allowInv
     //first, write the values to the dbSheet
     var dataBaseSheetName = createDatabaseSheetName(params.dataSheetName, model.currentProject.id, model.currentArtifact.id);
 
-    if (model.currentOperation) {
-      //administrator mode
-
-      var operation = model.operations.filter(function (operation) {
-        return operation.id == model.currentOperation;
-      })[0];
-
-      if (operation.type == "send-system") {
-        //system wide operations
-        mainSheetName = model.currentArtifact.name + ", system";
-
-      }
-      else if (operation.type == "send-template" || operation.type == "get-template") {
-        //template-based operations
-        mainSheetName = model.currentArtifact.name + ", TP-" + model.currentTemplate.id;
-      }
-    }
-    else {
-      //stardard artifact functions
-      mainSheetName = model.currentArtifact.name + ", PR-" + model.currentProject.id;
-    }
+    mainSheetName = matchSheetName(model);
 
     var values = [];
     list.forEach(function (item) {
@@ -2164,32 +2104,7 @@ async function sendToSpira(model, fieldTypeEnums, isUpdate) {
 
   var requiredSheetName;
 
-  if (model.currentOperation) {
-    //administrator mode
-
-    var operation = model.operations.filter(function (operation) {
-      return operation.id == model.currentOperation;
-    })[0];
-
-    if (operation.type == "send-system") {
-      //system wide operations
-      requiredSheetName = model.currentArtifact.name + ", system";
-
-    }
-    else if (operation.type == "send-template" || operation.type == "get-template") {
-      //template-based operations
-      requiredSheetName = model.currentArtifact.name + ", TP-" + model.currentTemplate.id;
-    }
-    else if (operation.type == "send-product") {
-      //product-based operations
-      //folders
-      requiredSheetName = "Folders, PR-" + model.currentProject.id;
-    }
-  }
-  else {
-    //stardard artifact functions
-    requiredSheetName = model.currentArtifact.name + ", PR-" + model.currentProject.id;
-  }
+  requiredSheetName = matchSheetName(model);
 
   // 1. get the active spreadsheet and first sheet
   if (IS_GOOGLE) {
@@ -2504,19 +2419,19 @@ function createExportAssociationEntries(sheetData, model, fieldTypeEnums, artifa
         //append each entry to the export object
         entry.forEach(function appendItems(item) {
           //double check to make sure this is a valid entry:
-          if ((artifact.id == ART_ENUMS.requirements && item.DestArtifactId) || (item.skip)) {
+          if ((artifact.id == params.artifactEnums.requirements && item.DestArtifactId) || (item.skip)) {
             //if valid, append to the array
             entriesForExport.push(item);
           }
-          else if ((artifact.id == ART_ENUMS.testCases && item.RequirementId) || (item.skip)) {
+          else if ((artifact.id == params.artifactEnums.testCases && item.RequirementId) || (item.skip)) {
             //if valid, append to the array
             entriesForExport.push(item);
           }
-          else if ((artifact.id == ART_ENUMS.testCases && item.ReleaseId) || (item.skip)) {
+          else if ((artifact.id == params.artifactEnums.testCases && item.ReleaseId) || (item.skip)) {
             //if valid, append to the array
             entriesForExport.push(item);
           }
-          else if ((artifact.id == ART_ENUMS.testCases && item.TestSetId) || (item.skip)) {
+          else if ((artifact.id == params.artifactEnums.testCases && item.TestSetId) || (item.skip)) {
             //if valid, append to the array
             entriesForExport.push(item);
           }
@@ -3166,7 +3081,7 @@ function manageSendingToSpira(entry, user, projectId, templateId, artifact, fiel
         var artifactIdField = getIdFieldName(fields, fieldTypeEnums, entry.isSubType);
 
         //special case for folders
-        if (artifactTypeIdToSend == ART_ENUMS.folders) {
+        if (artifactTypeIdToSend == params.artifactEnums.folders) {
           //
           var idField = params.IdFolders[entry.artifact];
           output.newId = output.fromSpira[idField];
@@ -3255,7 +3170,7 @@ function manageSendingToSpira(entry, user, projectId, templateId, artifact, fiel
             // get the id/subType id of the newly created artifact
             var artifactIdField = getIdFieldName(fields, fieldTypeEnums, entry.isSubType);
             //special case for folders
-            if (artifactTypeIdToSend == ART_ENUMS.folders) {
+            if (artifactTypeIdToSend == params.artifactEnums.folders) {
               //
               var idField = params.IdFolders[entry.artifact];
               output.newId = output.fromSpira[idField];
@@ -3400,7 +3315,7 @@ function getAssociationParentInfo(entriesForExport, i, artifactId, mode) {
 
   if (mode == "id") {
     // we need to know the artifact type to look for specific parent ID fields
-    if (artifactId == ART_ENUMS.testCases || artifactId == ART_ENUMS.customLists) {
+    if (artifactId == params.artifactEnums.testCases || artifactId == params.artifactEnums.customLists) {
       //look for parents in the previous rows
       for (i; i > 0; i--) {
         //if we found the specific parentID for the artifact type, return it
@@ -3413,7 +3328,7 @@ function getAssociationParentInfo(entriesForExport, i, artifactId, mode) {
   }
   else if (mode == "name") {
     // we need to know the artifact type to look for specific parent Name fields
-    if (artifactId == ART_ENUMS.customLists) {
+    if (artifactId == params.artifactEnums.customLists) {
       //look for parents in the previous rows
       for (i; i > 0; i--) {
         //if we found the specific parentID for the artifact type, return it
@@ -3426,7 +3341,7 @@ function getAssociationParentInfo(entriesForExport, i, artifactId, mode) {
   }
   else if (mode == "active") {
     // we need to know the artifact type to look for specific parent Name fields
-    if (artifactId == ART_ENUMS.customLists) {
+    if (artifactId == params.artifactEnums.customLists) {
       //look for parents in the previous rows
       for (i; i > 0; i--) {
         //if we found the specific parentID for the artifact type, return it
@@ -4370,13 +4285,36 @@ function processSendToSpiraResponse(i, sentToSpira, entriesForExport, artifact, 
   return log;
 }
 
+// returns the correct spreadsheet expected name, based on the operation type
+// @param:  model - current model data for the current session
+// @output: expected spreadsheet name
+function matchSheetName(model) {
 
+  var sheetName;
 
+  if (model.currentOperation) {
+    //administrator mode
 
+    var operation = model.operations.filter(function (operation) {
+      return operation.id == model.currentOperation;
+    })[0];
 
+    if (operation.type == "send-system") {
+      //system wide operations
+      sheetName = model.currentArtifact.name + ", system";
+    }
+    else if (operation.type == "send-template" || operation.type == "get-template") {
+      //template-based operations
+      sheetName = model.currentArtifact.name + ", TP-" + model.currentTemplate.id;
+    }
+  }
+  else {
+    //stardard artifact functions
+    sheetName = model.currentArtifact.name + ", PR-" + model.currentProject.id;
+  }
 
-
-
+  return sheetName;
+}
 
 /*
  * ==================
@@ -4394,27 +4332,7 @@ function getFromSpiraGoogle(model, fieldTypeEnums, advancedMode) {
   var requiredSheetName;
   var singleArtifactId = null;
 
-  if (model.currentOperation) {
-    //administrator mode
-
-    var operation = model.operations.filter(function (operation) {
-      return operation.id == model.currentOperation;
-    })[0];
-
-    if (operation.type == "send-system") {
-      //system wide operations
-      requiredSheetName = model.currentArtifact.name + ", system";
-
-    }
-    else if (operation.type == "send-template" || operation.type == "get-template") {
-      //template-based operations
-      requiredSheetName = model.currentArtifact.name + ", TP-" + model.currentTemplate.id;
-    }
-  }
-  else {
-    //stardard artifact functions
-    requiredSheetName = model.currentArtifact.name + ", PR-" + model.currentProject.id;
-  }
+  requiredSheetName = matchSheetName(model);
 
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var sheet = ss.getSheets()[0];
@@ -4587,27 +4505,7 @@ function getFromSpiraExcel(model, fieldTypeEnums) {
     sheetRange.load("values");
     var requiredSheetName;
 
-    if (model.currentOperation) {
-      //administrator mode
-
-      var operation = model.operations.filter(function (operation) {
-        return operation.id == model.currentOperation;
-      })[0];
-
-      if (operation.type == "send-system") {
-        //system wide operations
-        requiredSheetName = model.currentArtifact.name + ", system";
-
-      }
-      else if (operation.type == "send-template" || operation.type == "get-template") {
-        //template-based operations
-        requiredSheetName = model.currentArtifact.name + ", TP-" + model.currentTemplate.id;
-      }
-    }
-    else {
-      //stardard artifact functions
-      requiredSheetName = model.currentArtifact.name + ", PR-" + model.currentProject.id;
-    }
+    requiredSheetName = matchSheetName(model);
 
     return context.sync()
       .then(function () {

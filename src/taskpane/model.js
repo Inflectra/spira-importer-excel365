@@ -49,7 +49,6 @@ var params = {
         customLists: 97,
         customValues: 96,
     },
-
     dataSheetName: "database",
 
     // enums for different types of field - match custom field prop types where relevant
