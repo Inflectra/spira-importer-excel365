@@ -24,6 +24,15 @@ Up to know, the advanced features are :
 */
 var advancedMode = false;
 
+/*
+Global Variable to control if an admin advanced options button should be enabled to the logged user
+Up to know, the admin mode flag controls:
+1. If "adminOnly" artifacts should be shown in standard Get/Send product operations
+2. If Get/Send system wide/template-based operations should be shown
+*/
+var isAdmin = false;
+
+
 //ENUMS
 
 var UI_MODE = {
@@ -43,7 +52,7 @@ var UI_MODE = {
  */
 
 // Google Sheets specific code to run at first launch
-(function () {
+/*(function () {
   if (isGoogle) {
 
     // for dev mode only - comment out or set to false to disable any UI dev features
@@ -55,7 +64,7 @@ var UI_MODE = {
     // dom specific changes
     document.getElementById("help-connection-excel").style.display = "none";
   }
-})();
+})();*/
 
 
 /*
@@ -66,7 +75,7 @@ var UI_MODE = {
  * Please comment/uncomment this block of code for Google Sheets/Excel
  */
 
-/*import { params, templateFields, Data, tempDataStore } from './model.js';
+import { params, templateFields, Data, tempDataStore } from './model.js';
 import * as msOffice from './server.js';
 
 export { showPanel, hidePanel };
@@ -86,7 +95,6 @@ Office.onReady(info => {
   }
 });
 
-*/
 
 /* ==============================
 
@@ -131,23 +139,41 @@ function setEventListeners() {
   };
   document.getElementById("btn-decide-send").onclick = function () { showMainPanel("send") };
   document.getElementById("btn-decide-get").onclick = function () { showMainPanel("get") };
+  document.getElementById("btn-decide-admin").onclick = function () { showAdminPanel() };
   document.getElementById("btn-decide-logout").onclick = logoutAttempt;
   document.getElementById("btn-help-main").onclick = function () {
     panelToggle('help');
     showChosenHelpSection('data')
   };
+  document.getElementById("btn-help-admin").onclick = function () {
+    panelToggle('help');
+    showChosenHelpSection('login')
+  };
 
   document.getElementById("btn-logout").onclick = logoutAttempt;
+  document.getElementById("btn-logout-admin").onclick = logoutAttempt;
   document.getElementById("btn-main-back").onclick = hideMainPanel;
+  document.getElementById("btn-admin-back").onclick = hideAdminPanel;
 
   // changing of dropdowns
   document.getElementById("select-product").onchange = changeProjectSelect;
   document.getElementById("select-artifact").onchange = changeArtifactSelect;
 
+  document.getElementById("select-operation").onchange = changeOperationSelect;
+  document.getElementById("select-template").onchange = changeTemplateSelect;
+  document.getElementById("select-list").onchange = changeListSelect;
+  document.getElementById("select-artifact-folder").onchange = changeArtifactFolderSelect;
+  document.getElementById("select-admin-product").onchange = changeAdminProductSelect;
+
   document.getElementById("btn-toSpira").onclick = sendToSpiraAttempt;
+  document.getElementById("btn-prepareTemplate").onclick = prepareTemplateAdmin;
+  document.getElementById("btn-admin-send").onclick = sendToSpiraAttempt;
+
   document.getElementById("btn-fromSpira").onclick = getFromSpiraAttempt;
+  document.getElementById("btn-adminGet").onclick = getFromSpiraAttempt;
   document.getElementById("btn-template").onclick = updateTemplateAttempt;
   document.getElementById("btn-updateToSpira").onclick = updateSpiraAttempt;
+  document.getElementById("btn-admin-update").onclick = updateSpiraAttempt;
 
   document.getElementById("btn-help-back").onclick = function () { panelToggle("help") };
   document.getElementById("btn-help-section-login").onclick = function () { showChosenHelpSection('login') };
@@ -207,6 +233,21 @@ function clearSheet(shouldClear) {
   var shouldClearToUse = typeof shouldClear !== 'undefined' ? shouldClear : true;
   if (shouldClearToUse) {
     if (isGoogle) {
+
+      document.getElementById("btn-prepareTemplate").disabled = true;
+      document.getElementById("main-guide-admin-2-send").classList.add("pale");
+      document.getElementById('main-guide-admin-2-send').style.fontWeight = 'normal';
+      document.getElementById('main-guide-admin-2-get').style.fontWeight = 'normal';
+      document.getElementById('main-guide-1-fromSpira').style.fontWeight = 'normal';
+
+      document.getElementById("main-guide-admin-3-post").classList.remove("pale");
+      document.getElementById("btn-admin-send").classList.remove("pale");
+      document.getElementById("btn-prepareTemplate").classList.remove("action");
+      document.getElementById("btn-admin-send").classList.add("action");
+      document.getElementById('main-guide-admin-3-post').style.fontWeight = 'bold';
+      document.getElementById("btn-admin-send").disabled = false;
+      document.getElementById("main-guide-admin-3-post").classList.remove("pale");
+
       google.script.run
         .withSuccessHandler(newTemplateHandler)
         .clearAll(uiSelection);
@@ -229,6 +270,7 @@ function newTemplateHandler(shouldContinue) {
     // all data should already be loaded (as otherwise template button is disabled)
     // but check again that all data is present before kicking off template creation
     // if so, kicks off template creation, otherwise waits and tries again
+    // the exception is when using advanced admin mode operations not based on projects
 
     if (allGetsSucceeded()) {
       templateLoader();
@@ -236,7 +278,7 @@ function newTemplateHandler(shouldContinue) {
     } else {
       var checkGetsSuccess = setInterval(attemptTemplateLoader, 1500);
       function attemptTemplateLoader() {
-        if (allGetsSucceeded()) {
+        if (allGetsSucceeded() || uiSelection.currentOperation == 1 || uiSelection.currentOperation == 2 || uiSelection.currentOperation == 3 || uiSelection.currentOperation == 4) {
           templateLoader();
           clearInterval(checkGetsSuccess);
         }
@@ -326,12 +368,23 @@ function setDropdown(selectId, array, firstMessage) {
   });
 }
 
+function removeOptions(selectElement) {
+  var i, L = selectElement.options.length - 1;
+  for (i = L; i >= 0; i--) {
+    selectElement.remove(i);
+  }
+}
 
 function isModelDifferentToSelection() {
   if (model.isTemplateLoaded) {
-    var projectHasChanged = model.currentProject.id !== getSelectedProject().id;
-    var artifactHasChanged = model.currentArtifact.id !== getSelectedArtifact().id;
-    return projectHasChanged || artifactHasChanged;
+    if (uiSelection.currentOperation == 3 || uiSelection.currentOperation == 4) {
+      var templatetHasChanged = model.currentTemplate.id !== getSelectedItem("select-template", model.templates).id;
+      return templatetHasChanged;
+    } else {
+      var projectHasChanged = model.currentProject.id !== getSelectedItem("select-product", model.projects).id;
+      var artifactHasChanged = model.currentArtifact.id !== getSelectedItem("select-artifact", params.artifacts).id;
+      return projectHasChanged || artifactHasChanged;
+    }
   } else {
     return false;
   }
@@ -385,6 +438,21 @@ function loginAttempt() {
 function login() {
   artifactUpdateUI(UI_MODE.initialState);
   showLoadingSpinner();
+  //First, check if this user is an admin (required to display admin options)
+  if (isGoogle) {
+    google.script.run
+      .withSuccessHandler(showHideAdminButton)
+      .withFailureHandler(errorNetwork)
+      .isUserAdmin(model.user);
+  } else {
+    msOffice.isUserAdmin(model.user)
+      .then(response => showHideAdminButton(response.body))
+      .catch(err => {
+        return errorNetwork(err)
+      }
+      );
+  }
+
   // call server side function to get projects
   // also serves as authentication check, if the user credentials aren't correct it will throw a network error
   if (isGoogle) {
@@ -429,7 +497,56 @@ function populateProjects(projects) {
   hideLoadingSpinner();
 }
 
+// prepare prj template data to be displayed in the admin panel
+// @param: templates - passed in templates data returned from the server following successful API call to Spira
+function populateTemplates(templates) {
+  // take projects data from Spira API call, strip out unwanted fields, add to data model
+  var pairedDownTemplatesData = templates.reduce(function (filtered, template) {
+    if (template.IsActive) {
+      var result = {
+        id: template.ProjectTemplateId,
+        name: template.Name
+      }
+      filtered.push(result);
+    }
+    return filtered;
+  }, []);
+  // now add paired down template array to data store
+  model.templates = pairedDownTemplatesData;
+  //populates the templates dropdown menu
+  setDropdown("select-template", model.templates, "Select a product template");
+}
 
+// prepare custom lists data to be displayed in the admin panel
+// @param: lists - passed in lists data returned from the server following successful API call to Spira
+function populateLists(lists) {
+  // take projects data from Spira API call, strip out unwanted fields, add to data model
+  var pairedDownListsData = lists.map(function (list) {
+    var result = {
+      id: list.CustomPropertyListId,
+      name: list.Name
+    };
+    return result;
+  });
+
+  var allObject = {
+    id: -1,
+    name: "[ALL]"
+  };
+
+  if (isGoogle) {
+    pairedDownListsData = [allObject].concat(pairedDownListsData);
+  }
+  else {
+    pairedDownListsData.unshift(allObject);
+  }
+
+  //stores it for future use
+  model.templateLists = pairedDownListsData;
+
+  //populates the templates dropdown menu
+  setDropdown("select-list", pairedDownListsData, "Select a custom list");
+}
 
 /*
 *
@@ -442,8 +559,27 @@ function populateProjects(projects) {
 // manage the switching of the UI off the login screen on succesful login and retrieval of projects
 function showMainPanel(type) {
 
+  var paramsDropdown = params.artifacts;
+  //all the users should have access to this option
   setDropdown("select-product", model.projects, "Select a product");
-  setDropdown("select-artifact", params.artifacts, "Select an artifact");
+  //but not for artifacts - filter accordingly
+  if (!isAdmin) {
+    paramsDropdown = paramsDropdown.filter((element) => {
+      if (!element.hasOwnProperty("adminOnly")) {
+        return element;
+      }
+    })
+  }
+  //some artifacts are not to get, just to post - remove them
+  if (type == "get") {
+    paramsDropdown = paramsDropdown.filter((element) => {
+      if (!element.hasOwnProperty("sendOnly")) {
+        return element;
+      }
+    })
+  }
+
+  setDropdown("select-artifact", paramsDropdown, "Select an artifact");
 
   // set the buttons to the correct mode
   if (type == "send") {
@@ -452,12 +588,16 @@ function showMainPanel(type) {
     document.getElementById("main-heading-fromSpira").style.display = "none";
     document.getElementById("btn-updateToSpira").style.visibility = "hidden";
     document.getElementById("main-guide-3").style.visibility = "hidden";
+    document.getElementById("input-page-div").style.display = "none";
+    document.getElementById("input-page-label").style.display = "none";
   } else {
     document.getElementById("btn-toSpira").style.display = "none";
     document.getElementById("main-guide-1-toSpira").style.display = "none";
     document.getElementById("main-heading-toSpira").style.display = "none";
     document.getElementById("main-guide-3").style.visibility = "visible";
     document.getElementById("btn-updateToSpira").style.visibility = "visible";
+    document.getElementById("input-page-div").style.display = "";
+    document.getElementById("input-page-label").style.display = "";
   }
 
   // opens the panel
@@ -474,7 +614,6 @@ function hideMainPanel() {
   // make sure the system does not think any data is loaded
   model.isTemplateLoaded = false;
 }
-
 
 
 // run server side code to manage logout
@@ -515,7 +654,7 @@ function changeProjectSelect(e) {
     document.getElementById("select-artifact").disabled = false;
 
     // get the project object and update project information if project has changed
-    var chosenProject = getSelectedProject();
+    var chosenProject = getSelectedItem("select-product", model.projects);
     if (chosenProject.id && chosenProject.id !== uiSelection.currentProject.id) {
       //set the temp data store project to the one selected;
       uiSelection.currentProject = chosenProject;
@@ -579,6 +718,10 @@ function artifactUpdateUI(mode) {
       document.getElementById('btn-fromSpira').classList.remove('ms-Button--default');
       document.getElementById('btn-fromSpira').classList.add('ms-Button--primary');
 
+      document.getElementById("input-page").disabled = true;
+      document.getElementById("input-page-div").classList.add("pale");
+      document.getElementById("input-page-label").classList.add("pale");
+
       break;
 
     case UI_MODE.newProject:
@@ -588,17 +731,32 @@ function artifactUpdateUI(mode) {
       document.getElementById("main-guide-3").classList.add("pale");
       document.getElementById("btn-fromSpira").disabled = true;
       document.getElementById("btn-updateToSpira").disabled = true;
+      document.getElementById("input-page").disabled = true;
+      document.getElementById("input-page-div").classList.add("pale");
+      document.getElementById("input-page-label").classList.add("pale");
       break;
 
     case UI_MODE.newArtifact:
       //when selecting a new artifact
       document.getElementById("main-guide-3").classList.add("pale");
       document.getElementById("btn-updateToSpira").disabled = true;
+      document.getElementById("input-page").disabled = false;
+      document.getElementById("input-page-div").classList.remove("pale");
+      document.getElementById("input-page-label").classList.remove("pale");
       break;
 
     case UI_MODE.getData:
-      //when clicking from-Spira button
+      //when clicking from-Spira button - the admin pane is different from the main pane
+      document.getElementById("main-guide-admin-2-get").disabled = false;
       document.getElementById("btn-updateToSpira").disabled = false;
+
+      document.getElementById('main-guide-admin-2-get').style.fontWeight = 'normal';
+      document.getElementById("main-guide-admin-2-get").classList.add("pale");
+      document.getElementById("main-guide-admin-3-post").classList.remove("pale");
+      document.getElementById('main-guide-admin-3-post').style.fontWeight = 'bold';
+      document.getElementById("btn-admin-update").disabled = false;
+      document.getElementById("btn-adminGet").classList.remove("action");
+      document.getElementById("btn-admin-update").classList.add("action");
       break;
 
     case UI_MODE.errorMode:
@@ -620,17 +778,26 @@ function changeArtifactSelect(e) {
     document.getElementById("btn-fromSpira").disabled = true;
     document.getElementById("btn-template").disabled = true;
     uiSelection.currentArtifact = null;
+    uiSelection.artifactCustomFields = [];
   } else {
     // get the artifact object and update artifact information if artifact has changed
-    var chosenArtifact = getSelectedArtifact();
+    var chosenArtifact = getSelectedItem("select-artifact", params.artifacts);
 
+    //handling skip-pagination if aplicable
+    if (chosenArtifact && chosenArtifact.noPagination) {
+      document.getElementById("input-page").disabled = true;
+      document.getElementById("input-page-div").classList.add("pale");
+      document.getElementById("input-page-label").classList.add("pale");
+      document.getElementById("input-page").value = "1";
+    }
+
+
+    uiSelection.artifactCustomFields = [];
     if (chosenArtifact !== uiSelection.currentArtifact) {
       //set the temp date store artifact to the one selected;
       uiSelection.currentArtifact = chosenArtifact;
-
       // enable template button only when all info is received - otherwise keep it disabled
       manageTemplateBtnState();
-
       // kick off API calls - if we have a current template and project
       if (uiSelection.currentProject.templateId && uiSelection.currentProject.id) {
         getArtifactSpecificInformation(model.user, uiSelection.currentProject.templateId, uiSelection.currentProject.id, uiSelection.currentArtifact);
@@ -659,8 +826,8 @@ function manageTemplateBtnState() {
 
     function updateButtonStatus() {
       if (allGetsSucceeded()) {
-
         if (!document.getElementById("btn-updateToSpira").disabled) {
+
           //Send to Spira is active - click on Get from Spira
           //sets the UI to allow update
           document.getElementById("btn-fromSpira").disabled = false;
@@ -694,7 +861,7 @@ function manageTemplateBtnState() {
         // if there is a discrepancy between the dropdown and the currently active template
         // only do this is user will send to spira - determined by whether the send to spira button is visible
         if (document.getElementById("btn-toSpira").style.display != "none") {
-          if (isModelDifferentToSelection()) {
+          if (isModelDifferentToSelection(false)) {
             document.getElementById("pnl-template").style.display = "";
             document.getElementById("btn-template").disabled = false;
           } else {
@@ -739,9 +906,9 @@ function createTemplate(shouldContinue) {
     // all data should already be loaded (as otherwise template button is disabled)
     // but check again that all data is present before kicking off template creation
     // if so, kicks off template creation, otherwise waits and tries again
-    if (allGetsSucceeded()) {
+    // the exception is when using advanced admin mode operations not based on projects
+    if (allGetsSucceeded() || uiSelection.currentOperation == 1 || uiSelection.currentOperation == 2 || uiSelection.currentOperation == 3 || uiSelection.currentOperation == 4) {
       templateLoader();
-
       // otherwise, run an interval loop (should never get called as template button should be disabled)
     } else {
       var checkGetsSuccess = setInterval(attemptTemplateLoader, 500);
@@ -760,6 +927,7 @@ function createTemplate(shouldContinue) {
 function getFromSpiraAttempt() {
   // first update state to reflect user intent
   model.isGettingDataAttempt = true;
+  model.selectedPage = document.getElementById("input-page").value;
 
   //check that template is loaded and that it matches the UI choices
   if (model.isTemplateLoaded && !isModelDifferentToSelection()) {
@@ -775,18 +943,21 @@ function getFromSpiraAttempt() {
         .then((response) => getFromSpiraComplete(response))
         .catch((error) => errorImpExp(error));
     }
+    //sets the UI to correspond to this mode
+    artifactUpdateUI(UI_MODE.getData);
   } else {
-    //if no template - then get the template
-    createTemplateAttempt();
+    if (isGoogle) { createTemplateAttempt(() => artifactUpdateUI(UI_MODE.getData)); }
+    else { createTemplateAttempt(); artifactUpdateUI(UI_MODE.getData); }
   }
-  //sets the UI to correspond to this mode
-  artifactUpdateUI(UI_MODE.getData);
 }
 
-
-
-
 function getFromSpiraComplete(log) {
+
+  //update the page label to inform what results were shown
+  if (log && log.firstRecord && log.lastRecord) {
+    document.getElementById("input-page-label").textContent = "Records from " + log.firstRecord + " to " + log.lastRecord + "."
+  }
+
   if (devMode)
     //if array (which holds error responses) is present, and errors present
     if (log && log.errorCount) {
@@ -821,17 +992,57 @@ function sendToSpiraAttempt() {
     //call export function
     if (isGoogle) {
       google.script.run
-        .withFailureHandler(errorImpExp)
+        .withFailureHandler(GoogleErrorHandler)
         .withSuccessHandler(sendToSpiraComplete)
         .sendToSpira(model, params.fieldType, false);
     } else {
       msOffice.sendToSpira(model, params.fieldType, false)
         .then((response) => sendToSpiraComplete(response))
-        .catch((error) => errorImpExp(error));
+        .catch((error) => {
+          if (model.currentOperation == 3 || model.currentOperation == 4) {
+            //lists
+            errorLists(error);
+          }
+          else {
+            errorImpExp(error);
+          }
+        });
     }
   } else {
     //if no template - then get the template
     createTemplateAttempt();
+  }
+}
+
+function GoogleErrorHandler() {
+  if (model.currentOperation == 3 || model.currentOperation == 4) {
+    //lists
+    errorLists(error);
+  }
+  else {
+    errorImpExp(error);
+  }
+}
+
+function prepareTemplateAdmin() {
+  if (!model.isTemplateLoaded) {
+
+    createTemplateAttempt();
+    if (!isGoogle) {
+      document.getElementById("btn-prepareTemplate").disabled = true;
+      document.getElementById("main-guide-admin-2-send").classList.add("pale");
+      document.getElementById('main-guide-admin-2-send').style.fontWeight = 'normal';
+      document.getElementById('main-guide-admin-2-get').style.fontWeight = 'normal';
+      document.getElementById('main-guide-1-fromSpira').style.fontWeight = 'normal';
+
+      document.getElementById("main-guide-admin-3-post").classList.remove("pale");
+      document.getElementById("btn-admin-send").classList.remove("pale");
+      document.getElementById("btn-prepareTemplate").classList.remove("action");
+      document.getElementById("btn-admin-send").classList.add("action");
+      document.getElementById('main-guide-admin-3-post').style.fontWeight = 'bold';
+      document.getElementById("btn-admin-send").disabled = false;
+      document.getElementById("main-guide-admin-3-post").classList.remove("pale");
+    }
   }
 }
 
@@ -843,6 +1054,12 @@ function updateSpiraAttempt() {
   if (model.isTemplateLoaded) {
     showLoadingSpinner();
 
+    //handling action buttons for admin
+
+    if (isAdmin) {
+      document.getElementById("btn-admin-update").classList.remove("action");
+      document.getElementById("btn-admin-send").classList.add("action");
+    }
     //call export function
     if (isGoogle) {
       google.script.run
@@ -862,7 +1079,6 @@ function updateSpiraAttempt() {
 }
 
 function sendToSpiraComplete(log) {
-
   if (isGoogle && log) {
     log = JSON.parse(log);
   }
@@ -920,19 +1136,579 @@ function showChosenHelpSection(choice) {
   document.getElementById("help-section-" + choice).classList.remove("hidden");
 
   // set all buttons back to normal, then highlight one just clicked
-  document.getElementById("btn-help-section-login").classList.remove("create");
-  document.getElementById("btn-help-section-modes").classList.remove("create");
-  document.getElementById("btn-help-section-data").classList.remove("create");
-  document.getElementById("btn-help-section-" + choice).classList.add("create");
+  document.getElementById("btn-help-section-login").classList.remove("action");
+  document.getElementById("btn-help-section-modes").classList.remove("action");
+  document.getElementById("btn-help-section-data").classList.remove("action");
+  document.getElementById("btn-help-section-" + choice).classList.add("action");
 }
 
 
 
+/*
+*
+* ===========
+* ADMIN SCREEN
+* ===========
+*
+*/
 
 
+//decide if the administrator advanced options button should be displayed for the current logged user
+function showHideAdminButton(spiraUser) {
+  spiraUser.Admin ? isAdmin = true : isAdmin = false;
+  spiraUser.Admin ? document.getElementById("btn-decide-admin").style.visibility = "visible" : document.getElementById("btn-decide-admin").style.visibility = "hidden";
+  spiraUser.Admin ? document.getElementById("adminBox").style.display = "" : document.getElementById("adminBox").style.display = "none";
+
+}
 
 
+// manage the switching of the UI off the login screen to the administrator screen 
+function showAdminPanel() {
+  //menu exclusive for system administrator users
+  //hide information we don't want to be displayed yet
+  document.getElementById('main-guide-1-admin').style.fontWeight = 'bold';
+  document.getElementById("main-guide-admin-2-get").style.visibility = "hidden";
+  document.getElementById("main-guide-admin-2-send").style.visibility = "hidden";
+  document.getElementById("btn-prepareTemplate").style.visibility = "hidden";
+  document.getElementById("btn-adminGet").style.visibility = "hidden";
+  document.getElementById("main-guide-admin-3-put").style.visibility = "hidden";
+  document.getElementById("main-guide-admin-3-post").style.visibility = "hidden";
+  document.getElementById("btn-admin-send").style.visibility = "hidden";
+  document.getElementById("btn-admin-update").style.visibility = "hidden";
+  document.getElementById("main-guide-admin-templates").style.visibility = "hidden";
+  document.getElementById("main-guide-admin-lists").style.visibility = "hidden";
+  document.getElementById("select-template").style.visibility = "hidden";
+  document.getElementById("select-list").style.visibility = "hidden";
 
+  document.getElementById("btn-prepareTemplate").disabled = true;
+  document.getElementById("main-guide-admin-2-send").classList.add("pale");
+  document.getElementById('main-guide-1-fromSpira').style.fontWeight = 'bold';
+
+  document.getElementById("main-guide-admin-3-post").classList.add("pale");
+  document.getElementById("btn-admin-send").classList.add("pale");
+  document.getElementById('main-guide-admin-3-post').style.fontWeight = 'normal';
+
+  document.getElementById("main-guide-admin-folders").style.visibility = "hidden";
+  document.getElementById("main-guide-admin-folders").style.display = "none";
+
+  document.getElementById("main-guide-admin-products").style.visibility = "hidden";
+  document.getElementById("main-guide-admin-products").style.display = "none";
+
+  document.getElementById("select-artifact-folder").style.visibility = "hidden";
+  document.getElementById("select-artifact-folder").style.display = "none";
+
+  document.getElementById("select-admin-product").style.visibility = "hidden";
+  document.getElementById("select-admin-product").style.display = "none";
+
+  document.getElementById("btn-admin-send").disabled = false;
+
+  //Get the project templates now we know this user is an admin
+  // call server side function to get templates
+  if (isGoogle) {
+    google.script.run
+      .withSuccessHandler(populateTemplates)
+      .withFailureHandler(errorNetwork)
+      .getProjectTemplates(model.user);
+  } else {
+    msOffice.getProjectTemplates(model.user)
+      .then(response => populateTemplates(response.body))
+      .catch(err => {
+        return errorNetwork(err)
+      }
+      );
+  }
+
+  //populate the operations dropdown menu
+  setDropdown("select-operation", model.operations, "Select an operation");
+
+  showPanel("admin");
+  hideLoadingSpinner();
+
+}
+
+function hideAdminPanel() {
+  hidePanel("admin");
+  // reset the buttons and dropdowns
+  resetUi();
+  uiSelection = new tempDataStore();
+  // make sure the system does not think any data is loaded
+  model.isTemplateLoaded = false;
+}
+
+function changeOperationSelect(e) {
+
+  // if the operation field has not been selected all other objects in this panel will be hidden
+  if (e.target.value == 0) {
+    //hide information we don't want to be displayed
+    document.getElementById('main-guide-1-admin').style.fontWeight = 'bold';
+
+    document.getElementById("main-guide-admin-2-get").style.visibility = "hidden";
+    document.getElementById("main-guide-admin-2-send").style.visibility = "hidden";
+    document.getElementById("btn-prepareTemplate").style.visibility = "hidden";
+    document.getElementById("btn-adminGet").style.visibility = "hidden";
+    document.getElementById("main-guide-admin-3-put").style.visibility = "hidden";
+    document.getElementById("main-guide-admin-3-post").style.visibility = "hidden";
+    document.getElementById("btn-admin-send").style.visibility = "hidden";
+    document.getElementById("btn-admin-send").style.display = "";
+    document.getElementById("btn-admin-update").style.visibility = "hidden";
+    document.getElementById("main-guide-admin-templates").style.visibility = "hidden";
+    document.getElementById("main-guide-admin-lists").style.visibility = "hidden";
+    document.getElementById("select-template").style.visibility = "hidden";
+    document.getElementById("select-list").style.visibility = "hidden";
+    document.getElementById("select-list").disabled = true;
+
+    document.getElementById("btn-prepareTemplate").disabled = true;
+    document.getElementById("main-guide-admin-2-send").classList.add("pale");
+    document.getElementById('main-guide-1-fromSpira').style.fontWeight = 'normal';
+
+    document.getElementById("main-guide-admin-3-post").classList.add("pale");
+    document.getElementById("btn-admin-send").classList.add("pale");
+    document.getElementById("btn-admin-update").classList.add("pale");
+    document.getElementById('main-guide-admin-3-post').style.fontWeight = 'normal';
+
+    document.getElementById("btn-admin-send").disabled = false;
+    document.getElementById("btn-admin-update").disabled = false;
+    document.getElementById("btn-admin-update").style.display = "none";
+
+    document.getElementById("btn-prepareTemplate").classList.add("action");
+    document.getElementById("btn-admin-send").classList.remove("action");
+
+    document.getElementById("main-guide-admin-folders").style.visibility = "hidden";
+    document.getElementById("main-guide-admin-folders").style.display = "none";
+
+    document.getElementById("main-guide-admin-products").style.visibility = "hidden";
+    document.getElementById("main-guide-admin-products").style.display = "none";
+
+    document.getElementById("select-artifact-folder").style.visibility = "hidden";
+    document.getElementById("select-artifact-folder").style.display = "none";
+
+    document.getElementById("select-admin-product").style.visibility = "hidden";
+    document.getElementById("select-admin-product").style.display = "none";
+
+    uiSelection.currentOperation = null;
+
+  } else {
+    // enable other objects, depending on the oparation selected
+    var chosenOperation = getSelectedItem("select-operation", model.operations);
+    document.getElementById('main-guide-1-admin').style.fontWeight = 'normal';
+
+    switch (chosenOperation.type) {
+      case "send-system":
+        //system wide operations that requires send data only
+        if (chosenOperation.id == 1) {
+          //Create users operation
+          //Display the necessary objects on the taskpane
+          document.getElementById("main-guide-admin-2-get").style.display = "none";
+          document.getElementById("main-guide-admin-2-get").style.visibility = "hidden";
+
+          document.getElementById("main-guide-admin-2-send").classList.remove("pale");
+          document.getElementById("main-guide-admin-2-send").style.visibility = "visible";
+          document.getElementById("main-guide-admin-2-send").style.display = "";
+
+          document.getElementById("btn-prepareTemplate").classList.remove("pale");
+          document.getElementById("btn-prepareTemplate").style.visibility = "visible";
+          document.getElementById("btn-prepareTemplate").disabled = false;
+          document.getElementById("btn-prepareTemplate").style.display = "";
+
+          document.getElementById("select-template").style.display = "none";
+          document.getElementById("select-template").style.visibility = "hidden";
+          document.getElementById("select-list").style.visibility = "hidden";
+          document.getElementById("select-list").style.display = "none";
+          document.getElementById("select-list").disabled = true;
+
+          document.getElementById("btn-adminGet").style.display = "none";
+          document.getElementById("btn-adminGet").style.visibility = "hidden";
+
+          document.getElementById("main-guide-admin-3-post").style.visibility = "visible";
+
+          document.getElementById("main-guide-admin-3-put").style.display = "none";
+
+          document.getElementById("btn-admin-send").style.visibility = "visible";
+          document.getElementById("btn-admin-send").style.display = "";
+          document.getElementById("btn-admin-update").style.visibility = "hidden";
+          document.getElementById("btn-admin-update").style.display = "none";
+
+          document.getElementById("main-guide-admin-templates").style.visibility = "hidden";
+          document.getElementById("main-guide-admin-templates").style.display = "none";
+
+          document.getElementById("main-guide-admin-lists").style.visibility = "hidden";
+          document.getElementById("main-guide-admin-lists").style.display = "none";
+
+          document.getElementById("btn-prepareTemplate").classList.add("action");
+          document.getElementById("btn-admin-send").classList.remove("action");
+
+          document.getElementById("main-guide-admin-folders").style.visibility = "hidden";
+          document.getElementById("main-guide-admin-folders").style.display = "none";
+
+          document.getElementById("main-guide-admin-products").style.visibility = "hidden";
+          document.getElementById("main-guide-admin-products").style.display = "none";
+
+          document.getElementById("select-artifact-folder").style.visibility = "hidden";
+          document.getElementById("select-artifact-folder").style.display = "none";
+
+          document.getElementById("select-admin-product").style.visibility = "hidden";
+          document.getElementById("select-admin-product").style.display = "none";
+
+          model.isGettingDataAttempt = false;
+          uiSelection.currentOperation = 1;
+          //sets the selected artifact based on admin operation
+          uiSelection.currentArtifact = getAdminArtifact();
+          //get bespoke fields for this operation's artifact
+          getArtifactSpecificInformation(model.user, null, null, uiSelection.currentArtifact);
+        }
+        break;
+
+      case "send-product":
+        //product-based operations that requires send data only
+        if (chosenOperation.id == 2) {
+          //Artifact Folder Creation
+          //Display the necessary objects on the taskpane
+
+          document.getElementById("main-guide-admin-folders").style.visibility = "visible";
+          document.getElementById("main-guide-admin-folders").style.display = "";
+
+          document.getElementById("main-guide-admin-products").style.visibility = "visible";
+          document.getElementById("main-guide-admin-products").style.display = "";
+
+          document.getElementById("select-artifact-folder").style.visibility = "visible";
+          document.getElementById("select-artifact-folder").style.display = "";
+
+          document.getElementById("select-admin-product").style.visibility = "visible";
+          document.getElementById("select-admin-product").style.display = "";
+          document.getElementById("select-admin-product").disabled = true;
+
+          document.getElementById("main-guide-admin-templates").style.visibility = "hidden";
+          document.getElementById("main-guide-admin-templates").style.display = "none";
+
+
+          document.getElementById("main-guide-admin-2-get").style.display = "none";
+          document.getElementById("main-guide-admin-2-get").style.visibility = "hidden";
+
+          document.getElementById("main-guide-admin-2-send").classList.remove("pale");
+          document.getElementById("main-guide-admin-2-send").style.visibility = "visible";
+          document.getElementById("main-guide-admin-2-send").style.display = "";
+
+          document.getElementById("btn-prepareTemplate").style.visibility = "visible";
+          document.getElementById("btn-prepareTemplate").disabled = true;
+          document.getElementById("btn-prepareTemplate").style.display = "";
+
+          document.getElementById("select-template").style.display = "none";
+          document.getElementById("select-template").style.visibility = "hidden";
+          document.getElementById("select-list").style.visibility = "hidden";
+          document.getElementById("select-list").style.display = "none";
+          document.getElementById("select-list").disabled = true;
+
+          document.getElementById("btn-adminGet").style.display = "none";
+          document.getElementById("btn-adminGet").style.visibility = "hidden";
+
+          document.getElementById("main-guide-admin-3-post").style.visibility = "visible";
+
+          document.getElementById("main-guide-admin-3-put").style.display = "none";
+
+          document.getElementById("btn-admin-send").style.visibility = "visible";
+          document.getElementById("btn-admin-send").style.display = "";
+          document.getElementById("btn-admin-update").style.visibility = "hidden";
+          document.getElementById("btn-admin-update").style.display = "none";
+
+          document.getElementById("main-guide-admin-templates").style.visibility = "hidden";
+          document.getElementById("main-guide-admin-templates").style.display = "none";
+
+          document.getElementById("main-guide-admin-lists").style.visibility = "hidden";
+          document.getElementById("main-guide-admin-lists").style.display = "none";
+
+          document.getElementById("btn-prepareTemplate").classList.add("action");
+          document.getElementById("btn-admin-send").classList.remove("action");
+
+          model.isGettingDataAttempt = false;
+          uiSelection.currentOperation = 2;
+
+          //populates the artifacts dropdown menu
+          setDropdown("select-artifact-folder", model.artifactFolders, "Select an Artifact");
+          //populate the products dropdown menu
+          setDropdown("select-admin-product", model.projects, "Select a Spira Product");
+        }
+        break;
+
+      case "send-template":
+        //template-based operations that requires send data only
+        if (chosenOperation.id == 3) {
+          //Create custom lists and values operation
+          //Display the necessary objects on the taskpane
+          document.getElementById("main-guide-admin-2-get").style.display = "none";
+
+          document.getElementById("main-guide-admin-2-send").classList.remove("pale");
+          document.getElementById("main-guide-admin-2-send").style.visibility = "visible";
+          document.getElementById("main-guide-admin-2-send").style.display = "";
+
+          document.getElementById("btn-prepareTemplate").classList.remove("pale");
+          document.getElementById("btn-prepareTemplate").style.visibility = "visible";
+          document.getElementById("btn-prepareTemplate").disabled = true;
+          document.getElementById("btn-prepareTemplate").style.display = "";
+
+
+          document.getElementById("btn-adminGet").style.display = "none";
+          document.getElementById("btn-adminGet").style.visibility = "hidden";
+
+          document.getElementById("main-guide-admin-3-post").style.visibility = "visible";
+
+          document.getElementById("main-guide-admin-3-put").style.display = "none";
+
+          document.getElementById("btn-admin-send").style.visibility = "visible";
+          document.getElementById("btn-admin-update").style.visibility = "hidden";
+          document.getElementById("btn-admin-update").style.display = "none";
+          document.getElementById("btn-admin-send").style.display = "";
+
+          document.getElementById("main-guide-admin-templates").style.visibility = "visible";
+          document.getElementById("main-guide-admin-lists").style.visibility = "hidden";
+          document.getElementById("main-guide-admin-lists").style.display = "none";
+          document.getElementById("select-template").style.visibility = "visible";
+          document.getElementById("main-guide-admin-templates").style.display = "";
+          document.getElementById("select-template").style.display = "";
+          document.getElementById("select-template").selectedIndex = 0;
+
+          document.getElementById("select-list").style.visibility = "hidden";
+          document.getElementById("select-list").disabled = true;
+          document.getElementById("select-list").style.display = "none";
+          document.getElementById("select-list").selectedIndex = 0;
+
+          document.getElementById("btn-prepareTemplate").classList.add("action");
+          document.getElementById("btn-admin-send").classList.remove("action");
+
+          document.getElementById("main-guide-admin-folders").style.visibility = "hidden";
+          document.getElementById("main-guide-admin-folders").style.display = "none";
+
+          document.getElementById("main-guide-admin-products").style.visibility = "hidden";
+          document.getElementById("main-guide-admin-products").style.display = "none";
+
+          document.getElementById("select-artifact-folder").style.visibility = "hidden";
+          document.getElementById("select-artifact-folder").style.display = "none";
+
+          document.getElementById("select-admin-product").style.visibility = "hidden";
+          document.getElementById("select-admin-product").style.display = "none";
+
+          model.isGettingDataAttempt = false;
+          uiSelection.currentOperation = 3;
+          //sets the selected artifact based on admin operation
+          uiSelection.currentArtifact = getAdminArtifact();
+        }
+        break;
+
+      case "get-template":
+        //template-based operations that requires get data + send later
+        if (chosenOperation.id == 4) {
+          //Create custom lists and values operation
+          //Display the necessary objects on the taskpane         
+          document.getElementById("main-guide-admin-2-send").style.display = "none";
+          document.getElementById("main-guide-admin-2-send").style.visibility = "hidden";
+
+          document.getElementById("main-guide-admin-2-get").classList.remove("pale");
+          document.getElementById("main-guide-admin-2-get").style.visibility = "visible";
+          document.getElementById("main-guide-admin-2-get").style.display = "";
+
+          document.getElementById("btn-adminGet").classList.remove("pale");
+          document.getElementById("btn-adminGet").style.visibility = "visible";
+          document.getElementById("btn-adminGet").disabled = true;
+
+          document.getElementById("btn-adminGet").style.display = "";
+
+          document.getElementById("btn-prepareTemplate").style.visibility = "hidden";
+          document.getElementById("btn-prepareTemplate").style.display = "none";
+
+          document.getElementById("main-guide-admin-3-post").style.visibility = "visible";
+          document.getElementById('main-guide-admin-3-post').style.fontWeight = 'normal';
+
+          document.getElementById("main-guide-admin-3-put").style.display = "none";
+
+          document.getElementById("btn-admin-send").style.visibility = "hidden";
+          document.getElementById("btn-admin-send").style.display = "none";
+          document.getElementById("btn-admin-update").style.display = "";
+          document.getElementById("btn-admin-update").style.visibility = "visible";
+
+          document.getElementById("main-guide-admin-templates").style.visibility = "visible";
+          document.getElementById("select-template").style.visibility = "visible";
+          document.getElementById("main-guide-admin-templates").style.display = "";
+
+          document.getElementById("main-guide-admin-lists").style.visibility = "visible";
+          document.getElementById("main-guide-admin-lists").style.display = "";
+
+          document.getElementById("select-template").style.display = "";
+          document.getElementById("select-template").selectedIndex = 0;
+
+          document.getElementById("select-list").style.visibility = "visible";
+          document.getElementById("select-list").disabled = true;
+          document.getElementById("select-list").style.display = "";
+          document.getElementById("select-list").selectedIndex = 0;
+
+          document.getElementById("btn-admin-update").classList.add("action");
+          document.getElementById("btn-admin-send").classList.remove("action");
+
+
+          document.getElementById("btn-adminGet").classList.add("action");
+          document.getElementById("btn-admin-update").classList.remove("action");
+
+          document.getElementById("main-guide-admin-folders").style.visibility = "hidden";
+          document.getElementById("main-guide-admin-folders").style.display = "none";
+
+          document.getElementById("main-guide-admin-products").style.visibility = "hidden";
+          document.getElementById("main-guide-admin-products").style.display = "none";
+
+          document.getElementById("select-artifact-folder").style.visibility = "hidden";
+          document.getElementById("select-artifact-folder").style.display = "none";
+
+          document.getElementById("select-admin-product").style.visibility = "hidden";
+          document.getElementById("select-admin-product").style.display = "none";
+
+          uiSelection.currentOperation = 4;
+          //sets the selected artifact based on admin operation
+          uiSelection.currentArtifact = getAdminArtifact();
+        }
+        break;
+    }
+
+  }
+  document.getElementById("btn-admin-send").disabled = true;
+  document.getElementById("btn-admin-update").disabled = true;
+  model.isTemplateLoaded = false;
+}
+
+
+function changeTemplateSelect(e) {
+  //First, enable the respective operation next button
+  if (e.target.value != 0) {
+
+    var chosenTemplate = getSelectedItem("select-template", model.templates);
+
+    if (uiSelection.currentOperation == 3) {
+      document.getElementById("btn-prepareTemplate").disabled = false;
+    }
+
+    if (chosenTemplate.id) {
+      //set the temp data store project to the one selected;
+      uiSelection.currentTemplate = chosenTemplate;
+    }
+    //Get the template custom lists now we know which the template is, if the operation requires it
+    if (uiSelection.currentOperation == 4) {
+      // call server side function to get lists
+      if (isGoogle) {
+        google.script.run
+          .withSuccessHandler(populateLists)
+          .withFailureHandler(errorLists)
+          .getTemplateLists(uiSelection.currentTemplate.id, model.user);
+      } else {
+        msOffice.getTemplateLists(uiSelection.currentTemplate.id, model.user)
+          .then(response => populateLists(response.body))
+          .catch(err => {
+            return errorLists(err)
+          }
+          );
+      }
+      //enables the custom list dropdown
+      document.getElementById("select-list").style.visibility = "visible";
+      document.getElementById("select-list").disabled = false;
+      document.getElementById("select-list").style.display = "";
+      document.getElementById("select-list").selectedIndex = 0;
+    }
+  }
+  else {
+    document.getElementById("btn-prepareTemplate").disabled = true;
+    document.getElementById("btn-adminGet").disabled = true;
+    uiSelection.currentTemplate = null;
+
+    //resets the list dropdown
+    document.getElementById("select-list").disabled = true;
+    document.getElementById("select-list").selectedIndex = 0;
+    removeOptions(document.getElementById('select-list'));
+  }
+
+  //the buttons should not be available yet
+  if (uiSelection.currentOperation == 4) {
+    document.getElementById("btn-prepareTemplate").disabled = true;
+    document.getElementById("btn-adminGet").disabled = true;
+  }
+
+  document.getElementById("btn-admin-send").disabled = true;
+  document.getElementById("btn-admin-update").disabled = true;
+}
+
+function changeListSelect(e) {
+  //First, enable the respective operation next button
+  if (e.target.value != 0) {
+    var chosenList = getSelectedItem("select-list", model.templateLists);
+    if (chosenList.id) {
+      //set the temp data store project to the one selected;
+      uiSelection.currentList = chosenList;
+    }
+    document.getElementById("btn-adminGet").disabled = false;
+    document.getElementById("btn-admin-update").disabled = true;
+  }
+  else {
+    document.getElementById("btn-adminGet").disabled = true;
+    document.getElementById("btn-admin-update").disabled = true;
+  }
+  model.currentList = uiSelection.currentList;
+}
+
+function changeArtifactFolderSelect(e) {
+  //First, enable the respective operation next button
+  if (e.target.value != 0) {
+    document.getElementById("main-guide-admin-products").disabled = false;
+    document.getElementById("select-admin-product").disabled = false;
+    uiSelection.currentArtifact = getSelectedItem("select-artifact-folder", model.artifactFolders);
+
+    if (document.getElementById("select-admin-product").selectedIndex != 0) {
+      document.getElementById("btn-prepareTemplate").disabled = false;
+    }
+  }
+  else {
+    document.getElementById("main-guide-admin-products").disabled = true;
+    document.getElementById("select-admin-product").disabled = true;
+    document.getElementById("btn-prepareTemplate").disabled = true;
+  }
+
+  if (uiSelection.currentArtifact.id != model.currentArtifact.id && document.getElementById("select-admin-product").selectedIndex != 0
+    && document.getElementById("select-artifact-folder").selectedIndex != 0) {
+    model.isTemplateLoaded = false;
+    document.getElementById("btn-prepareTemplate").classList.add("action");
+    document.getElementById("btn-prepareTemplate").disabled = false;
+    document.getElementById("btn-prepareTemplate").style.display = "";
+
+
+    document.getElementById("btn-admin-send").classList.remove("action");
+    document.getElementById("btn-admin-send").disabled = true;
+  }
+}
+
+function changeAdminProductSelect(e) {
+  //First, enable the respective operation next button
+  if (e.target.value != 0) {
+    document.getElementById("main-guide-admin-2-send").disabled = false;
+    document.getElementById("btn-prepareTemplate").disabled = false;
+
+    uiSelection.currentProject = getSelectedItem("select-admin-product", model.projects);
+  }
+  else {
+    document.getElementById("main-guide-admin-2-send").disabled = true;
+    document.getElementById("btn-prepareTemplate").disabled = true;
+
+    document.getElementById("btn-admin-send").disabled = true;
+    document.getElementById("btn-admin-update").disabled = true;
+
+  }
+}
+
+//returns the artifactId associated with the given admin operation
+function getAdminArtifact() {
+  //filter the current operation
+  var operationSelected = model.operations.filter(function (operation) {
+    return operation.id == uiSelection.currentOperation;
+  })[0];
+
+  // filter the artifact lists to those chosen 
+  var artifactSelected = params.artifacts.filter(function (artifact) {
+    return artifact.id == operationSelected.artifactId;
+  })[0];
+  return artifactSelected;
+}
 
 /*
 *
@@ -942,35 +1718,18 @@ function showChosenHelpSection(choice) {
 *
 */
 
-// retrieves the project object that matches the project selected in the dropdown
-// returns a project object
-function getSelectedProject() {
+// retrieves the item object that matches the item selected in the dropdown
+// returns a item object
+function getSelectedItem(dropdownItem, artifactObject) {
   // store dropdown value
-  var select = document.getElementById("select-product");
-  var projectDropdownVal = select.options[select.selectedIndex].value;
-  // filter the project lists to those chosen 
-  var projectSelected = model.projects.filter(function (project) {
-    return project.id == projectDropdownVal;
+  var select = document.getElementById(dropdownItem);
+  var dropdownVal = select.options[select.selectedIndex].value;
+  // filter the item lists to those chosen 
+  var itemSelected = artifactObject.filter(function (artifact) {
+    return artifact.id == dropdownVal;
   })[0];
-  return projectSelected;
+  return itemSelected;
 }
-
-
-
-// retrieves the artifact object that matches the artifact selected in the dropdown
-// returns an artifact object
-function getSelectedArtifact() {
-  // store dropdown values
-  var select = document.getElementById("select-artifact");
-  var artifactDropdownVal = select.options[select.selectedIndex].value;
-  // filter the artifact lists to those chosen 
-  var artifactSelected = params.artifacts.filter(function (artifact) {
-    return artifact.id == artifactDropdownVal;
-  })[0];
-  return artifactSelected;
-}
-
-
 
 // kicks off all relevant API calls to get project specific information
 // @param: user - the user object of the logged in user
@@ -984,17 +1743,18 @@ function getProjectSpecificInformation(user, projectId) {
 }
 
 
-
 // kicks off all relevant API calls to get artifact specific information
 // @param: user - the user object of the logged in user
 // @param: templateId - int of the reqested project template
 // @param: artifact - object of the reqested artifact - needed to query on different parts of object
 function getArtifactSpecificInformation(user, templateId, projectId, artifact) {
+
   // first reset get counts
   model.artifactGetRequestsMade = 0;
   model.artifactGetRequestsToMake = model.baselineArtifactGetRequests;
   // increase the count if any bespoke fields are present (eg folders or incident types)
   var bespokeData = fieldsWithBespokeData(templateFields[artifact.field]);
+
   if (bespokeData) {
     model.artifactGetRequestsToMake += bespokeData.length;
     // get any bespoke field information
@@ -1002,8 +1762,19 @@ function getArtifactSpecificInformation(user, templateId, projectId, artifact) {
       getBespoke(user, templateId, projectId, artifact.field, bespokeField);
     });
   }
+
   // get standard artifact information - eg custom fields
-  getCustoms(user, templateId, artifact.id);
+  if (templateId != null && projectId != null) {
+    if (artifact.hasSubType && !artifact.skipSubCustom) {
+      //get subtypes Custom Properties as well (e.g.: Test Steps)
+      getCustoms(user, templateId, artifact.id, artifact.subTypeId, true);
+    }
+    else {
+      //get just the main types Custom Properties
+      getCustoms(user, templateId, artifact.id, null, false);
+    }
+  }
+
 }
 
 
@@ -1061,61 +1832,114 @@ function getComponentsSuccess(data) {
 
 // starts GET request to Spira for project / artifact custom properties
 // @param: user - the user object of the logged in user
-// @param: projectId - int of the reqested project
+// @param: templateId - int of the reqested templateId
 // @param: artifactId - int of the reqested artifact
-function getCustoms(user, projectId, artifactId) {
+// @param: isSub - is this a subArtifact?
+
+function getCustoms(user, templateId, artifactId, subArtifactId, isSub) {
   // call server side fetch
   if (isGoogle) {
     google.script.run
+      .withUserObject(false)
       .withSuccessHandler(getCustomsSuccess)
       .withFailureHandler(errorNetwork)
-      .getCustoms(user, projectId, artifactId);
+      .getCustoms(user, templateId, artifactId);
+    if (isSub) {
+      google.script.run
+        .withUserObject(true)
+        .withSuccessHandler(getCustomsSuccess)
+        .withFailureHandler(errorNetwork)
+        .getCustoms(user, templateId, subArtifactId);
+    }
   } else {
-    msOffice.getCustoms(user, projectId, artifactId)
-      .then((response) => getCustomsSuccess(response.body))
+    msOffice.getCustoms(user, templateId, artifactId)
+      .then((response) => getCustomsSuccess(response.body, false)).then(function () {
+        if (isSub) {
+          //if this artifact also have subTypes custom properties, retrieve them
+          msOffice.getCustoms(user, templateId, subArtifactId).then((response) => getCustomsSuccess(response.body, true));
+        }
+      })
       .catch((error) => errorNetwork(error));
   }
 }
 
 
-
 // formats and sets custom field data on the model - adding to a temp holding area, to allow for changes before template creation
-function getCustomsSuccess(data) {
+function getCustomsSuccess(data, isSub) {
   // clear old values
-  uiSelection.artifactCustomFields = [];
-  // assign unparsed data to data object
-  // these values are parsed later depending on function needs
-  uiSelection.artifactCustomFields = data
-    .filter(function (item) { return !item.IsDeleted; })
-    .map(function (item) {
-      var customField = {
-        isCustom: true,
-        field: item.CustomPropertyFieldName,
-        name: item.Name,
-        propertyNumber: item.PropertyNumber,
-        type: item.CustomPropertyTypeId,
-      };
+  if (!isSub) {
+    // assign unparsed data to data object
+    // these values are parsed later depending on function needs
 
-      // mark as required or not - default is that it can be empty
-      var allowEmptyOption = item.Options && item.Options.filter(function (option) {
-        return option.CustomPropertyOptionId && option.CustomPropertyOptionId === 1;
-      });
-      if (allowEmptyOption && allowEmptyOption.length && allowEmptyOption[0].Value == "N") {
-        customField.required = true;
-      }
-      // add array of values for dropdowns
-      if (item.CustomPropertyTypeId == params.fieldType.drop || item.CustomPropertyTypeId == params.fieldType.multi) {
-        customField.values = item.CustomList.Values.map(function (listItem) {
-          return {
-            id: listItem.CustomPropertyValueId,
-            name: listItem.Name
-          };
+    var customFields = data
+      .filter(function (item) { return !item.IsDeleted; })
+      .map(function (item) {
+
+        var customField = {
+          isCustom: true,
+          field: item.CustomPropertyFieldName,
+          name: item.Name,
+          propertyNumber: item.PropertyNumber,
+          type: item.CustomPropertyTypeId,
+        };
+
+        // mark as required or not - default is that it can be empty
+        var allowEmptyOption = item.Options && item.Options.filter(function (option) {
+          return option.CustomPropertyOptionId && option.CustomPropertyOptionId === 1;
         });
+        if (allowEmptyOption && allowEmptyOption.length && allowEmptyOption[0].Value == "N") {
+          customField.required = true;
+        }
+        // add array of values for dropdowns
+        if (item.CustomPropertyTypeId == params.fieldType.drop || item.CustomPropertyTypeId == params.fieldType.multi) {
+          customField.values = item.CustomList.Values.map(function (listItem) {
+            return {
+              id: listItem.CustomPropertyValueId,
+              name: listItem.Name
+            };
+          });
+        }
+        return customField;
       }
-      return customField;
-    }
-    );
-  model.artifactGetRequestsMade++;
+      );
+    model.artifactGetRequestsMade++;
+    uiSelection.artifactCustomFields.push(...customFields);
+  }
+  else {
+    var subCustomFields = data
+      .filter(function (item) { return !item.IsDeleted; })
+      .map(function (item) {
+
+        var customField = {
+          isCustom: true,
+          field: item.CustomPropertyFieldName,
+          name: item.Name,
+          propertyNumber: item.PropertyNumber,
+          type: item.CustomPropertyTypeId,
+          isSubTypeField: true,
+        };
+
+        // mark as required or not - default is that it can be empty
+        var allowEmptyOption = item.Options && item.Options.filter(function (option) {
+          return option.CustomPropertyOptionId && option.CustomPropertyOptionId === 1;
+        });
+        if (allowEmptyOption && allowEmptyOption.length && allowEmptyOption[0].Value == "N") {
+          customField.required = true;
+        }
+        // add array of values for dropdowns
+        if (item.CustomPropertyTypeId == params.fieldType.drop || item.CustomPropertyTypeId == params.fieldType.multi) {
+          customField.values = item.CustomList.Values.map(function (listItem) {
+            return {
+              id: listItem.CustomPropertyValueId,
+              name: listItem.Name
+            };
+          });
+        }
+        return customField;
+      }
+      );
+    uiSelection.artifactCustomFields.push(...subCustomFields);
+  }
 }
 
 
@@ -1286,6 +2110,7 @@ function getUsersSuccess(data) {
 // check to see that all project and artifact requests have been made - ie that successes match required requests
 // returns boolean
 function allGetsSucceeded() {
+
   var projectGetsDone = model.projectGetRequestsToMake === model.projectGetRequestsMade,
     artifactGetsDone = model.artifactGetRequestsToMake === model.artifactGetRequestsMade;
   return projectGetsDone && artifactGetsDone;
@@ -1298,6 +2123,11 @@ function templateLoader() {
   // set the model based on data stored based on current dropdown selections
   model.currentProject = uiSelection.currentProject;
   model.currentArtifact = uiSelection.currentArtifact;
+  model.currentOperation = uiSelection.currentOperation;
+  model.currentTemplate = uiSelection.currentTemplate;
+  model.currentList = uiSelection.currentList;
+  model.isAdmin = isAdmin;
+
   model.projectComponents = [];
   model.projectActiveReleases = [];
   model.projectReleases = [];
@@ -1306,6 +2136,14 @@ function templateLoader() {
   model.projectActiveReleases = uiSelection.projectActiveReleases;
   model.projectReleases = uiSelection.projectReleases;
   model.projectUsers = uiSelection.projectUsers;
+
+
+
+
+  var fields;
+
+  //handling special case - send-product admin (folders)
+
   // get variables ready
   var customs = uiSelection.artifactCustomFields,
     fields = templateFields[model.currentArtifact.field],
@@ -1435,4 +2273,8 @@ function errorUnknown(err) {
 }
 function errorExcel(err) {
   errorPopUp('excel', err);
+}
+function errorLists(err) {
+  hideLoadingSpinner();
+  errorPopUp("list", err);
 }

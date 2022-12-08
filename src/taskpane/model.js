@@ -42,16 +42,20 @@ var params = {
         tasks: 6,
         testSteps: 7,
         testSets: 8,
-        risks: 14
+        risks: 14,
+        folders: 114,
+        components: 99,
+        users: 98,
+        customLists: 97,
+        customValues: 96,
     },
-    
     dataSheetName: "database",
 
     // enums for different types of field - match custom field prop types where relevant
     fieldType: {
         text: 1,
         int: 2,
-        num:3,
+        num: 3,
         bool: 4,
         date: 5,
         drop: 6,
@@ -104,6 +108,11 @@ var params = {
         { field: 'testSteps', name: 'Test Steps', id: 7, disabled: true, hidden: true, isSubType: true },
         { field: 'testSets', name: 'Test Sets', id: 8, hasFolders: true },
         { field: 'risks', name: 'Risks', id: 14 },
+        { field: 'folders', name: 'Folders', id: 114, sendOnly: true, adminOnly: true },
+        { field: 'components', name: 'Components', id: 99, adminOnly: true, noPagination: true },
+        { field: 'users', name: 'Users', id: 98, disabled: false, hidden: true },
+        { field: 'customLists', name: 'Custom Lists', id: 97, disabled: false, hidden: true, hasDualValues: true, hasSubType: true, subTypeId: 96, subTypeName: "customValues", skipSubCustom: true, allowsCreateOnUpdate: true, allowGetSingle: true },
+        { field: 'customValues', name: 'Custom Values', id: 96, disabled: true, hidden: true, isSubType: true },
     ],
     //special cases enum
     specialCases: [
@@ -113,6 +122,18 @@ var params = {
     resultColumns: {
         Requirements: 14,
         'Test Cases': 18,
+    },
+    //enum for parentFolder fields
+    parentFolders: {
+        2: "ParentTestCaseFolderId",
+        6: "ParentTaskFolderId",
+        8: "ParentTestSetFolderId"
+    },
+    //enum for FolderId fields
+    IdFolders: {
+        2: "TestCaseFolderId",
+        6: "TaskFolderId",
+        8: "TestSetFolderId"
     },
 };
 
@@ -162,7 +183,7 @@ var templateFields = {
         { field: "CreationDate", name: "Creation Date", type: params.fieldType.date, isReadOnly: true, isHidden: true },
         { field: "Text", name: "New Comment", type: params.fieldType.text, isComment: true, isAdvanced: true },
         { field: "Association", name: "New Associated Requirement(s)", type: params.fieldType.text, isAdvanced: true, association: params.associationEnums.req2req },
-        { field: "Result", name: "Advanced 'Send to Spira' Log", type: params.fieldType.text, isReadOnly: true, isComments: true, isAdvanced: true},
+        { field: "Result", name: "Advanced 'Send to Spira' Log", type: params.fieldType.text, isReadOnly: true, isComments: true, isAdvanced: true },
         { field: "ConcurrencyDate", name: "Concurrency Date", type: params.fieldType.text, isReadOnly: true, isHidden: true },
         { field: "IndentLevel", name: "Indent Level", type: params.fieldType.text, isReadOnly: true, isHidden: true },
         { field: "Summary", name: "Summary", type: params.fieldType.bool, isReadOnly: true, isHidden: true }
@@ -246,7 +267,8 @@ var templateFields = {
                 idField: "TaskFolderId",
                 nameField: "Name",
                 indent: "IndentLevel",
-                isProjectBased: true
+                isProjectBased: true,
+                isActive: "Active"
             }
         },
         { field: "CreationDate", name: "Creation Date", type: params.fieldType.date, isReadOnly: true, isHidden: true },
@@ -254,7 +276,7 @@ var templateFields = {
         { field: "EndDate", name: "End Date", type: params.fieldType.date },
         { field: "EstimatedEffort", name: "Estimated Effort (in mins)", type: params.fieldType.int },
         { field: "ActualEffort", name: "Actual Effort (in mins)", type: params.fieldType.int },
-        { field: "ProjectedEffort", name: "Projected Effort (in mins)", type: params.fieldType.int, isReadOnly: true, isHidden: true},
+        { field: "ProjectedEffort", name: "Projected Effort (in mins)", type: params.fieldType.int, isReadOnly: true, isHidden: true },
         { field: "RemainingEffort", name: "Remaining Effort (in mins)", type: params.fieldType.int },
         { field: "RequirementId", name: "RequirementId", type: params.fieldType.int },
         { field: "ProjectId", name: "Project ID", type: params.fieldType.int, isReadOnly: true, isHidden: true },
@@ -303,7 +325,8 @@ var templateFields = {
                 idField: "TestSetFolderId",
                 nameField: "Name",
                 indent: "IndentLevel",
-                isProjectBased: true
+                isProjectBased: true,
+                isActive: "Active"
             }
         },
         { field: "CreationDate", name: "Creation Date", type: params.fieldType.date, isReadOnly: true, isHidden: true },
@@ -374,7 +397,7 @@ var templateFields = {
         { field: "Description", name: "Test Case Description", type: params.fieldType.text, blocksSubType: true },
         { field: "Description", name: "Test Step Description", type: params.fieldType.text, isSubTypeField: true, requiredForSubType: true, extraDataField: "LinkedTestCaseId", extraDataPrefix: "TC" },
         { field: "Position", name: "Position", type: params.fieldType.text, isSubTypeField: true, isReadOnly: true, isHidden: true },
-        { field: "ExpectedResult", name: "Test Step Expected Result", type: params.fieldType.text, isSubTypeField: true, requiredForSubType: true },
+        { field: "ExpectedResult", name: "Test Step Expected Result", type: params.fieldType.text, isSubTypeField: true},
         { field: "SampleData", name: "Test Step Sample Data", type: params.fieldType.text, isSubTypeField: true },
         {
             field: "TestCasePriorityId", name: "Test Case Priority", type: params.fieldType.drop,
@@ -413,14 +436,15 @@ var templateFields = {
                 idField: "TestCaseFolderId",
                 nameField: "Name",
                 indent: "IndentLevel",
-                isProjectBased: true
+                isProjectBased: true,
+                isActive: "Active"
             }
         },
         { field: "Requirement", name: "New Associated Requirement(s)", type: params.fieldType.text, isAdvanced: true, association: params.associationEnums.tc2req },
         { field: "Release", name: "New Associated Release(s)", type: params.fieldType.text, isAdvanced: true, association: params.associationEnums.tc2rel },
         { field: "TestSet", name: "New Associated Test Set(s)", type: params.fieldType.text, isAdvanced: true, association: params.associationEnums.tc2ts },
         { field: "Text", name: "New Comment", type: params.fieldType.text, isComment: true, isAdvanced: true },
-        { field: "Result", name: "Advanced 'Send to Spira' Log", type: params.fieldType.text, isReadOnly: true, isComments: true, isAdvanced: true},
+        { field: "Result", name: "Advanced 'Send to Spira' Log", type: params.fieldType.text, isReadOnly: true, isComments: true, isAdvanced: true },
         { field: "ComponentIds", name: "Test Case Component", type: params.fieldType.component, isMulti: true },
         { field: "CreationDate", name: "Test Case Creation Date", type: params.fieldType.text, isReadOnly: true, isHidden: true },
         { field: "ConcurrencyDate", name: "Test Case Conc. Date", type: params.fieldType.text, isReadOnly: true, isHidden: true },
@@ -428,10 +452,14 @@ var templateFields = {
         { field: "ExecutionStatusId", name: "ExecutionStatusId", type: params.fieldType.text, isReadOnly: true, isHidden: true },
         { field: "IsSuspect", name: "IsSuspect", type: params.fieldType.bool, isReadOnly: true, isHidden: true },
         { field: "EstimatedDuration", name: "EstimatedDuration", type: params.fieldType.text, isReadOnly: true, isHidden: true },
-        { field: "AutomationEngineId", name: "AutomationEngineId", type: params.fieldType.text, isReadOnly: true, isHidden: true }, 
+        { field: "AutomationEngineId", name: "AutomationEngineId", type: params.fieldType.text, isReadOnly: true, isHidden: true },
         { field: "ExecutionStatusId", name: "ExecutionStatusId", type: params.fieldType.text, isReadOnly: true, isSubTypeField: true, isHidden: true }
     ],
-
+    folders: [
+        { field: "FolderId", name: "Folder ID", type: params.fieldType.id},
+        { field: "Name", name: "Name", type: params.fieldType.text, required: true, setsHierarchy: true},
+        { field: "Description", name: "Description", type: params.fieldType.text }
+    ],
     risks: [
         { field: "RiskId", name: "ID", type: params.fieldType.id },
         { field: "Name", name: "Name", type: params.fieldType.text, required: true },
@@ -483,6 +511,55 @@ var templateFields = {
         { field: "Text", name: "New Comment", type: params.fieldType.text, isComment: true, isAdvanced: true },
         { field: "ConcurrencyDate", name: "Concurrency Date", type: params.fieldType.text, isReadOnly: true, isHidden: true },
     ],
+    components: [
+        { field: "ComponentId", name: "Compoment ID", type: params.fieldType.id },
+        { field: "Name", name: "Name", type: params.fieldType.text, required: true },
+        { field: "IsActive", name: "Active?", type: params.fieldType.bool },
+    ],
+    users: [
+        { field: "UserId", name: "User ID", type: params.fieldType.id },
+        { field: "FirstName", name: "First Name", type: params.fieldType.text, required: true },
+        { field: "MiddleInitial", name: "Middle Initial", type: params.fieldType.text },
+        { field: "LastName", name: "Last Name", type: params.fieldType.text, required: true },
+        { field: "UserName", name: "UserName", type: params.fieldType.text, required: true },
+        { field: "LdapDn", name: "LDAP Distinguished Name", type: params.fieldType.text },
+        { field: "EmailAddress", name: "Email Address", type: params.fieldType.text, required: true },
+        { field: "Admin", name: "Admin?", type: params.fieldType.bool },
+        { field: "Active", name: "Active?", type: params.fieldType.bool },
+        { field: "Department", name: "Department", type: params.fieldType.text },
+        { field: "password", name: "Password", type: params.fieldType.text, isHeader: true, required: true },
+        { field: "password_question", name: "Password Question", type: params.fieldType.text, isHeader: true, required: true },
+        { field: "password_answer", name: "password Answer", type: params.fieldType.text, isHeader: true, required: true },
+        {
+            field: "project_id", name: "Project ID", type: params.fieldType.drop, required: false, isHeader: true,
+            bespoke: {
+                url: "projects",
+                idField: "ProjectId",
+                nameField: "Name",
+                isActive: "Active",
+                isSystemWide: true
+            }
+        },
+        {
+            field: "project_role_id", name: "Project Role ID", type: params.fieldType.drop, required: false, isHeader: true,
+            bespoke: {
+                url: "projects-roles",
+                idField: "ProjectRoleId",
+                nameField: "Name",
+                isActive: "Active",
+                isSystemWide: true
+            }
+        },
+    ],
+    customLists: [
+        { field: "CustomPropertyListId", name: "List ID", type: params.fieldType.id },
+        { field: "CustomPropertyValueId", name: "Value ID", type: params.fieldType.subId, isSubTypeField: true },
+        { field: "Name", name: "List Name", type: params.fieldType.text, required: true, blocksSubType: true },
+        { field: "Name", name: "Value Name", type: params.fieldType.text, requiredForSubType: true, isSubTypeField: true },
+        { field: "Active", name: "Active?", type: params.fieldType.bool, isTypeAndSubTypeField: true, required: true },
+        { field: "SortedOnValue", name: "SortedOnValue", type: params.fieldType.text, isReadOnly: true, isHidden: true },
+    ],
+
 };
 
 function Data() {
@@ -492,6 +569,7 @@ function Data() {
         userName: '',
         api_key: '',
         roleId: 1,
+        admin: false
         //TODO this is wrong and should eventually be fixed to limit what user can create or edit client side
         //when add permissions - show in some way to the user what is going on
         // maybe it's as simple as a footnote explaining why projects or artifacts are disabled
@@ -499,7 +577,26 @@ function Data() {
 
     this.projects = [];
 
+    this.templates = [];
+
+    this.operations = [
+        { name: "Add new Users to Spira", id: 1, type: "send-system", artifactId: 98 },
+        { name: "Add new Artifact Folders to Spira", id: 2, type: "send-product", artifactId: 114 },
+        { name: "Add new Custom Lists and Values to Spira", id: 3, type: "send-template", artifactId: 97 },
+        { name: "Edit existent Custom Lists and Values from Spira", id: 4, type: "get-template", artifactId: 97 },
+
+    ];
+
+    this.artifactFolders = [
+        { name: "Test Cases", id: 2, field: "folders", mainArtifactId: 114, hierarchical: true  },
+        { name: "Test Sets", id: 8, field: "folders", mainArtifactId: 114, hierarchical: true  },
+        { name: "Tasks", id: 6, field: "folders", mainArtifactId: 114, hierarchical: true  },
+    ];
+
+    this.templateLists = [];
+
     this.currentProject = '';
+    this.currentTemplate = '';
     this.projectComponents = [];
     this.projectActiveReleases = [];
     this.projectReleases = [];
@@ -507,6 +604,9 @@ function Data() {
     this.indentCharacter = ">";
 
     this.currentArtifact = '';
+
+    this.currentOperation = '';
+    this.currentList = '';
 
     this.projectGetRequestsToMake = 3; // users, components, releases
     this.projectGetRequestsMade = 0;
@@ -522,6 +622,7 @@ function Data() {
     this.colors = {
         bgHeader: '#f1a42b',
         bgHeaderSubType: '#fdcb26',
+        bgHeaderTypeAndSubType: '#ffff00',
         bgReadOnly: '#eeeeee',
         header: '#ffffff',
         headerRequired: '#000000',
@@ -535,6 +636,7 @@ function Data() {
 
 function tempDataStore() {
     this.currentProject = '';
+    this.currentTemplate = '';
     this.projectComponents = [];
     this.projectActiveReleases = [];
     this.projectReleases = [];
