@@ -1,10 +1,22 @@
 /*
  *
+ * =============
+ * GENERAL SETUP
+ * =============
+ *
+ */
+
+//Global variable to decide which application is being used
+var IS_GOOGLE = typeof UrlFetchApp != "undefined";
+
+/*
+ *
  * ==============================
  * MICROSOFT EXCEL SPECIFIC SETUP
  * ==============================
- *
- */
+ * Please comment/uncomment this block of code for Google Sheets/Excel*/
+
+
 export {
   clearAll,
   error,
@@ -13,18 +25,38 @@ export {
   getCustoms,
   getFromSpiraExcel,
   getProjects,
+  getProjectTemplates,
+  getTemplateLists,
   getReleases,
   getUsers,
   getTemplateFromProjectId,
   operationComplete,
   sendToSpira,
   templateLoader,
-  warn
+  warn,
+  isUserAdmin
 };
 
 import { showPanel, hidePanel } from './taskpane.js';
 
 import { params } from './model.js';
+
+// ===END OF EXCEL SPECIFIC CODE===
+
+/*
+ *
+ * ============================
+ * GOOGLE SHEETS SPECIFIC SETUP
+ * ============================
+ * Please uncomment/comment this block of code for Google Sheets/Excel
+ */
+
+//Import Model (data.js.html)
+/*var importModel = HtmlService.createHtmlOutputFromFile('data.js').getContent();
+eval(importModel.replace('<script>', '').replace('</script>', ''));*/
+
+/* ===END OF GOOGLE SPECIFIC CODE===
+
 
 /*
  * =======
@@ -35,27 +67,17 @@ import { params } from './model.js';
  - check what happens when add more rows from get than are on sheet. Does the validation get copied down?
  */
 
-
-
-
 // globals
-var API_PROJECT_BASE = '/services/v6_0/RestService.svc/projects/',
+var API_BASE = '/services/v6_0/RestService.svc/',
+  API_PROJECT_BASE = '/services/v6_0/RestService.svc/projects/',
   API_PROJECT_BASE_NO_SLASH = '/services/v6_0/RestService.svc/projects',
   API_TEMPLATE_BASE = '/services/v6_0/RestService.svc/project-templates/',
-  ART_ENUMS = {
-    requirements: 1,
-    testCases: 2,
-    incidents: 3,
-    releases: 4,
-    testRuns: 5,
-    tasks: 6,
-    testSteps: 7,
-    testSets: 8,
-    risks: 14,
-  },
+  API_TEMPLATE_BASE_NO_SLASH = '/services/v6_0/RestService.svc/project-templates',
+  API_USER_BASE = '/services/v6_0/RestService.svc/users/usernames/',
   INITIAL_HIERARCHY_OUTDENT = -20,
   GET_PAGINATION_SIZE = 100,
-  EXCEL_MAX_ROWS = 1000,
+  MAX_ROWS_PER_PAGE = 2000,
+  ARTIFACT_MAX_PAGES = 500,
   FIELD_MANAGEMENT_ENUMS = {
     all: 1,
     standard: 2,
@@ -66,25 +88,41 @@ var API_PROJECT_BASE = '/services/v6_0/RestService.svc/projects/',
     someError: 2,
     allError: 3,
     wrongSheet: 4,
-    existingEntries: 5
+    existingEntries: 5,
+    advancedMode: 6,
+    noData: 7
   },
   SUBTYPE_IDS = ["TestCaseId", "TestStepId"],
   STATUS_MESSAGE_GOOGLE = {
     1: "All done! To send more data over, clear the sheet first.",
     2: "Sorry, but there were some problems (see the cells marked in red). Check any notes on the relevant ID field for explanations.",
-    3: "We're really sorry, but we couldn't send anything to SpiraPlan - please check notes on the ID fields for more information.",
+    3: "We're really sorry, there was a problem sending data to Spira. Some records may not have been sent correctly. Please check in Spira to confirm.",
     4: "You are not on the correct worksheet. Please go to the sheet that matches the one listed on the Spira taskpane / the selection you made in the sidebar.",
-    5: "Some/all of the rows already exist in SpiraPlan. These rows have not been re-added."
+    5: "Some/all of the rows already exist in SpiraPlan. These rows have not been re-added.",
+    6: "Data sent! Since you are using the advanced fields mode, any errors related to comments and/or associations will be marked as red in the spreadsheet. To send more data over, clear the sheet first.",
+    7: "No records were returned from Spira. Please verify the page number, product, and artifact. If the problem persists, contact your Spira administrator.",
+    8: "There was an error processing your request. Please make sure that all the required fields are populated and the current user has access to the selected Template. Also, make sure the selected Template has at least one (1) active product."
   },
   STATUS_MESSAGE_EXCEL = {
     1: "All done! To send more data over, clear the sheet first.",
     2: "Sorry, but there were some problems (see the cells marked in red). Check any notes on the relevant ID field for explanations.",
-    3: "We're really sorry, but we couldn't send anything to SpiraPlan - please check notes on the ID fields for more information.",
+    3: "We're really sorry, there was a problem sending data to Spira. Some records may not have been sent correctly. Please check in Spira to confirm.",
     4: "You are not on the correct worksheet. Please go to the sheet that matches the one listed on the Spira taskpane / the selection you made in the sidebar.",
     5: "Some/all of the rows already exist in SpiraPlan. These rows have not been re-added.",
-    6: "Data sent! Since you are using the advanced mode, any errors related to comments and/or associations will be marked as red in the spreadsheet. To send more data over, clear the sheet first."
+    6: "Data sent! Since you are using the advanced fields mode, any errors related to comments and/or associations will be marked as red in the spreadsheet. To send more data over, clear the sheet first.",
+    7: "No records were returned from Spira. Please verify the page number, product, and artifact. If the problem persists, contact your Spira administrator."
   },
   CUSTOM_PROP_TYPE_ENUM = {
+    //internal-handling only
+    101: "StringValue",
+    102: "IntegerValue",
+    103: "DecimalValue",
+    104: "BooleanValue",
+    105: "DateTimeValue",
+    106: "IntegerValue",
+    107: "IntegerListValue",
+    108: "IntegerValue",
+    //Spira ID values from API
     1: "StringValue",
     2: "IntegerValue",
     3: "DecimalValue",
@@ -92,15 +130,22 @@ var API_PROJECT_BASE = '/services/v6_0/RestService.svc/projects/',
     5: "DateTimeValue",
     6: "IntegerValue",
     7: "IntegerListValue",
-    8: "IntegerValue"
-
+    8: "IntegerValue",
+    9: "StringValue",
+    10: "IntegerValue",
+    11: "DateTimeValue",
+    12: "IntegerValue"
   },
   INLINE_STYLING = "style='font-family: sans-serif'",
-  IS_GOOGLE = typeof UrlFetchApp != "undefined",
   ART_PARENT_IDS = {
     2: 'TestCaseId',
-    7: 'TestCaseId'
+    7: 'TestCaseId',
+    97: 'CustomPropertyListId',
+    96: 'CustomPropertyListId'
   };
+
+const EXCEL_NUMBER_OF_ROWS = 1048576;
+const DAYS_BETWEEN_1900_1970 = 25567 + 2;
 
 /*
  * ======================
@@ -192,25 +237,48 @@ function save() {
   }
 }
 
+//Function to check if a given sheet name exists or not in the workbook 
+async function checkSheetExists(sheetName) {
+  Excel.run(function (context) {
+    var sheets = context.workbook.worksheets;
+    sheets.load("items/name");
 
+    return context.sync()
+      .then(function () {
+        sheets.items.forEach(function (sheet) {
+          if (sheet.name == sheetName) {
+            return true;
+          }
+        });
+      });
+  });
+  return false;
+}
 
 //clears active sheet in spreadsheet
-function clearAll() {
-
+function clearAll(model) {
   if (IS_GOOGLE) {
     // get active spreadsheet
     var spreadSheet = SpreadsheetApp.getActiveSpreadsheet(),
       sheet = spreadSheet.getActiveSheet(),
-      lastColumn = sheet.getMaxColumns(),
-      lastRow = sheet.getMaxRows();
+      lastColumn = sheet.getLastColumn(),
+      lastRow = sheet.getLastRow();
+
+    //minimum requirements
+    if (lastColumn == 0) { lastColumn = 1 };
+    if (lastRow == 0) { lastRow = 1 };
 
     // Reset sheet name
     sheet.setName(new Date().getTime());
     sheet.clear();
 
     // clears data validations and notes from the entire sheet
-    var range = sheet.getRange(1, 1, lastRow, lastColumn);
+    var range = sheet.getRange(1, 1, sheet.getMaxRows() - 1, lastColumn);
+    range.clearDataValidations();
     range.clearDataValidations().clearNote();
+
+    //unhide columns
+    sheet.showColumns(1, lastColumn);
 
     // remove any protections on the sheet
     var protections = spreadSheet.getProtections(SpreadsheetApp.ProtectionType.RANGE);
@@ -220,14 +288,54 @@ function clearAll() {
         protection.remove();
       }
     }
+    //check if the database sheet exists 
+    var dataBaseSheetName = createDatabaseSheetName(params.dataSheetName, model.currentProject.id, model.currentArtifact.id);
 
+    var databaseSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(dataBaseSheetName);
+
+    if (databaseSheet != null) {
+      //if we have a database worksheet, clear it 
+      databaseSheet.clear();
+    }
+    else {
+      //if we don't have a database worksheet, create one 
+      var newDataBaseSheet = SpreadsheetApp.getActiveSpreadsheet().insertSheet(dataBaseSheetName);
+      newDataBaseSheet.hideSheet();
+    }
+    return true;
   } else {
     return Excel.run(context => {
       var sheet = context.workbook.worksheets.getActiveWorksheet();
-      // for excel we do not reset the sheet name because this can cause timing problems on some versions of Excel
-      var now = new Date().getTime();
+      // for excel we do not reset the sheet name because this can cause timing problems on some versions of Excel 
       sheet.getRange().clear();
-      return context.sync();
+
+      //check if the database sheet exists 
+      var sheets = context.workbook.worksheets;
+      sheets.load("items/name");
+
+      var isDatabaseSheet = false;
+      var dataBaseSheetName = createDatabaseSheetName(params.dataSheetName, model.currentProject.id, model.currentArtifact.id);
+
+      return context.sync()
+        .then(function () {
+          sheets.items.forEach(function (singleSheet) {
+            if (singleSheet.name == dataBaseSheetName) {
+              isDatabaseSheet = true;
+            }
+          });
+
+          if (!isDatabaseSheet) {
+            //if we don't have a database worksheet, create one 
+            var dbSheet = sheets.add(dataBaseSheetName);
+            dbSheet.visibility = Excel.SheetVisibility.hidden;
+          }
+          else {
+            //if we have a database worksheet, clear it 
+            var worksheet = context.workbook.worksheets.getItemOrNullObject(dataBaseSheetName);
+            worksheet.getRange().clear();
+          }
+          return context.sync();
+        });
     })
   }
 }
@@ -239,20 +347,22 @@ function clearAll() {
 // @param: isTemplateLoadFail - bool about whether this message means that the template load sequence has failed
 function popupShow(message, messageTitle, isTemplateLoadFail) {
   if (!message) return;
-
-  if (IS_GOOGLE) {
-    var htmlMessage = HtmlService.createHtmlOutput('<p ' + INLINE_STYLING + '>' + message + '</p>').setWidth(200).setHeight(75);
-    SpreadsheetApp.getUi().showModalDialog(htmlMessage, messageTitle || "");
-  } else {
-    showPanel("confirm");
-    document.getElementById("message-confirm").innerHTML = (messageTitle ? "<b>" + messageTitle + ":</b> " : "") + message;
-    document.getElementById("btn-confirm-cancel").style.visibility = "hidden";
-    document.getElementById("btn-confirm-ok").onclick = function () { popupHide() };
+  else {
+    if (IS_GOOGLE) {
+      // Display a modal dialog box with custom HtmlService content.
+      var htmlMessage = HtmlService.createHtmlOutput('<p ' + INLINE_STYLING + '>' + message + '</p>').setWidth(200).setHeight(75);
+      SpreadsheetApp.getUi().showModalDialog(htmlMessage, messageTitle || "");
+    } else {
+      showPanel("confirm");
+      document.getElementById("message-confirm").innerHTML = (messageTitle ? "<b>" + messageTitle + ":</b> " : "") + message;
+      document.getElementById("btn-confirm-cancel").style.visibility = "hidden";
+      document.getElementById("btn-confirm-ok").onclick = function () { popupHide() };
+      return !isTemplateLoadFail ? null : {
+        isTemplateLoadFail: isTemplateLoadFail,
+        message: message
+      };
+    }
   }
-  return !isTemplateLoadFail ? null : {
-    isTemplateLoadFail: isTemplateLoadFail,
-    message: message
-  };
 }
 
 function popupHide() {
@@ -260,10 +370,6 @@ function popupHide() {
   document.getElementById("message-confirm").innerHTML = "";
   document.getElementById("btn-confirm-cancel").style.visibility = "visible";
 }
-
-
-
-
 
 
 
@@ -292,11 +398,16 @@ function fetcher(currentUser, fetcherURL) {
 
   //call Google fetch function (UrlFetchApp) if using google
   if (IS_GOOGLE) {
-    var response = UrlFetchApp.fetch(fullUrl, params);
-    //returns parsed JSON
-    //unparsed response contains error codes if needed
-    return JSON.parse(response);
-
+    try {
+      var response = UrlFetchApp.fetch(fullUrl, params);
+      //returns parsed JSON
+      //unparsed response contains error codes if needed
+      return JSON.parse(response);
+    }
+    catch (err) {
+      error('network', err);
+      throw 'network error!';
+    }
     //for v6 API in Spira you HAVE to send a Content-Type header
   } else {
     return superagent
@@ -307,15 +418,30 @@ function fetcher(currentUser, fetcherURL) {
 }
 
 
-
 // Gets projects accessible by current logged in user
-// This function is called on initial log in and therefore also acts as user validation
+// This function is called on initial log in
 // @param: currentUser - object with details about the current user
-function getProjects(currentUser) {
+async function getProjects(currentUser) {
   var fetcherURL = API_PROJECT_BASE_NO_SLASH + '?';
   return fetcher(currentUser, fetcherURL);
 }
 
+
+// Gets projects accessible by current logged in user
+// This function is called on initial log in and therefore also acts as user validation
+// @param: currentUser - object with details about the current user
+async function getProjectTemplates(currentUser) {
+  var fetcherURL = API_TEMPLATE_BASE_NO_SLASH + '?';
+  return fetcher(currentUser, fetcherURL);
+}
+
+// Gets lists of selected template
+// This function is called as soon as a template is selected on its dropdown
+// @param: currentTemplate - object with details about the current Template
+async function getTemplateLists(currentTemplate, currentUser) {
+  var fetcherURL = API_TEMPLATE_BASE + currentTemplate + '/custom-lists?';
+  return fetcher(currentUser, fetcherURL);
+}
 
 
 // Gets projects accessible by current logged in user
@@ -327,6 +453,13 @@ function getTemplateFromProjectId(currentUser, projectId) {
   return fetcher(currentUser, fetcherURL);
 }
 
+// Checks if the current user is a system administrator
+// This function is called on initial log in
+// @param: currentUser - object with details about the current user
+async function isUserAdmin(currentUser) {
+  var fetcherURL = API_USER_BASE + currentUser.userName + '?include_inactive=false&';
+  return fetcher(currentUser, fetcherURL);
+}
 
 
 // Gets components for selected project.
@@ -348,8 +481,6 @@ function getCustoms(currentUser, templateId, artifactName) {
   return fetcher(currentUser, fetcherURL);
 }
 
-
-
 // Gets data for a bespoke specified field (for selected project and artifact)
 // @param: currentUser - object with details about the current user
 // @param: templateId - int id for current template
@@ -361,7 +492,10 @@ function getBespoke(currentUser, templateId, projectId, artifactName, field) {
   // a couple of dynamic fields are project based - like folders
   if (field.bespoke.isProjectBased) {
     fetcherURL = API_PROJECT_BASE + projectId + field.bespoke.url + '?';
-  } else {
+  } else if (field.bespoke.isSystemWide) {
+    fetcherURL = API_BASE + field.bespoke.url + '?';
+  }
+  else {
     fetcherURL = API_TEMPLATE_BASE + templateId + field.bespoke.url + '?';
   }
   var results = fetcher(currentUser, fetcherURL);
@@ -398,54 +532,78 @@ function getUsers(currentUser, projectId) {
 }
 
 
-function getArtifacts(user, projectId, artifactTypeId, startRow, numberOfRows, artifactId) {
+function getArtifacts(user, projectId, artifactTypeId, startRow, numberOfRows, artifactId, templateId) {
   var fullURL = API_PROJECT_BASE + projectId;
   var response = null;
-
   switch (artifactTypeId) {
-    case ART_ENUMS.requirements:
+    case params.artifactEnums.requirements:
       fullURL += "/requirements?starting_row=" + startRow + "&number_of_rows=" + numberOfRows + "&sort_field=RequirementId&sort_direction=ASC&";
       response = fetcher(user, fullURL);
       break;
-    case ART_ENUMS.testCases:
+    case params.artifactEnums.testCases:
       fullURL += "/test-cases?starting_row=" + startRow + "&number_of_rows=" + numberOfRows + "&sort_field=TestCaseId&sort_direction=ASC&";
       response = fetcher(user, fullURL);
       break;
-    case ART_ENUMS.testSteps:
+    case params.artifactEnums.testSteps:
       if (artifactId) {
         fullURL += "/test-cases/" + artifactId + "/test-steps?&";
         response = fetcher(user, fullURL);
       }
       break;
-    case ART_ENUMS.incidents:
+    case params.artifactEnums.incidents:
       fullURL += "/incidents/search?start_row=" + startRow + "&number_rows=" + numberOfRows + "&sort_field=Name&sort_direction=ASC&";
       response = fetcher(user, fullURL);
       break;
-    case ART_ENUMS.releases:
+    case params.artifactEnums.releases:
       fullURL += "/releases/search?start_row=" + startRow + "&number_rows=" + numberOfRows + "&sort_field=ReleaseId&sort_direction=ASC&";
       var rawResponse = poster("", user, fullURL);
       response = IS_GOOGLE ? JSON.parse(rawResponse) : rawResponse; // this particular return needs to be parsed here
       break;
-    case ART_ENUMS.tasks:
+    case params.artifactEnums.tasks:
       fullURL += "/tasks?starting_row=" + startRow + "&number_of_rows=" + numberOfRows + "&sort_field=TaskId&sort_direction=ASC&";
       var rawResponse = poster("", user, fullURL);
       response = IS_GOOGLE ? JSON.parse(rawResponse) : rawResponse; // this particular return needs to be parsed here
       break;
-    case ART_ENUMS.risks:
+    case params.artifactEnums.risks:
       fullURL += "/risks?starting_row=" + startRow + "&number_of_rows=" + numberOfRows + "&sort_field=RiskId&sort_direction=ASC&";
       var rawResponse = poster("", user, fullURL);
       response = IS_GOOGLE ? JSON.parse(rawResponse) : rawResponse; // this particular return needs to be parsed here
       break;
-    case ART_ENUMS.testSets:
+    case params.artifactEnums.testSets:
       fullURL += "/test-sets?starting_row=" + startRow + "&number_of_rows=" + numberOfRows + "&sort_field=TestSetId&sort_direction=ASC&";
-      var rawResponse = fetcher(user, fullURL);
-      response = IS_GOOGLE ? JSON.parse(rawResponse) : rawResponse; // this particular return needs to be parsed here
+      if (IS_GOOGLE) {
+        var rawResponse = JSON.stringify(fetcher(user, fullURL));
+        response = JSON.parse(rawResponse); // this particular return needs to be parsed here
+      }
+      else {
+        var rawResponse = fetcher(user, fullURL);
+        response = rawResponse; // this particular return needs to be parsed here
+      }
+      break;
+    case params.artifactEnums.components:
+      fullURL += "/components?active_only=false&include_deleted=false&start_row=" + startRow + "&number_rows=" + numberOfRows + "&sort_field=ComponentId&sort_direction=ASC&";
+      response = fetcher(user, fullURL);
+      break;
+    case params.artifactEnums.customLists:
+      if (artifactId > 0) {
+        //if we have a valid custom list ID
+        fullURL = API_TEMPLATE_BASE + templateId + "/custom-lists/" + artifactId + "?start_row=" + startRow + "&number_rows=" + numberOfRows + "&sort_field=CustomPropertyListId&sort_direction=ASC&";
+      }
+      else {
+        //if not, retrieve all the lists
+        fullURL = API_TEMPLATE_BASE + templateId + "/custom-lists?start_row=" + startRow + "&number_rows=" + numberOfRows + "&sort_field=CustomPropertyListId&sort_direction=ASC&";
+      }
+      response = fetcher(user, fullURL);
+      break;
+    case params.artifactEnums.customValues:
+      if (artifactId) {
+        fullURL = API_TEMPLATE_BASE + templateId + "/custom-lists/" + artifactId + "?";
+        response = fetcher(user, fullURL);
+      }
       break;
   }
   return response;
 }
-
-
 
 
 
@@ -493,6 +651,8 @@ function poster(body, currentUser, postUrl) {
   }
 }
 
+
+
 // General fetch function, using Google's built in fetch api
 // @param: body - json object
 // @param: currentUser - user object storing login data from client
@@ -518,7 +678,6 @@ function putUpdater(body, currentUser, PUTUrl) {
     return response;
   } else {
     //for MS Excel, use superagent to return a promise to the taskpane
-
     var putResult =
       superagent
         .put(fullUrl)
@@ -529,12 +688,14 @@ function putUpdater(body, currentUser, PUTUrl) {
   }
 }
 
+
+
 // decides what is the association type based on the artifact type and entry
 // returns the enum of the association type
 function getAssociationType(artifactTypeId, entry) {
 
   //Associations for Test Cases:
-  if (artifactTypeId == ART_ENUMS.testCases) {
+  if (artifactTypeId == params.artifactEnums.testCases) {
     //TC and Requirement
     if (entry.RequirementId && entry.TestCaseId) {
       return params.associationEnums.tc2req;
@@ -548,10 +709,12 @@ function getAssociationType(artifactTypeId, entry) {
       return params.associationEnums.tc2ts;
     }
   }
-  else if (artifactTypeId == ART_ENUMS.requirements) {
+  else if (artifactTypeId == params.artifactEnums.requirements) {
     return params.associationEnums.req2req;
   }
 }
+
+
 
 // effectively a switch to manage which comment we have and therefore which API call to use with what data
 // returns the response from the specific post service to Spira
@@ -569,45 +732,47 @@ function postCommentToSpira(entry, user, projectId, artifactTypeId) {
   switch (artifactTypeId) {
 
     // REQUIREMENTS
-    case ART_ENUMS.requirements:
+    case params.artifactEnums.requirements:
       postUrl = API_PROJECT_BASE + projectId + '/requirements/' + entry.ArtifactId + "/comments?";
       break;
 
     // TEST CASES
-    case ART_ENUMS.testCases:
+    case params.artifactEnums.testCases:
       postUrl = API_PROJECT_BASE + projectId + '/test-cases/' + entry.ArtifactId + "/comments?";
       break;
 
     // INCIDENTS
-    case ART_ENUMS.incidents:
+    case params.artifactEnums.incidents:
       postUrl = API_PROJECT_BASE + projectId + '/incidents/' + entry.ArtifactId + "/comments?";
       //creating comments for incidents requires the POST body to be array-like
       JSON_body = "[" + JSON_body + "]";
       break;
 
     // RELEASES
-    case ART_ENUMS.releases:
+    case params.artifactEnums.releases:
       postUrl = API_PROJECT_BASE + projectId + '/releases/' + entry.ArtifactId + "/comments?";
       break;
 
     // TASKS
-    case ART_ENUMS.tasks:
+    case params.artifactEnums.tasks:
       postUrl = API_PROJECT_BASE + projectId + '/tasks/' + entry.ArtifactId + "/comments?";
       break;
 
     // RISKS
-    case ART_ENUMS.risks:
+    case params.artifactEnums.risks:
       postUrl = API_PROJECT_BASE + projectId + '/risks/' + entry.ArtifactId + "/comments?";
       break;
 
     // TEST SETS
-    case ART_ENUMS.testSets:
+    case params.artifactEnums.testSets:
       postUrl = API_PROJECT_BASE + projectId + '/test-sets/' + entry.ArtifactId + "/comments?";
       break;
   }
 
   return postUrl ? poster(JSON_body, user, postUrl) : null;
 }
+
+
 
 // effectively a switch to manage which association we have and therefore which API call to use with what data
 // returns the response from the specific post service to Spira
@@ -625,7 +790,7 @@ function postAssociationToSpira(entry, user, projectId, artifactTypeId) {
   switch (artifactTypeId) {
 
     // REQUIREMENTS
-    case ART_ENUMS.requirements:
+    case params.artifactEnums.requirements:
       var associationType = getAssociationType(artifactTypeId, entry);
       if (associationType == params.associationEnums.req2req) {
         postUrl = API_PROJECT_BASE + projectId + '/associations?';
@@ -633,7 +798,7 @@ function postAssociationToSpira(entry, user, projectId, artifactTypeId) {
       break;
 
     // TEST CASES
-    case ART_ENUMS.testCases:
+    case params.artifactEnums.testCases:
       //decide what association to handle
       var associationType = getAssociationType(artifactTypeId, entry);
       if (associationType == params.associationEnums.tc2req) {
@@ -666,16 +831,15 @@ function postAssociationToSpira(entry, user, projectId, artifactTypeId) {
 // @param: projectId - int of the current project
 // @param: artifactId - int of the current artifact
 // @param: parentId - optional int of the relevant parent to attach the artifact too
-function postArtifactToSpira(entry, user, projectId, artifactTypeId, parentId) {
+function postArtifactToSpira(entry, user, projectId, templateId, artifactTypeId, parentId) {
   //stringify
   var JSON_body = JSON.stringify(entry),
     response = "",
     postUrl = "";
-
   //send JSON object of new item to artifact specific export function
   switch (artifactTypeId) {
     // REQUIREMENTS
-    case ART_ENUMS.requirements:
+    case params.artifactEnums.requirements:
       // url to post initial RQ to ensure it is fully outdented
       if (entry.indentPosition === 0) {
         postUrl = API_PROJECT_BASE + projectId + '/requirements/indent/' + INITIAL_HIERARCHY_OUTDENT + '?';
@@ -689,17 +853,17 @@ function postArtifactToSpira(entry, user, projectId, artifactTypeId, parentId) {
       break;
 
     // TEST CASES
-    case ART_ENUMS.testCases:
+    case params.artifactEnums.testCases:
       postUrl = API_PROJECT_BASE + projectId + '/test-cases?';
       break;
 
     // INCIDENTS
-    case ART_ENUMS.incidents:
+    case params.artifactEnums.incidents:
       postUrl = API_PROJECT_BASE + projectId + '/incidents?';
       break;
 
     // RELEASES
-    case ART_ENUMS.releases:
+    case params.artifactEnums.releases:
       // if no parentId then post as a regular release
       if (parentId === -1) {
         postUrl = API_PROJECT_BASE + projectId + '/releases?';
@@ -710,29 +874,73 @@ function postArtifactToSpira(entry, user, projectId, artifactTypeId, parentId) {
       break;
 
     // TASKS
-    case ART_ENUMS.tasks:
+    case params.artifactEnums.tasks:
       postUrl = API_PROJECT_BASE + projectId + '/tasks?';
       break;
 
     // TEST STEPS
-    case ART_ENUMS.testSteps:
+    case params.artifactEnums.testSteps:
       postUrl = parentId !== -1 ? API_PROJECT_BASE + projectId + '/test-cases/' + parentId + '/test-steps?' : null;
       // only post the test step if we have a parent id
       break;
 
     // RISKS
-    case ART_ENUMS.risks:
+    case params.artifactEnums.risks:
       postUrl = API_PROJECT_BASE + projectId + '/risks?';
       entry['CreationDate'] = new Date().toISOString();
       JSON_body = JSON.stringify(entry);
       break;
 
     // TEST SETS
-    case ART_ENUMS.testSets:
+    case params.artifactEnums.testSets:
       postUrl = API_PROJECT_BASE + projectId + '/test-sets?';
       break;
-  }
 
+    // FOLDERS
+    case params.artifactEnums.folders:
+      if (entry.artifact == params.artifactEnums.testCases) {
+        postUrl = API_PROJECT_BASE + projectId + '/test-folders?';
+      } else if (entry.artifact == params.artifactEnums.testSets) {
+        postUrl = API_PROJECT_BASE + projectId + '/test-set-folders?';
+      } else if (entry.artifact == params.artifactEnums.tasks) {
+        postUrl = API_PROJECT_BASE + projectId + '/task-folders?';
+      }
+      break;
+
+    // COMPONENTS
+    case params.artifactEnums.components:
+      postUrl = API_PROJECT_BASE + projectId + '/components?';
+      break;
+
+    // USERS
+    case params.artifactEnums.users:
+
+      postUrl = API_BASE + 'users?';
+      //adding the optional URL paramenters
+      if (entry.password) { postUrl += "password=" + entry.password + "&" };
+      if (entry.password_question) { postUrl += "password_question=" + entry.password_question + "&" };
+      if (entry.password_answer) { postUrl += "password_answer=" + entry.password_answer + "&" };
+      if (entry.project_id) { postUrl += "project_id=" + entry.project_id + "&" };
+      if (entry.project_role_id) { postUrl += "project_role_id=" + entry.project_role_id + "&" };
+
+      //since the user is being created by an administrator, it should be already approved
+      entry.Approved = "true";
+      JSON_body = JSON.stringify(entry);
+      break;
+
+    //CUSTOM LISTS
+    case params.artifactEnums.customLists:
+      postUrl = API_TEMPLATE_BASE + templateId + '/custom-lists?';
+      break;
+
+    //CUSTOM VALUES
+    case params.artifactEnums.customValues:
+      postUrl = API_TEMPLATE_BASE + templateId + '/custom-lists/' + parentId + '/values?';
+      entry[ART_PARENT_IDS[params.artifactEnums.customValues]] = parentId;
+      JSON_body = JSON.stringify(entry);
+      break;
+
+  }
   return postUrl ? poster(JSON_body, user, postUrl) : null;
 }
 
@@ -745,7 +953,7 @@ function postArtifactToSpira(entry, user, projectId, artifactTypeId, parentId) {
 // @param: projectId - int of the current project
 // @param: artifactId - int of the current artifact
 // @param: parentId - optional int of the relevant parent to attach the artifact too
-function putArtifactToSpira(entry, user, projectId, artifactTypeId, parentId) {
+function putArtifactToSpira(entry, user, projectId, templateId, artifactTypeId, parentId) {
   var JSON_body = JSON.stringify(entry),
     response = "",
     putUrl = "";
@@ -753,25 +961,27 @@ function putArtifactToSpira(entry, user, projectId, artifactTypeId, parentId) {
   switch (artifactTypeId) {
 
     // REQUIREMENTS
-    case ART_ENUMS.requirements:
+    case params.artifactEnums.requirements:
       // url to update RQs
       putUrl = API_PROJECT_BASE + projectId + '/requirements?';
       break;
 
     // TEST CASES
-    case ART_ENUMS.testCases:
+    case params.artifactEnums.testCases:
       putUrl = API_PROJECT_BASE + projectId + '/test-cases?';
-      entry.TestSteps = null;
-      JSON_body = JSON.stringify(entry);
+      if (!IS_GOOGLE) {
+        entry.TestSteps = null;
+        JSON_body = JSON.stringify(entry);
+      }
       break;
 
     // INCIDENTS
-    case ART_ENUMS.incidents:
+    case params.artifactEnums.incidents:
       putUrl = API_PROJECT_BASE + projectId + '/incidents/' + entry.IncidentId + '?';
       break;
 
     // RELEASES
-    case ART_ENUMS.releases:
+    case params.artifactEnums.releases:
       // if no parentId then post as a regular release
       if (parentId === -1) {
         putUrl = API_PROJECT_BASE + projectId + '/releases?';
@@ -782,27 +992,58 @@ function putArtifactToSpira(entry, user, projectId, artifactTypeId, parentId) {
       break;
 
     // TASKS
-    case ART_ENUMS.tasks:
+    case params.artifactEnums.tasks:
       putUrl = API_PROJECT_BASE + projectId + '/tasks?';
       break;
 
     // TEST STEPS
-    case ART_ENUMS.testSteps:
+    case params.artifactEnums.testSteps:
       putUrl = parentId !== -1 ? API_PROJECT_BASE + projectId + '/test-cases/' + parentId + '/test-steps?' : null;
       // only post the test step if we have a parent id
       break;
 
     // RISKS
-    case ART_ENUMS.risks:
+    case params.artifactEnums.risks:
       putUrl = API_PROJECT_BASE + projectId + '/risks?';
       break;
     // TEST SETS
-    case ART_ENUMS.testSets:
+    case params.artifactEnums.testSets:
       putUrl = API_PROJECT_BASE + projectId + '/test-sets/?';
       break;
+    //COMPONENTS
+    case params.artifactEnums.components:
+      putUrl = API_PROJECT_BASE + projectId + '/components/' + entry.ComponentId + '?';
+      break;
+    //CUSTOM LISTS
+    case params.artifactEnums.customLists:
+      putUrl = API_TEMPLATE_BASE + templateId + '/custom-lists/' + entry[ART_PARENT_IDS[params.artifactEnums.customLists]] + '?';
+      break;
+    //CUSTOM VALUES
+    case params.artifactEnums.customValues:
+      putUrl = API_TEMPLATE_BASE + templateId + '/custom-lists/' + entry[ART_PARENT_IDS[params.artifactEnums.customLists]] + '?';
+      //due to the API nature, this query requires some extra steps before sending the object
+      var finalEntry = {
+        Name: "",
+        Active: true,
+        Values: []
+      };
+      finalEntry.Name = entry.parentName;
+      finalEntry.Active = entry.parentActive;
+      finalEntry.Values.push(entry);
+      JSON_body = JSON.stringify(finalEntry);
+      break;
   }
+
   return putUrl ? putUpdater(JSON_body, user, putUrl) : null;
 }
+
+/*
+ *
+ * ==============
+ * ERROR MESSAGES
+ * ==============
+ *
+ */
 
 /*
  *
@@ -823,14 +1064,21 @@ function error(type, err) {
     message = 'There was an input error. Please check that your entries are correct.';
   } else if (type == "network") {
     message = 'Network error. Please check your username, url, and password. If correct make sure you have the correct permissions.';
-    details = err ? `<br><br>STATUS: ${err.status ? err.status : "unknown"}<br>MESSAGE: ${err.response ? err.response.text : "unknown"}` : "";
+    details = err ? `<br><br><b>STATUS:</b> ${err.status ? err.status : "unknown"}<br><br><b>MESSAGE:</b> ${err.stack ? err.stack : "unknown"}` : "";
   } else if (type == 'excel') {
-    message = 'Excel reported an error!';
+    message = 'The program reported an error!';
     details = err ? `<br><br>Description: ${err.description}` : "";
   } else if (type == 'unknown' || err == 'unknown') {
-    message = 'Unkown error. Please try again later or contact your system administrator';
-  } else {
-    message = 'Unkown error. Please try again later or contact your system administrator';
+    message = 'Unknown error. Please try again later or contact your system administrator';
+  } else if (type == 'sheet') {
+    message = 'There was a problem while retrieving data from the active spreadsheet. Please check the details below and try again. <br><br><b>Details:</b><br>' + err;
+  } else if (type == "list") {
+    message = 'There was an error processing your request. Please make sure that the current user has access to the selected Template.' +
+      ' Also, make sure the selected Template has at least one (1) active product.';
+    details = "<br> <b>Spira Server Response:</b> 401 - Not Authorized";
+  }
+  else {
+    message = 'Unknown error. Please try again later or contact your system administrator';
   }
 
   if (IS_GOOGLE) {
@@ -913,32 +1161,61 @@ function templateLoader(model, fieldTypeEnums, advancedMode) {
 
   var fields = model.fields;
   var sheet;
-  var newSheetName = model.currentArtifact.name + ", PR-" + model.currentProject.id;
+  var newSheetName;
 
-  if (!advancedMode) {
-    //if not in advanced mode, ignore the fields only available for that mode
+  if (model.currentOperation) {
+    //administrator mode 
 
-    model.fields = fields.filter(function (item, index) {
-      if (!item.isAdvanced) {
-        return item;
-      }
-    })
+    var operation = model.operations.filter(function (operation) {
+      return operation.id == model.currentOperation;
+    })[0];
+
+    if (operation.type == "send-system") {
+      //system wide operations 
+      newSheetName = model.currentArtifact.name + ", system";
+
+    }
+    else if (operation.type == "send-template" || operation.type == "get-template") {
+      //template-based operations 
+      newSheetName = model.currentArtifact.name + ", TP-" + model.currentTemplate.id;
+    }
+    else if (operation.type == "send-product") {
+      //product-based operations 
+      //folders 
+      newSheetName = "Folders, PR-" + model.currentProject.id;
+    }
+  }
+  else {
+    //stardard artifact functions 
+    newSheetName = model.currentArtifact.name + ", PR-" + model.currentProject.id;
   }
 
+  var response;
   // select active sheet
   if (IS_GOOGLE) {
     sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
     // set sheet (tab) name to model name
     sheet.setName(newSheetName);
-    sheetSetForTemplate(sheet, model, fieldTypeEnums, null);
-
+    sheetSetForTemplate(sheet, model, fieldTypeEnums, null, newSheetName);
+    response = true;
   } else {
+
+    if (!advancedMode) {
+      //if not in advanced mode, ignore the fields only available for that mode
+
+      model.fields = fields.filter(function (item, index) {
+        if (!item.isAdvanced) {
+          return item;
+        }
+      })
+    }
+
     return Excel.run(function (context) {
       // store the sheet and worksheet list for use later
       sheet = context.workbook.worksheets.getActiveWorksheet();
 
       //reset the hidden status of the spreadsheet
-      var range = sheet.getRangeByIndexes(0, 0, 1, EXCEL_MAX_ROWS);
+      var range = sheet.getRangeByIndexes(0, 0, 1, MAX_ROWS_PER_PAGE);
       range.columnHidden = false;
 
       var worksheets = context.workbook.worksheets;
@@ -964,7 +1241,7 @@ function templateLoader(model, fieldTypeEnums, advancedMode) {
             sheet.name = newSheetName;
             return context.sync()
               .then(function () {
-                return sheetSetForTemplate(sheet, model, fieldTypeEnums, context);
+                return sheetSetForTemplate(sheet, model, fieldTypeEnums, context, newSheetName);
               })
           }
         })
@@ -973,14 +1250,16 @@ function templateLoader(model, fieldTypeEnums, advancedMode) {
   }
 }
 
-// wrapper function to set the header row, validation rules, and any extra formatting
-function sheetSetForTemplate(sheet, model, fieldTypeEnums, context) {
-  // heading row - sets names and formatting
+// wrapper function to set the header row, validation rules, and any extra formatting 
+function sheetSetForTemplate(sheet, model, fieldTypeEnums, context, newSheetName) {
+  // heading row - sets names and formatting (standard sheet) 
   headerSetter(sheet, model.fields, model.colors, context);
-  // set validation rules on the columns
+  // set validation rules on the columns (standard sheet) 
   contentValidationSetter(sheet, model, fieldTypeEnums, context);
-  // set any extra formatting options
+  // set any extra formatting options (standard sheet) 
   contentFormattingSetter(sheet, model, context);
+  //set database fields (database sheet) 
+  dataBaseValidationSetter(newSheetName, model, fieldTypeEnums, context);
 }
 
 
@@ -1009,6 +1288,8 @@ function headerSetter(sheet, fields, colors, context) {
 
     // set background colors based on if it is a subtype only field or not
     var background = fields[i].isSubTypeField ? colors.bgHeaderSubType : colors.bgHeader;
+    //check for special dual type fields
+    if (fields[i].isTypeAndSubTypeField) { background = colors.bgHeaderTypeAndSubType; }
     backgrounds.push(background);
   }
 
@@ -1047,7 +1328,7 @@ function headerSetter(sheet, fields, colors, context) {
 // @param: fieldTypeEnums - enums for field types
 function contentValidationSetter(sheet, model, fieldTypeEnums, context) {
   // we can't easily get the max rows for excel so use the number of rows it always seems to have
-  var nonHeaderRows = IS_GOOGLE ? sheet.getMaxRows() - 1 : 1048576 - 1;
+  var nonHeaderRows = IS_GOOGLE ? sheet.getMaxRows() - 1 : EXCEL_NUMBER_OF_ROWS - 1;
 
   for (var index = 0; index < model.fields.length; index++) {
     var columnNumber = index + 1,
@@ -1072,60 +1353,41 @@ function contentValidationSetter(sheet, model, fieldTypeEnums, context) {
       case fieldTypeEnums.int:
         setIntegerValidation(sheet, columnNumber, nonHeaderRows, false);
         break;
+      case fieldTypeEnums.customInteger:
+        setIntegerValidation(sheet, columnNumber, nonHeaderRows, false);
+        break;
+      case fieldTypeEnums.customAutomationHost:
+        setIntegerValidation(sheet, columnNumber, nonHeaderRows, false);
+        break;
+
 
       // NUM fields are handled as decimals by Excel though
       case fieldTypeEnums.num:
         setNumberValidation(sheet, columnNumber, nonHeaderRows, false);
         break;
-
-      // BOOL as Sheets has no bool validation, a yes/no dropdown is used
-      case fieldTypeEnums.bool:
-        // 'True' and 'False' don't work as dropdown choices
-        list.push("Yes", "No");
-        setDropdownValidation(sheet, columnNumber, nonHeaderRows, list, false);
+      case fieldTypeEnums.customDecimal:
+        setNumberValidation(sheet, columnNumber, nonHeaderRows, false);
         break;
 
       // DATE fields get date validation
       case fieldTypeEnums.date:
         setDateValidation(sheet, columnNumber, nonHeaderRows, false);
         break;
-
-      // DROPDOWNS and MULTIDROPDOWNS are both treated as simple dropdowns (Sheets does not have multi selects)
-      case fieldTypeEnums.drop:
-      case fieldTypeEnums.multi:
-        var fieldList = model.fields[index].values;
-
-        for (var i = 0; i < fieldList.length; i++) {
-          list.push(setListItemDisplayName(fieldList[i]));
-        }
-        setDropdownValidation(sheet, columnNumber, nonHeaderRows, list, false);
+      case fieldTypeEnums.customDate:
+        setDateValidation(sheet, columnNumber, nonHeaderRows, false);
+        break;
+      case fieldTypeEnums.customDateAndTime:
+        setDateTimeValidation(sheet, columnNumber, nonHeaderRows, false);
         break;
 
-      // USER fields are dropdowns with the values coming from a project wide set list
-      case fieldTypeEnums.user:
-        for (var j = 0; j < model.projectUsers.length; j++) {
-          list.push(setListItemDisplayName(model.projectUsers[j]));
-        }
-        setDropdownValidation(sheet, columnNumber, nonHeaderRows, list, false);
-        break;
-
-      // COMPONENT fields are dropdowns with the values coming from a project wide set list
-      case fieldTypeEnums.component:
-        for (var k = 0; k < model.projectComponents.length; k++) {
-          list.push(setListItemDisplayName(model.projectComponents[k]));
-        }
-        setDropdownValidation(sheet, columnNumber, nonHeaderRows, list, false);
-        break;
-
-      // RELEASE fields are dropdowns with the values coming from a project wide set list
-      case fieldTypeEnums.release:
-        for (var l = 0; l < model.projectReleases.length; l++) {
-          list.push(setListItemDisplayName(model.projectReleases[l]));
-        }
-        setDropdownValidation(sheet, columnNumber, nonHeaderRows, list, false);
-        break;
-
+      //TEXT types validation
       case fieldTypeEnums.text:
+        setTextValidation(sheet, columnNumber, nonHeaderRows, false);
+        break;
+      case fieldTypeEnums.customText:
+        setTextValidation(sheet, columnNumber, nonHeaderRows, false);
+        break;
+      case fieldTypeEnums.customPassword:
         setTextValidation(sheet, columnNumber, nonHeaderRows, false);
         break;
 
@@ -1137,6 +1399,112 @@ function contentValidationSetter(sheet, model, fieldTypeEnums, context) {
   }
 }
 
+//Function used to set the databaseSheet complete name, given the project and artifact ID
+function createDatabaseSheetName(sheetName, projectId, artifactTypeId) {
+  return sheetName + "-" + projectId + "-" + artifactTypeId;
+}
+
+// Sets validation on a per column basis, based on the field type passed in by the model
+// a switch statement checks for any type requiring validation and carries out necessary action
+// @param: sheet - the sheet object
+// @param: model - full data to acccess global params as well as all fields
+// @param: fieldTypeEnums - enums for field types
+function dataBaseValidationSetter(mainSheetName, model, fieldTypeEnums, context) {
+  // we can't easily get the max rows for excel so use the number of rows it always seems to have
+  for (var index = 0; index < model.fields.length; index++) {
+    var columnNumber = index + 1,
+      list = [];
+    switch (model.fields[index].type) {
+      // DROPDOWNS and MULTIDROPDOWNS are both treated as simple dropdowns (Sheets does not have multi selects)
+      case fieldTypeEnums.drop:
+      case fieldTypeEnums.customList:
+      case fieldTypeEnums.multi:
+      case fieldTypeEnums.customMultiList:
+        var fieldList = model.fields[index].values;
+        for (var i = 0; i < fieldList.length; i++) {
+          list.push(setListItemDisplayName(fieldList[i]));
+        }
+        setDropdownValidation(mainSheetName, columnNumber, list, true, context, model);
+        break;
+
+      // RELEASE fields are dropdowns with the values coming from a project wide set list
+      case fieldTypeEnums.release:
+        if (!model.fields[index].showInactiveReleases) {
+          //show only the active releases
+          for (var l = 0; l < model.projectActiveReleases.length; l++) {
+            list.push(setListItemDisplayName(model.projectActiveReleases[l]));
+          }
+          if (list.length > 0) {
+            setDropdownValidation(mainSheetName, columnNumber, list, true, context, model);
+          }
+        }
+        else {
+          //show all the releases - including inactives
+          for (var l = 0; l < model.projectReleases.length; l++) {
+            list.push(setListItemDisplayName(model.projectReleases[l]));
+          }
+          if (list.length > 0) {
+            setDropdownValidation(mainSheetName, columnNumber, list, true, context, model);
+          }
+          break;
+        }
+        break;
+      case fieldTypeEnums.customRelease:
+        for (var l = 0; l < model.projectReleases.length; l++) {
+          list.push(setListItemDisplayName(model.projectReleases[l]));
+        }
+        if (list.length > 0) {
+          setDropdownValidation(mainSheetName, columnNumber, list, true, context, model);
+        }
+        break;
+
+      // BOOL as Sheets has no bool validation, a yes/no dropdown is used
+      case fieldTypeEnums.bool:
+        // 'True' and 'False' don't work as dropdown choices
+        list.push("Yes", "No");
+        setDropdownValidation(mainSheetName, columnNumber, list, false, context, model);
+        break;
+
+      case fieldTypeEnums.customBoolean:
+        // 'True' and 'False' don't work as dropdown choices
+        list.push("Yes", "No");
+        setDropdownValidation(mainSheetName, columnNumber, list, false, context, model);
+        break;
+
+
+      // USER fields are dropdowns with the values coming from a project wide set list
+      case fieldTypeEnums.user:
+        for (var j = 0; j < model.projectUsers.length; j++) {
+          list.push(setListItemDisplayName(model.projectUsers[j]));
+        }
+        setDropdownValidation(mainSheetName, columnNumber, list, true, context, model);
+        break;
+
+      case fieldTypeEnums.customUser:
+        for (var j = 0; j < model.projectUsers.length; j++) {
+          list.push(setListItemDisplayName(model.projectUsers[j]));
+        }
+        setDropdownValidation(mainSheetName, columnNumber, list, true, context, model);
+        break;
+
+      // COMPONENT fields are dropdowns with the values coming from a project wide set list
+      case fieldTypeEnums.component:
+        for (var k = 0; k < model.projectComponents.length; k++) {
+          list.push(setListItemDisplayName(model.projectComponents[k]));
+        }
+        setDropdownValidation(mainSheetName, columnNumber, list, true, context, model);
+        break;
+
+      // All other types
+      default:
+        //do nothing
+        break;
+    }
+  }
+  if (!IS_GOOGLE) {
+    return context.sync();
+  }
+}
 
 
 // create dropdown validation on set column based on specified values
@@ -1145,30 +1513,84 @@ function contentValidationSetter(sheet, model, fieldTypeEnums, context) {
 // @param: rowLength - int of the number of rows for range (global param)
 // @param: list - array of values to show in a dropdown and use for validation
 // @param: allowInvalid - bool to state whether to restrict any values to those in validation or not
-function setDropdownValidation(sheet, columnNumber, rowLength, list, allowInvalid) {
+async function setDropdownValidation(mainSheetName, columnNumber, list, allowInvalid, context, model) {
   if (IS_GOOGLE) {
-    // create range
-    var range = sheet.getRange(2, columnNumber, rowLength);
+    //first, write the values to the dbSheet
+    var dataBaseSheetName = createDatabaseSheetName(params.dataSheetName, model.currentProject.id, model.currentArtifact.id);
 
+    if (model.currentOperation) {
+      //administrator mode 
+
+      var operation = model.operations.filter(function (operation) {
+        return operation.id == model.currentOperation;
+      })[0];
+
+      if (operation.type == "send-system") {
+        //system wide operations 
+        mainSheetName = model.currentArtifact.name + ", system";
+
+      }
+      else if (operation.type == "send-template" || operation.type == "get-template") {
+        //template-based operations 
+        mainSheetName = model.currentArtifact.name + ", TP-" + model.currentTemplate.id;
+      }
+      else if (operation.type == "send-product") {
+        //product-based operations 
+        //folders 
+        mainSheetName = "Folders, PR-" + model.currentProject.id;
+      }
+    }
+    else {
+      //stardard artifact functions 
+      mainSheetName = model.currentArtifact.name + ", PR-" + model.currentProject.id;
+    }
+
+    var values = [];
+    list.forEach(function (item) {
+      var itemArray = [item];
+      values.push(itemArray);
+    });
+
+    var dbSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(dataBaseSheetName),
+      dbRange = dbSheet.getRange(1, columnNumber, list.length, 1);
+    dbRange.setValues(values);
+
+    //Now, point the fields in the mainsheet to the database worksheet (source)
+    var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(mainSheetName);
+    var range = sheet.getRange(2, columnNumber, sheet.getMaxRows() - 1);
     // create the validation rule
     // requireValueInList - params are the array to use, and whether to create a dropdown list
     var rule = SpreadsheetApp.newDataValidation()
-      .requireValueInList(list, true)
+      .requireValueInRange(dbRange, true)
       .setAllowInvalid(allowInvalid)
       .build();
     range.setDataValidation(rule);
-
   } else {
-    var range = sheet.getRangeByIndexes(1, columnNumber - 1, rowLength, 1);
+    //max rows for Excel
+    var nonHeaderRows = EXCEL_NUMBER_OF_ROWS - 1;
+    //first, write the values to the dbSheet
+    var values = [];
+    list.forEach(function (item) {
+      var itemArray = [item];
+      values.push(itemArray);
+    });
+
+    var dataBaseSheetName = createDatabaseSheetName(params.dataSheetName, model.currentProject.id, model.currentArtifact.id);
+
+    var dbSheetRange = context.workbook.worksheets.getItem(dataBaseSheetName).getRangeByIndexes(0, columnNumber - 1, list.length, 1);
+    dbSheetRange.values = values;
+    context.sync();
+    //Now, point the fields in the mainsheet to the database worksheet (source)
+    var range = context.workbook.worksheets.getItem(mainSheetName).getRangeByIndexes(1, columnNumber - 1, nonHeaderRows, 1);
     range.dataValidation.clear();
-    var approvedListRule = {
+
+    range.dataValidation.rule = {
       list: {
         inCellDropDown: true,
-        source: list.join()
+        source: dbSheetRange
       }
     };
-    range.dataValidation.rule = approvedListRule;
-
+    await context.sync();
   }
 }
 
@@ -1191,6 +1613,7 @@ function setDateValidation(sheet, columnNumber, rowLength, allowInvalid) {
       .setHelpText('Must be a valid date')
       .build();
     range.setDataValidation(rule);
+    range.setNumberFormat('mm/dd/yy');
 
   } else {
     var range = sheet.getRangeByIndexes(1, columnNumber - 1, rowLength, 1);
@@ -1216,10 +1639,56 @@ function setDateValidation(sheet, columnNumber, rowLength, allowInvalid) {
       style: "Stop",
       title: "Invalid date entered"
     };
+    //now set the cell format to dates
+    range.numberFormatLocal = "dd-mmm-yyyy";
   }
+}
 
-  //now set the cell format to dates
-  range.numberFormatLocal = "dd-mmm-yyyy";
+// create dateTime validation on set column based on specified values
+// @param: sheet - the sheet object
+// @param: columnNumber - int of the column to validate
+// @param: rowLength - int of the number of rows for range (global param)
+// @param: allowInvalid - bool to state whether to restrict any values to those in validation or not
+function setDateTimeValidation(sheet, columnNumber, rowLength, allowInvalid) {
+  if (IS_GOOGLE) {
+    // create range
+    var range = sheet.getRange(2, columnNumber, rowLength);
+
+    // create the validation rule
+    var rule = SpreadsheetApp.newDataValidation()
+      .requireDate()
+      .setAllowInvalid(false)
+      .setHelpText('Must be a valid date')
+      .build();
+    range.setDataValidation(rule);
+    range.setNumberFormat('mm/dd/yy hh:mm:ss am/pm');
+
+  } else {
+    var range = sheet.getRangeByIndexes(1, columnNumber - 1, rowLength, 1);
+    range.dataValidation.clear();
+
+    var greaterThan2000Rule = {
+      date: {
+        formula1: "2000-01-01",
+        operator: Excel.DataValidationOperator.greaterThan
+      }
+    };
+    range.dataValidation.rule = greaterThan2000Rule;
+
+    range.dataValidation.prompt = {
+      message: "Please enter a date.",
+      showPrompt: true,
+      title: "Valid dates only."
+    };
+    range.dataValidation.errorAlert = {
+      message: "Sorry, only dates are allowed",
+      showAlert: true,
+      style: "Stop",
+      title: "Invalid date entered"
+    };
+    //now set the cell format to dates
+    range.numberFormatLocal = "dd-mmm-yyyy hh:mm:ss am/pm";
+  }
 }
 
 
@@ -1237,9 +1706,9 @@ function setPositiveIntValidation(sheet, columnNumber, rowLength, allowInvalid) 
     // create the validation rule
     //must be a valid number greater than -1 (also excludes 1.1.0 style numbers)
     var rule = SpreadsheetApp.newDataValidation()
-      .requireNumberGreaterThan(-1)
-      .setAllowInvalid(allowInvalid)
-      .setHelpText('Must be a positive number')
+      .requireNumberGreaterThanOrEqualTo(-1)
+      .setAllowInvalid(true)
+      //.setHelpText('Must be a positive number')
       .build();
     range.setDataValidation(rule);
 
@@ -1282,11 +1751,12 @@ function setIntegerValidation(sheet, columnNumber, rowLength, allowInvalid) {
     // create the validation rule
     //must be a valid number greater than -1 (also excludes 1.1.0 style numbers)
     var rule = SpreadsheetApp.newDataValidation()
-      .requireNumberGreaterThan(0)
+      .requireNumberGreaterThanOrEqualTo(0)
       .setAllowInvalid(allowInvalid)
-      .setHelpText('Must be a whole number')
+      .setHelpText('Must be a whole number!')
       .build();
     range.setDataValidation(rule);
+    range.setNumberFormat('0');
 
   } else {
     var range = sheet.getRangeByIndexes(1, columnNumber - 1, rowLength, 1);
@@ -1327,11 +1797,12 @@ function setNumberValidation(sheet, columnNumber, rowLength, allowInvalid) {
     // create the validation rule
     //must be a valid number greater than -1 (also excludes 1.1.0 style numbers)
     var rule = SpreadsheetApp.newDataValidation()
-      .requireNumberGreaterThan(0)
+      .requireNumberGreaterThanOrEqualTo(0)
       .setAllowInvalid(allowInvalid)
-      .setHelpText('Must be a number')
+      .setHelpText('Must be a number!')
       .build();
     range.setDataValidation(rule);
+    range.setNumberFormat('####.##');
 
   } else {
     var range = sheet.getRangeByIndexes(1, columnNumber - 1, rowLength, 1);
@@ -1366,17 +1837,15 @@ function setNumberValidation(sheet, columnNumber, rowLength, allowInvalid) {
 // @param: allowInvalid - bool to state whether to restrict any values to those in validation or not
 function setTextValidation(sheet, columnNumber, rowLength, allowInvalid) {
   if (IS_GOOGLE) {
-    //TO-DO
-    // var range = sheet.getRange(2, columnNumber, rowLength);
-
-    // // create the validation rule
-    // //must be a valid number greater than -1 (also excludes 1.1.0 style numbers)
-    // var rule = SpreadsheetApp.newDataValidation()
-    //   .requireNumberGreaterThan(0)
-    //   .setAllowInvalid(allowInvalid)
-    //   .setHelpText('Must be a text string')
-    //   .build();
-    // range.setDataValidation(rule);
+    var range = sheet.getRange(2, columnNumber, rowLength);
+    // create the validation rule
+    var rule = SpreadsheetApp.newDataValidation()
+      .setAllowInvalid(allowInvalid)
+      .requireTextContains('')
+      .setHelpText('Must be a text string')
+      .build();
+    range.setDataValidation(rule);
+    range.setNumberFormat('@STRING@');
 
   } else {
     var range = sheet.getRangeByIndexes(1, columnNumber - 1, rowLength, 1);
@@ -1399,7 +1868,7 @@ function setTextValidation(sheet, columnNumber, rowLength, allowInvalid) {
 function contentFormattingSetter(sheet, model) {
   for (var i = 0; i < model.fields.length; i++) {
     var columnNumber = i + 1;
-    var nonHeaderRows = IS_GOOGLE ? sheet.getMaxRows() - 1 : 1048576 - 1;
+    var nonHeaderRows = IS_GOOGLE ? sheet.getMaxRows() - 1 : EXCEL_NUMBER_OF_ROWS - 1;
 
     // protect column
     // read only fields - ie ones you can get from Spira but not create in Spira (as with IDs - eg task component)
@@ -1511,53 +1980,84 @@ function hideColumn(sheet, columnNumber, rowLength, bgColor) {
 // resets backgroung colors to its original - used before a GET command
 // @param: sheetName - current sheet name
 
-function resetSheetColors(model, fieldTypeEnums, sheetRangeOld) {
-  Excel.run(function (ctx) {
+function resetSheetColors(model, fieldTypeEnums, currentSheet) {
+
+  if (IS_GOOGLE) {
+
     var fields = model.fields;
-    var columnCount = Object.keys(fields).length;
-
-    //get the previous data number of rows
-    var rowCount;
-    var sheetOldData = sheetRangeOld.values;
-
-    for (var i = 0; i < sheetOldData.length; i++) {
-      // stop at the first row that is fully blank
-      if (sheetOldData[i].join("") === "") {
-        break;
-      }
-      else {
-        rowCount = i;
-      }
-    }
-
-    //complete data range from old data
-    var sheet = ctx.workbook.worksheets.getActiveWorksheet();
-    var range = sheet.getRangeByIndexes(1, 0, rowCount + 1, columnCount);
+    var columnCount = Object.keys(fields).length + 1;
+    var rowCount = currentSheet.getLastRow();
+    if (rowCount == 0) { rowCount = 1; } //avoid errors
 
     //reset each column color schema (depending on property type)
-    for (var j = 0; j < columnCount; j++) {
+    for (var j = 1; j < columnCount; j++) {
+      var isHidden = fields[j - 1].isHidden;
+      if (!isHidden) {
+        var subColumnRange = currentSheet.getRange(2, j, rowCount, 1);
+        var fieldType = fields[j - 1].type;
+        var isReadOnly = fields[j - 1].isReadOnly;
 
-      var subColumnRange = range.getColumn(j);
-      var fieldType = fields[j].type;
-      var isReadOnly = fields[j].isReadOnly;
-      var bgColor;
-
-      if (fieldType == fieldTypeEnums.id || fieldType == fieldTypeEnums.subId || isReadOnly) {
-
-        subColumnRange.format.fill.color = model.colors.bgReadOnly;
+        if (fieldType == fieldTypeEnums.id || fieldType == fieldTypeEnums.subId || isReadOnly) {
+          subColumnRange.setBackground(model.colors.bgReadOnly);
+          subColumnRange.clearNote();
+        }
+        else {
+          subColumnRange.setBackground(model.colors.header);
+          subColumnRange.clearNote();
+        }
       }
-      else {
+    }
+  }
+  else {
+    Excel.run(function (ctx) {
+      var fields = model.fields;
+      var columnCount = Object.keys(fields).length;
 
-        subColumnRange.format.fill.clear();
+      //get the previous data number of rows
+      var rowCount;
+      var sheetOldData = sheetRangeOld.values;
+
+      for (var i = 0; i < sheetOldData.length; i++) {
+        // stop at the first row that is fully blank
+        if (sheetOldData[i].join("") === "") {
+          break;
+        }
+        else {
+          rowCount = i;
+        }
       }
 
-    }
-    range.delete(Excel.DeleteShiftDirection.up);
-    return ctx.sync();
-  }).catch(function (error) {
-    if (error instanceof OfficeExtension.Error) {
-    }
-  });
+      //complete data range from old data
+      var sheet = ctx.workbook.worksheets.getActiveWorksheet();
+      var range = sheet.getRangeByIndexes(1, 0, rowCount + 1, columnCount);
+
+      //reset each column color schema (depending on property type)
+      for (var j = 0; j < columnCount; j++) {
+
+        var subColumnRange = range.getColumn(j);
+        var fieldType = fields[j].type;
+        var isReadOnly = fields[j].isReadOnly;
+        var bgColor;
+
+        if (fieldType == fieldTypeEnums.id || fieldType == fieldTypeEnums.subId || isReadOnly) {
+
+          subColumnRange.format.fill.color = model.colors.bgReadOnly;
+        }
+        else {
+
+          subColumnRange.format.fill.clear();
+        }
+
+      }
+      range.delete(Excel.DeleteShiftDirection.up);
+      return ctx.sync();
+    }).catch(function (error) {
+      if (error instanceof OfficeExtension.Error) {
+        //fail quietly
+      }
+    });
+
+  }
 }
 
 
@@ -1567,29 +2067,55 @@ function resetSheetColors(model, fieldTypeEnums, sheetRangeOld) {
 // returns the filtered sheetData object
 
 function clearErrorMessages(sheetData, isUpdate) {
-  for (var rowToPrep = 0; rowToPrep < sheetData.length; rowToPrep++) {
-    // stop at the first row that is fully blank
-    if (sheetData[rowToPrep].join("") === "") {
-      break;
-    } else {
-      //the error messages are placed always at the position 0 of each row
-      if (isNaN(sheetData[rowToPrep][0])) {
-        try {
-          sheetData[rowToPrep][0] = sheetData[rowToPrep][0].split(",")[0];
-        }
-        catch (err) {
-          //do nothing
-        }
+  if (IS_GOOGLE) {
+    // get active spreadsheet
+    var spreadSheet = SpreadsheetApp.getActiveSpreadsheet(),
+      sheet = spreadSheet.getActiveSheet(),
+      lastColumn = sheet.getLastColumn(),
+      lastRow = sheet.getLastRow();
 
-      }
-      //also, add -1 as ID for blank (invalid) new PUT values
+    //minimum requirements
+    if (lastColumn == 0) { lastColumn = 1 };
+    if (lastRow == 0) { lastRow = 1 };
+
+    // clears notes from the entire sheet
+    var range = sheet.getRange(1, 1, lastRow, lastColumn);
+    range.clearNote();
+
+    for (var rowToPrep = 0; rowToPrep < sheetData.length; rowToPrep++) {
+      //add -1 as ID for blank (invalid) new PUT values
       if (isUpdate && !sheetData[rowToPrep][0]) {
         sheetData[rowToPrep][0] = "-1";
       }
     }
   }
+  else {
+    for (var rowToPrep = 0; rowToPrep < sheetData.length; rowToPrep++) {
+      // stop at the first row that is fully blank
+      if (sheetData[rowToPrep].join("") === "") {
+        break;
+      } else {
+        //the error messages are placed always at the position 0 of each row
+        if (isNaN(sheetData[rowToPrep][0])) {
+          try {
+            sheetData[rowToPrep][0] = sheetData[rowToPrep][0].split(",")[0];
+          }
+          catch (err) {
+            //do nothing
+          }
+
+        }
+        //also, add -1 as ID for blank (invalid) new PUT values
+        if (isUpdate && !sheetData[rowToPrep][0]) {
+          sheetData[rowToPrep][0] = "-1";
+        }
+      }
+    }
+  }
   return sheetData;
 }
+
+
 
 // returns the artifact IDs containing validation problems
 // @param: sheetData - the sheet data object
@@ -1608,6 +2134,9 @@ function getValidationsFromEntries(entries, sheetData, response) {
   return artifactIds;
 }
 
+
+
+
 /*
  * ================
  * SENDING TO SPIRA
@@ -1624,15 +2153,41 @@ function getValidationsFromEntries(entries, sheetData, response) {
 // @param: fieldTypeEnums - list of fieldType enums from client params object
 // @param: isUpdate - boolean that indicates if this is an update operation (true) or create operation (false)
 async function sendToSpira(model, fieldTypeEnums, isUpdate) {
-
   // 0. SETUP FUNCTION LEVEL VARS
-
   var entriesLog, commentsLog, associationsLog;
 
   var fields = model.fields,
     artifact = model.currentArtifact,
-    artifactIsHierarchical = artifact.hierarchical,
-    requiredSheetName = model.currentArtifact.name + ", PR-" + model.currentProject.id
+    artifactIsHierarchical = artifact.hierarchical;
+
+  var requiredSheetName;
+
+  if (model.currentOperation) {
+    //administrator mode 
+
+    var operation = model.operations.filter(function (operation) {
+      return operation.id == model.currentOperation;
+    })[0];
+
+    if (operation.type == "send-system") {
+      //system wide operations 
+      requiredSheetName = model.currentArtifact.name + ", system";
+
+    }
+    else if (operation.type == "send-template" || operation.type == "get-template") {
+      //template-based operations 
+      requiredSheetName = model.currentArtifact.name + ", TP-" + model.currentTemplate.id;
+    }
+    else if (operation.type == "send-product") {
+      //product-based operations 
+      //folders 
+      requiredSheetName = "Folders, PR-" + model.currentProject.id;
+    }
+  }
+  else {
+    //stardard artifact functions 
+    requiredSheetName = model.currentArtifact.name + ", PR-" + model.currentProject.id;
+  }
 
   // 1. get the active spreadsheet and first sheet
   if (IS_GOOGLE) {
@@ -1640,20 +2195,43 @@ async function sendToSpira(model, fieldTypeEnums, isUpdate) {
       sheet = spreadSheet.getActiveSheet(),
       lastRow = sheet.getLastRow() - 1 || 10, // hack to make sure we pass in some rows to the sheetRange, otherwise it causes an error
       sheetRange = sheet.getRange(2, 1, lastRow, fields.length),
-      sheetData = sheetRange.getValues(),
-      entriesForExport = createExportEntries(sheetData, model, fieldTypeEnums, fields, artifact, artifactIsHierarchical, isUpdate);
+      sheetData = sheetRange.getValues();
+
     if (sheet.getName() == requiredSheetName) {
-      return sendExportEntriesGoogle(entriesForExport, sheetData, sheet, sheetRange, model, fieldTypeEnums, fields, artifact, isUpdate);
+      //Clear error messages from the ID fields, if any
+      sheetData = clearErrorMessages(sheetData, isUpdate);
+      //use this variable to save the new artifact entries
+      var artifactEntries;
+      //First, send the artifact entries for Spira
+      var entriesForExport = createExportEntries(sheetData, model, fieldTypeEnums, fields, artifact, artifactIsHierarchical, isUpdate);
+      var entriesLog = sendExportEntriesGoogle(entriesForExport, '', '', sheetData, sheet, sheetRange, model, fieldTypeEnums, fields, artifact, isUpdate, '');
+      var validations = getValidationsFromEntries(entriesForExport, sheetData, entriesLog);
+      artifactEntries = entriesLog.entries;
+
+      //Then, send the comments entry for Spira
+      var commentEntriesForExport = createExportCommentEntries(sheetData, model, fieldTypeEnums, artifact, artifactIsHierarchical, artifactEntries, entriesLog);
+      var commentsLog = sendExportEntriesGoogle('', commentEntriesForExport, '', sheetData, sheet, sheetRange, model, fieldTypeEnums, fields, artifact, isUpdate, validations);
+
+      //Finally, send the associations
+      var associationEntriesForExport = createExportAssociationEntries(sheetData, model, fieldTypeEnums, artifact, artifactEntries, entriesLog);
+      var associationsLog = sendExportEntriesGoogle('', '', associationEntriesForExport, sheetData, sheet, sheetRange, model, fieldTypeEnums, fields, artifact, isUpdate, validations);
+      var finalLog = updateSheetWithExportResults(entriesLog, commentsLog, associationsLog, entriesForExport, sheetData, sheet, sheetRange, model, fieldTypeEnums, fields, artifact, isUpdate, null);
+
+      //adjust the error message for custom lists
+      if ((model.currentOperation == 3 || model.currentOperation == 4) && finalLog.status == 3) {
+        finalLog.status = 8;
+      }
+      return JSON.stringify(finalLog);
     } else {
-      var log = {
+      var errorLog = {
         status: STATUS_ENUM.wrongSheet
-      };
-      return log;
+      };;
+      return errorLog.toString();
     }
   } else {
     return await Excel.run({ delayForCellEdit: true }, function (context) {
       var sheet = context.workbook.worksheets.getActiveWorksheet(),
-        sheetRange = sheet.getRangeByIndexes(1, 0, EXCEL_MAX_ROWS, fields.length);
+        sheetRange = sheet.getRangeByIndexes(1, 0, MAX_ROWS_PER_PAGE, fields.length);
       sheet.load("name");
       sheetRange.load("values");
 
@@ -1674,17 +2252,19 @@ async function sendToSpira(model, fieldTypeEnums, isUpdate) {
                 entriesLog = response;
                 artifactEntries = response.entries;
                 //Then, send the comments entry for Spira
-                var commentEntriesForExport = createExportCommentEntries(sheetData, model, fieldTypeEnums, artifact, artifactIsHierarchical, artifactEntries);
+                var commentEntriesForExport = createExportCommentEntries(sheetData, model, fieldTypeEnums, artifact, artifactIsHierarchical, artifactEntries, entriesLog);
                 return sendExportEntriesExcel('', commentEntriesForExport, '', sheetData, sheet, sheetRange, model, fieldTypeEnums, fields, artifact, context, isUpdate, validations);
               }).then(function (responseComments) {
                 commentsLog = responseComments;
                 //Finally, send the associations
-                var associationEntriesForExport = createExportAssociationEntries(sheetData, model, fieldTypeEnums, artifact, artifactEntries);
+                var associationEntriesForExport = createExportAssociationEntries(sheetData, model, fieldTypeEnums, artifact, artifactEntries, entriesLog);
                 return sendExportEntriesExcel('', '', associationEntriesForExport, sheetData, sheet, sheetRange, model, fieldTypeEnums, fields, artifact, context, isUpdate, validations);
-              }).then(function (responseAssociations) { associationsLog = responseAssociations; }).catch(function (err) {
+              }).then(function (responseAssociations) {
+                associationsLog = responseAssociations;
+              }).catch(function (err) {
                 reject()
               }).finally(function () {
-                resolve(updateSheetWithExportResults(entriesLog, commentsLog, associationsLog, entriesForExport, sheetData, sheet, sheetRange, model, fieldTypeEnums, fields, artifact, context, isUpdate))
+                resolve(updateSheetWithExportResults(entriesLog, commentsLog, associationsLog, entriesForExport, sheetData, sheet, sheetRange, model, fieldTypeEnums, fields, artifact, isUpdate, context))
               })
             }
             else {
@@ -1701,30 +2281,37 @@ async function sendToSpira(model, fieldTypeEnums, isUpdate) {
   }
 }
 
+
+
 // function that verifies if a row correspond to a special case, that should be skipped
 function isSpecialCase(rowToPrep, model, fieldTypeEnums, fields, artifact, artifactIsHierarchical, isUpdate) {
-  // 1. Linked Test Steps
-  var skipSpecial = false;
-  for (const specialCase of params.specialCases) {
+  //this is not valid for folders
+  if (model.currentOperation != 2) {
+    // 1. Linked Test Steps
+    var skipSpecial = false;
+    for (const specialCase of params.specialCases) {
 
-    //if true, we already found it
-    var parameterIndex = 1;
-    var fieldIndex = 4;
+      //if true, we already found it
+      var parameterIndex = 1;
+      var fieldIndex = 4;
 
-    //checking if it's a test case and it's a test step 
-    if (specialCase.artifactId == model.currentArtifact.id && rowToPrep[parameterIndex]) {
-      var stepName = rowToPrep[fieldIndex];
-      if (stepName.startsWith(specialCase.target)) {
-        skipSpecial = true;
-        break;
+      //checking if it's a test case and it's a test step 
+      if (specialCase.artifactId == model.currentArtifact.id && rowToPrep[parameterIndex]) {
+        var stepName = rowToPrep[fieldIndex];
+        if (stepName.startsWith(specialCase.target)) {
+          skipSpecial = true;
+          break;
+        }
       }
     }
+    if (skipSpecial) { return true; }
+    else {
+      return false;
+    }
   }
-  if (skipSpecial) { return true; }
   else {
     return false;
   }
-
 }
 
 //function that verifies if a test Step has a valid TestCase parent
@@ -1761,6 +2348,7 @@ function createExportEntries(sheetData, model, fieldTypeEnums, fields, artifact,
     if (sheetData[rowToPrep].join("") === "") {
       break;
     } else {
+      // check for required fields (for normal artifacts and those with sub types - eg test cases and steps)
       var skipSpecial = isSpecialCase(sheetData[rowToPrep], model, fieldTypeEnums, fields, artifact, artifactIsHierarchical, isUpdate);
       if (!skipSpecial) {
         var rowChecks = {
@@ -1774,7 +2362,6 @@ function createExportEntries(sheetData, model, fieldTypeEnums, fields, artifact,
         },
           // create entry used to populate all relevant data for this row
           entry = {};
-
         // first check for errors
         var hasProblems = rowHasProblems(rowChecks, isUpdate);
         if (hasProblems) {
@@ -1782,7 +2369,7 @@ function createExportEntries(sheetData, model, fieldTypeEnums, fields, artifact,
           // if error free determine what field filtering is required - needed to choose type/subtype fields if subtype is present
         } else {
           var fieldsToFilter = relevantFields(rowChecks);
-          entry = createEntryFromRow(sheetData[rowToPrep], model, fieldTypeEnums, artifactIsHierarchical, lastIndentPosition, fieldsToFilter, isUpdate, isComment);
+          entry = createEntryFromRow(sheetData[rowToPrep], model, fieldTypeEnums, artifactIsHierarchical, lastIndentPosition, fieldsToFilter, isUpdate, isComment, '');
           // FOR SUBTYPE ENTRIES add flag on entry if it is a subtype
           if (entry && fieldsToFilter === FIELD_MANAGEMENT_ENUMS.subType) {
             entry.isSubType = true;
@@ -1804,6 +2391,12 @@ function createExportEntries(sheetData, model, fieldTypeEnums, fields, artifact,
           }
         }
 
+        //treating special Folders Creation
+
+        if (model.currentOperation == 2) {
+          entry.artifact = model.currentArtifact.id;
+        }
+
         if (entry) { entriesForExport.push(entry); }
       }
       else {
@@ -1818,11 +2411,11 @@ function createExportEntries(sheetData, model, fieldTypeEnums, fields, artifact,
   return entriesForExport;
 }
 
+
 //2.2 Comment fields (if any) - Sent through the artifact comment API function (POST)
 // loop to create artifact comment objects from each row taken from the spreadsheet
 // vars needed: sheetData, artifact, fields, model, fieldTypeEnums, artifactIsHierarchical,
-function createExportCommentEntries(sheetData, model, fieldTypeEnums, artifact, artifactIsHierarchical, artifactEntries) {
-
+function createExportCommentEntries(sheetData, model, fieldTypeEnums, artifact, artifactIsHierarchical, artifactEntries, entriesLog) {
   var lastIndentPosition = null,
     entriesForExport = [],
     isComment = true;
@@ -1838,7 +2431,12 @@ function createExportCommentEntries(sheetData, model, fieldTypeEnums, artifact, 
       var entry = {};
       // first check for errors
       var hasProblems = commentHasProblems(artifact);
-      var sourceID = artifactEntries[rowToPrep].newId;
+      var sourceID = 0;
+      if (artifactEntries[rowToPrep]) {
+        if ('newId' in artifactEntries[rowToPrep]) {
+          sourceID = artifactEntries[rowToPrep].newId;
+        }
+      }
 
       if (hasProblems) {
         entry.validationMessage = hasProblems;
@@ -1846,6 +2444,16 @@ function createExportCommentEntries(sheetData, model, fieldTypeEnums, artifact, 
       } else {
         entry = createEntryFromRow(sheetData[rowToPrep], model, fieldTypeEnums, artifactIsHierarchical, lastIndentPosition, "", isUpdate, isComment, sourceID);
       }
+
+      //checking if the parent has any problem
+      //if so, skip this entry
+      if (!entriesLog.entries[rowToPrep]) {
+        entry.skip = true;
+      }
+      else if (entriesLog.entries[rowToPrep].error) {
+        entry.skip = true;
+      }
+
       entriesForExport.push(entry);
     }
   }
@@ -1855,7 +2463,7 @@ function createExportCommentEntries(sheetData, model, fieldTypeEnums, artifact, 
 //2.3 Association fields (if any) - Sent through the artifact association API function (POST)
 // loop to create artifact association objects from each row taken from the spreadsheet
 // vars needed: sheetData, artifact, fields, model, fieldTypeEnums, artifactIsHierarchical
-function createExportAssociationEntries(sheetData, model, fieldTypeEnums, artifact, artifactEntries) {
+function createExportAssociationEntries(sheetData, model, fieldTypeEnums, artifact, artifactEntries, entriesLog) {
   var entriesForExport = [];
 
   //in the function logics, associations are always update (we already have the ArtifactIDs)
@@ -1866,7 +2474,12 @@ function createExportAssociationEntries(sheetData, model, fieldTypeEnums, artifa
     } else {
       // create entry used to populate the comment field for this row
       var entry = [];
-      var sourceID = artifactEntries[rowToPrep].newId;
+      var sourceID = 0;
+      if (artifactEntries[rowToPrep]) {
+        if ('newId' in artifactEntries[rowToPrep]) {
+          sourceID = artifactEntries[rowToPrep].newId;
+        }
+      }
 
       // first check for errors
       var hasProblems = null; //associationHasProblems(sheetData[rowToPrep], model.fields);
@@ -1876,26 +2489,37 @@ function createExportAssociationEntries(sheetData, model, fieldTypeEnums, artifa
       } else {
         entry = createAssociationEntryFromRow(sheetData[rowToPrep], model, fieldTypeEnums, sourceID);
       }
-      //append each entry to the export object
-      entry.forEach(function appendItems(item) {
-        //double check to make sure this is a valid entry:
-        if (artifact.id == ART_ENUMS.requirements && item.DestArtifactId) {
-          //if valid, append to the array
-          entriesForExport.push(item);
-        }
-        else if (artifact.id == ART_ENUMS.testCases && item.RequirementId) {
-          //if valid, append to the array
-          entriesForExport.push(item);
-        }
-        else if (artifact.id == ART_ENUMS.testCases && item.ReleaseId) {
-          //if valid, append to the array
-          entriesForExport.push(item);
-        }
-        else if (artifact.id == ART_ENUMS.testCases && item.TestSetId) {
-          //if valid, append to the array
-          entriesForExport.push(item);
-        }
-      });
+      //checking if the parent has any problem
+      //if so, skip this entry
+      if (!entriesLog.entries[rowToPrep]) {
+        entry.skip = true;
+        entriesForExport.push(entry);
+      }
+      else if (entriesLog.entries[rowToPrep].error) {
+        entry.skip = true;
+        entriesForExport.push(entry);
+      } else {
+        //append each entry to the export object
+        entry.forEach(function appendItems(item) {
+          //double check to make sure this is a valid entry:
+          if ((artifact.id == params.artifactEnums.requirements && item.DestArtifactId) || (item.skip)) {
+            //if valid, append to the array
+            entriesForExport.push(item);
+          }
+          else if ((artifact.id == params.artifactEnums.testCases && item.RequirementId) || (item.skip)) {
+            //if valid, append to the array
+            entriesForExport.push(item);
+          }
+          else if ((artifact.id == params.artifactEnums.testCases && item.ReleaseId) || (item.skip)) {
+            //if valid, append to the array
+            entriesForExport.push(item);
+          }
+          else if ((artifact.id == params.artifactEnums.testCases && item.TestSetId) || (item.skip)) {
+            //if valid, append to the array
+            entriesForExport.push(item);
+          }
+        });
+      }
     }
   }
   return entriesForExport;
@@ -1905,8 +2529,8 @@ function createExportAssociationEntries(sheetData, model, fieldTypeEnums, artifa
 // 3. FOR GOOGLE ONLY: GET READY TO SEND DATA TO SPIRA + 4. ACTUALLY SEND THE DATA
 // check we have some entries and with no errors
 // Create and show a message to tell the user what is going on
-function sendExportEntriesGoogle(entriesForExport, sheetData, sheet, sheetRange, model, fieldTypeEnums, fields, artifact, isUpdate) {
-  if (!entriesForExport.length) {
+function sendExportEntriesGoogle(entriesForExport, commentEntriesForExport, associationEntriesForExport, sheetData, sheet, sheetRange, model, fieldTypeEnums, fields, artifact, isUpdate, validations) {
+  if (!entriesForExport.length && !commentEntriesForExport.length && !associationEntriesForExport.length) {
     popupShow('There are no entries to send to Spira', 'Check Sheet')
     return "nothing to send";
   } else {
@@ -1922,49 +2546,123 @@ function sendExportEntriesGoogle(entriesForExport, sheetData, sheet, sheetRange,
       entriesLength: entriesForExport.length,
       entries: []
     };
-
-
     // loop through objects to send and update the log
     function sendSingleEntry(i) {
+      //getting the parentFolderId, if present
+      if (model.currentOperation == 2) {
+        var parentResult = getHierarchicalParentId(entriesForExport[i].indentPosition, log.entries);
+        if (parentResult != -1) {
+          //if not a root folder
+          var parentkey = params.parentFolders[artifact.id];
+          entriesForExport[i][parentkey] = parentResult;
+        }
+      }
       // set the correct parentId for hierarchical artifacts
       // set before launching the API call as we need to look back through previous entries
-      if (artifact.hierarchical) {
+      else if (artifact.hierarchical) {
         log.parentId = getHierarchicalParentId(entriesForExport[i].indentPosition, log.entries);
       }
+      //if we not have a parent ID yet, set the correct parentId artifact for subtypes (needed for POST URL)
+      if (isUpdate && Number(log.parentId) == -1 && artifact.hasSubType && entriesForExport[i].isSubType) {
+        log.parentId = getAssociationParentInfo(entriesForExport, i, artifact.id, "id");
+        log.parentName = getAssociationParentInfo(entriesForExport, i, artifact.id, "name");
+        log.parentActive = getAssociationParentInfo(entriesForExport, i, artifact.id, "active");
+        //let the child object to hold the parent ID field
+        entriesForExport[i][ART_PARENT_IDS[artifact.id]] = log.parentId;
 
-      var sentToSpira = manageSendingToSpira(entriesForExport[i], model.user, model.currentProject.id, artifact, fields, fieldTypeEnums, log.parentId, isUpdate, false, false);
-
+        if ('parentName' in log) {
+          entriesForExport[i].parentName = log.parentName;
+        }
+        if ('parentActive' in log) {
+          entriesForExport[i].parentActive = log.parentActive;
+        }
+      }
+      var logResponse = manageSendingToSpira(entriesForExport[i], model.user, model.currentProject.id, model.currentTemplate.id, artifact, fields, fieldTypeEnums, log.parentId, isUpdate, false, false);
       // update the parent ID for a subtypes based on the successful API call
       if (artifact.hasSubType) {
-        log.parentId = sentToSpira.parentId;
+        log.parentId = logResponse.parentId;
       }
+      log = processSendToSpiraResponse(i, logResponse, entriesForExport, artifact, log, false, false);
 
-      log = processSendToSpiraResponse(i, sentToSpira, entriesForExport, artifact, log, false, false);
-      if (sentToSpira.error && artifact.hierarchical && !isUpdate) {
+      if (logResponse.error && artifact.hierarchical && !isUpdate) {
         // break out of the recursive loop
         log.doNotContinue = true;
       }
+      //reset the variable to the next position
+      if (isUpdate) {
+        log.parentId = -1;
+      }
     }
+
+    // loop through comment objects to send
+    function sendSingleCommentEntry(j) {
+      if (!validations.includes(commentEntriesForExport[j].ArtifactId) && !(commentEntriesForExport[j].skip)) { //if this is a valid entry
+        var logResponse = manageSendingToSpira(commentEntriesForExport[j], model.user, model.currentProject.id, model.currentTemplate.id, artifact, fields, fieldTypeEnums, log.parentId, isUpdate, true, false);
+        // update the parent ID for a subtypes based on the successful API call
+        if (artifact.hasSubType) {
+          log.parentId = logResponse.parentId;
+        }
+        log = processSendToSpiraResponse(j, logResponse, commentEntriesForExport, artifact, log, true, false);
+      }
+    }
+
+    // loop through association objects to send
+    function sendSingleAssociationEntry(k) {
+      if (!validations.includes(associationEntriesForExport[k].SourceArtifactId) && !(associationEntriesForExport[k].skip)) { //if this is a valid entry
+        var logResponse = manageSendingToSpira(associationEntriesForExport[k], model.user, model.currentProject.id, model.currentTemplate.id, artifact, fields, fieldTypeEnums, log.parentId, isUpdate, false, true)
+        // update the parent ID for a subtypes based on the successful API call
+        if (artifact.hasSubType) {
+          log.parentId = logResponse.parentId;
+        }
+
+        log = processSendToSpiraResponse(k, logResponse, associationEntriesForExport, artifact, log, false, true);
+      }
+    }
+
+
     // 4. SEND DATA TO SPIRA AND MANAGE RESPONSES
     // KICK OFF THE FOR LOOP (IE THE FUNCTION ABOVE) HERE
     // We use a function rather than a loop so that we can more readily use promises to chain things together and make the calls happen synchronously
     // we need the calls to be synchronous because we need to do the status and ID of the preceding entry for hierarchical artifacts
     for (var i = 0; i < entriesForExport.length; i++) {
-      if (!log.doNotContinue) {
-        log = checkSingleEntryForErrors(entriesForExport[i], log, artifact, isUpdate);
-        if (log.entries.length && log.entries[i] && log.entries[i].error) {
-          // do nothing
-        } else {
-          sendSingleEntry(i);
+      if (!entriesForExport[i].skip) {
+        if (!log.doNotContinue) {
+          log = checkSingleEntryForErrors(entriesForExport[i], log, artifact, isUpdate);
+          if (log.entries.length && log.entries[i] && log.entries[i].error) {
+            // do nothing
+          } else {
+            sendSingleEntry(i);
+          }
         }
+      }
+      else {
+        var skip = {
+          "skip": true
+        };
+        log.entries.push(skip);
+        log.successCount++;
+
       }
     }
 
+    //then, send comments for the artifact (if any)
+    for (var j = 0; j < commentEntriesForExport.length; j++) {
+      //make sure we don't have any error and we have the comment populated
+      if (Object.keys(commentEntriesForExport[j]).length > 1) {
+        sendSingleCommentEntry(j);
+      }
+    }
+
+    //if any association is available, send them
+    for (var k = 0; k < associationEntriesForExport.length; k++) {
+      //make sure we don't have any error and we have the comment populated
+      if (Object.keys(associationEntriesForExport[k]).length > 1) {
+        sendSingleAssociationEntry(k);
+      }
+    }
     // review all activity and set final status
     log.status = setFinalStatus(log);
-
-    // call the final function here - so we know that it is only called after the recursive function above (ie all posting) has ended
-    return updateSheetWithExportResults(log, entriesForExport, sheetData, sheet, sheetRange, model, fieldTypeEnums, fields, artifact, null, isUpdate);
+    return log;
   }
 }
 
@@ -1990,24 +2688,38 @@ async function sendExportEntriesExcel(entriesForExport, commentEntriesForExport,
       entries: []
     };
 
-
     // loop through objects to send and update the log
     async function sendSingleEntry(i) {
+      //getting the parentFolderId, if present
+      if (model.currentOperation == 2) {
+        var parentResult = getHierarchicalParentId(entriesForExport[i].indentPosition, log.entries);
+        if (parentResult != -1) {
+          //if not a root folder
+          var parentkey = params.parentFolders[artifact.id];
+          entriesForExport[i][parentkey] = parentResult;
+        }
+      }
       // set the correct parentId for hierarchical artifacts
       // set before launching the API call as we need to look back through previous entries
-      if (artifact.hierarchical) {
+      else if (artifact.hierarchical) {
         log.parentId = getHierarchicalParentId(entriesForExport[i].indentPosition, log.entries);
       }
-
-      //if we not have a parent ID yet, set the correct parentId artifact for subtypes (needed for POST URL)
+      //if we not have a parent info yet, set the correct parentId, parentName and parentActive fields for subtypes (needed for POST URL)
       if (isUpdate && Number(log.parentId) == -1 && artifact.hasSubType && entriesForExport[i].isSubType) {
-        log.parentId = getAssociationParentId(entriesForExport, i, artifact.id);
+        log.parentId = getAssociationParentInfo(entriesForExport, i, artifact.id, "id");
+        log.parentName = getAssociationParentInfo(entriesForExport, i, artifact.id, "name");
+        log.parentActive = getAssociationParentInfo(entriesForExport, i, artifact.id, "active");
         //let the child object to hold the parent ID field
         entriesForExport[i][ART_PARENT_IDS[artifact.id]] = log.parentId;
+
+        if ('parentName' in log) {
+          entriesForExport[i].parentName = log.parentName;
+        }
+        if ('parentActive' in log) {
+          entriesForExport[i].parentActive = log.parentActive;
+        }
       }
-
-
-      await manageSendingToSpira(entriesForExport[i], model.user, model.currentProject.id, artifact, fields, fieldTypeEnums, log.parentId, isUpdate, false, false)
+      await manageSendingToSpira(entriesForExport[i], model.user, model.currentProject.id, model.currentTemplate.id, artifact, fields, fieldTypeEnums, log.parentId, isUpdate, false, false)
         .then(function (response) {
           // update the parent ID for a subtypes based on the successful API call
           if (artifact.hasSubType) {
@@ -2028,7 +2740,7 @@ async function sendExportEntriesExcel(entriesForExport, commentEntriesForExport,
     // loop through comment objects to send
     async function sendSingleCommentEntry(j) {
       if (!validations.includes(commentEntriesForExport[j].ArtifactId)) { //if this is a valid entry
-        await manageSendingToSpira(commentEntriesForExport[j], model.user, model.currentProject.id, artifact, fields, fieldTypeEnums, log.parentId, isUpdate, true, false)
+        await manageSendingToSpira(commentEntriesForExport[j], model.user, model.currentProject.id, model.currentTemplate.id, artifact, fields, fieldTypeEnums, log.parentId, isUpdate, true, false)
           .then(function (response) {
             // update the parent ID for a subtypes based on the successful API call
             if (artifact.hasSubType) {
@@ -2042,7 +2754,7 @@ async function sendExportEntriesExcel(entriesForExport, commentEntriesForExport,
     // loop through association objects to send
     async function sendSingleAssociationEntry(k) {
       if (!validations.includes(associationEntriesForExport[k].SourceArtifactId)) { //if this is a valid entry
-        await manageSendingToSpira(associationEntriesForExport[k], model.user, model.currentProject.id, artifact, fields, fieldTypeEnums, log.parentId, isUpdate, false, true)
+        await manageSendingToSpira(associationEntriesForExport[k], model.user, model.currentProject.id, model.currentTemplate.id, artifact, fields, fieldTypeEnums, log.parentId, isUpdate, false, true)
           .then(function (response) {
             // update the parent ID for a subtypes based on the successful API call
             if (artifact.hasSubType) {
@@ -2105,7 +2817,7 @@ async function sendExportEntriesExcel(entriesForExport, commentEntriesForExport,
 
 
 // 5. SET MESSAGES AND FORMATTING ON SHEET
-function updateSheetWithExportResults(entriesLog, commentsLog, associationsLog, entriesForExport, sheetData, sheet, sheetRange, model, fieldTypeEnums, fields, artifact, context, isUpdate) {
+function updateSheetWithExportResults(entriesLog, commentsLog, associationsLog, entriesForExport, sheetData, sheet, sheetRange, model, fieldTypeEnums, fields, artifact, isUpdate, context) {
   var bgColors = [],
     notes = [],
     values = [];
@@ -2114,11 +2826,11 @@ function updateSheetWithExportResults(entriesLog, commentsLog, associationsLog, 
   for (var row = 0; row < entriesForExport.length; row++) {
     var rowBgColors = [],
       rowNotes = [],
-      rowValues = [];
+      rowValues = [],
+      associationNote = '';
     for (var col = 0; col < fields.length; col++) {
       var bgColor,
         note = null,
-        associationNote = null,
         value = sheetData[row][col];
 
       // we may have more rows than entries - because the entries can be stopped early (eg when an error is found on a hierarchical artifact)
@@ -2134,6 +2846,7 @@ function updateSheetWithExportResults(entriesLog, commentsLog, associationsLog, 
           }
           //check for associations error
           else if (fields[col].association && associationsLog != null && associationsLog.entries != null) {
+
             //we've reached an association field. First, we need to counter how many associations we have here
 
             var associationText = sheetData[row][col];
@@ -2153,12 +2866,12 @@ function updateSheetWithExportResults(entriesLog, commentsLog, associationsLog, 
                 associationSize = 1;
               }
             }
-            associationNote = '';
+
             for (var index = 0; index < associationSize; index++) {
-              if (associationsLog.entries[index]) {
-                if (associationsLog.entries[index].error) {
+              if (associationsLog.entries[associationCounter]) {
+                if (associationsLog.entries[associationCounter].error) {
                   bgColor = model.colors.warning;
-                  associationNote = associationNote + '(' + (index + 1) + ')' + ' Error: ' + associationsLog.entries[associationCounter].message + ' ';
+                  associationNote += params.associationTextLabels[fields[col].association] + ' ' + '(' + (index + 1) + ')' + ' Error: ' + associationsLog.entries[associationCounter].message + ' ';
                 }
               }
               //keeping track of associations - they're not directly related to the row number
@@ -2174,30 +2887,29 @@ function updateSheetWithExportResults(entriesLog, commentsLog, associationsLog, 
           }
         }
       }
-
       if (IS_GOOGLE) {
         rowBgColors.push(bgColor);
-        rowNotes.push(note);
+        if (associationNote.length > 0) {
+          rowNotes.push(associationNote);
+        }
+        else {
+          rowNotes.push(note);
+        }
         rowValues.push(value);
       } else {
         var cellRange = sheet.getCell(row + 1, col);
         if (note) rowNotes.push(note);
-        if (associationNote) {
-          //Handling Excel bug: Some versions does not accept adding comments. In these cases, we write the text in the cell
-          try {
-            var comments = context.workbook.comments;
-            comments.add(cellRange, associationNote);
-          }
-          catch (err) {
-            value = sheetData[row][col] + ' - ' + associationNote;
-          }
+        if (associationNote.length > 0) {
+          var subRange = sheet.getCell(row + 1, params.resultColumns[model.currentArtifact.name]);
+          subRange.values = [[associationNote]];
         }
         if (bgColor) {
           cellRange.set({ format: { fill: { color: bgColor } } });
-
         }
-        cellRange.values = [[value]];
-
+        if (value) {
+          cellRange.values = [[value]];
+          context.sync();
+        }
       }
     }
     if (IS_GOOGLE) {
@@ -2208,18 +2920,22 @@ function updateSheetWithExportResults(entriesLog, commentsLog, associationsLog, 
       // for Excel we can't pass in arrays of data for values, but we still take action here for notes - because Excel API does not allow the addition of comments
     } else {
       var rowFirstCell = sheet.getCell(row + 1, 0);
-      if (rowNotes.length) {
+      if (rowNotes.length > 0) {
         rowFirstCell.set({ format: { fill: { color: model.colors.warning } } });
         rowFirstCell.values = [[rowNotes.join()]];
       }
     }
   }
-
   if (IS_GOOGLE) {
     sheetRange.setBackgrounds(bgColors).setNotes(notes).setValues(values);
     return entriesLog;
   } else {
-    return context.sync().then(function () { return entriesLog; });
+    if (context != null) {
+      return context.sync().then(function () { return entriesLog; });
+    }
+    else {
+      return entriesLog;
+    }
   }
 }
 
@@ -2232,7 +2948,7 @@ function checkSingleEntryForErrors(singleEntry, log, artifact, isUpdate) {
     log.errorCount++;
 
     // stop if the artifact is hierarchical because we don't know what side effects there could be to any further items.
-    if (artifact.hierarchical && isUpdate) {
+    if (artifact.hierarchical && !isUpdate) {
       log.doNotContinue = true;
       response.message += " - no further entries were sent.";
       // make sure to push the response so that the client can process error message
@@ -2252,6 +2968,7 @@ function checkSingleEntryForErrors(singleEntry, log, artifact, isUpdate) {
   }
   return log;
 }
+
 
 // utility function to set final status of the log
 // @param: log - log object
@@ -2300,7 +3017,7 @@ function setFeedbackBgColor(cell, error, field, fieldTypeEnums, artifact, colors
       } else {
         // keep original formatting
         if (field.type == fieldTypeEnums.subId || field.type == fieldTypeEnums.id || field.unsupported) {
-          return colors.bgReadOnly;
+          return colors.warning;
         } else {
           return null;
         }
@@ -2345,6 +3062,9 @@ function setFeedbackNote(cell, error, field, fieldTypeEnums, message, value, isU
         return ',Error: ' + message;
       }
     }
+    else if (!isUpdate && cell != '') {
+      return ' Error: row previously added to Spira. Skipped to avoid duplicates.';
+    }
     else {
       return value + ',' + message;
     }
@@ -2362,7 +3082,7 @@ function setFeedbackNote(cell, error, field, fieldTypeEnums, message, value, isU
 // @param: isSubType - bool if row is subtype or not - false on error as there will be no id to add anyway
 function setFeedbackValue(cell, error, field, fieldTypeEnums, newId, isSubType, col) {
   // when there is an error we don't change any of the cell data
-  if (error) {
+  if (error && !(col == 0 && cell == -1)) {
     return cell;
 
     // handle successful entries - ie add ids into right place
@@ -2393,71 +3113,154 @@ function setFeedbackValue(cell, error, field, fieldTypeEnums, newId, isSubType, 
 // @param: fieldTypeEnums - object of all field types with enums
 // @param: isUpdate - flag to indicate if this is an update operation
 // @param: isComment - flag to indicate if this is a comment creation operation
-function manageSendingToSpira(entry, user, projectId, artifact, fields, fieldTypeEnums, parentId, isUpdate, isComment, isAssociation) {
+function manageSendingToSpira(entry, user, projectId, templateId, artifact, fields, fieldTypeEnums, parentId, isUpdate, isComment, isAssociation) {
   var data,
     // make sure correct artifact ID is sent to handler (ie type vs subtype)
-    artifactTypeIdToSend = entry.isSubType ? artifact.subTypeId : artifact.id,
-    // set output parent id here so we know this function will always return a value for this
-    output = {
-      parentId: parentId,
-      entry: entry,
-      artifact: {
-        artifactId: artifactTypeIdToSend,
-        artifactObject: artifact
-      }
-    };
+    artifactTypeIdToSend = entry.isSubType ? artifact.subTypeId : artifact.id;
+
+  //handling special case (admin-advanced-folders-creation)
+  if (artifact.mainArtifactId) { artifactTypeIdToSend = artifact.mainArtifactId; }
+  // set output parent id here so we know this function will always return a value for this
+  var output = {
+    parentId: parentId,
+    entry: entry,
+    artifact: {
+      artifactId: artifactTypeIdToSend,
+      artifactObject: artifact
+    }
+  };
 
   // send object to relevant artifact post service
   if (IS_GOOGLE) {
+    if (!isComment && !isAssociation) {
+      if (!isUpdate || (isUpdate && artifact.allowsCreateOnUpdate && entry.createOnUpdate)) {
+        data = postArtifactToSpira(entry, user, projectId, templateId, artifactTypeIdToSend, parentId);
+      }
+      else {
+        data = putArtifactToSpira(entry, user, projectId, templateId, artifactTypeIdToSend, parentId);
+      }
+      // save data for logging to client
+      output.entry = entry;
+      output.httpCode = (data && data.getResponseCode()) ? data.getResponseCode() : "notSent";
+      // parse the data if we have a success
+      if (output.httpCode == 200) {
+        output.fromSpira = JSON.parse(data.getContentText());
+      }
+      else {
+        output.error = true;
+        if (data && data.getContentText()) {
+          output.errorMessage = data.getContentText();
+        } else {
+          output.errorMessage = "send attempt failed";
+        }
+        // reset the parentId if we are not on a subType - to make sure subTypes are not added to the wrong parent
+        if (artifact.hasSubType && !entry.isSubType) {
+          output.parentId = 0;
+        }
+      }
 
-    if (!isUpdate) {
-      data = postArtifactToSpira(entry, user, projectId, artifactTypeIdToSend, parentId);
+      if (!output.error) {
+        // get the id/subType id of the updated artifact
+        var artifactIdField = getIdFieldName(fields, fieldTypeEnums, entry.isSubType);
+
+        //special case for folders
+        if (artifactTypeIdToSend == params.artifactEnums.folders) {
+          //
+          var idField = params.IdFolders[entry.artifact];
+          output.newId = output.fromSpira[idField];
+        }
+        else if (output.fromSpira && output.fromSpira != null) {
+          //get the just-created ID from the server response
+          output.newId = output.fromSpira[artifactIdField];
+        }
+        else {
+          //just repeat the id - it's the same 
+          output.newId = entry[artifactIdField];
+        }
+
+        // repeats the output parent ID only if the artifact has a subtype and this entry is NOT a subtype
+        if (artifact.hasSubType && !entry.isSubType) {
+          output.parentId = output.newId;
+        }
+      }
+      return output;
+    }
+
+    else if (isComment) {
+      try {
+        //comment creation
+        var serverResponse = postCommentToSpira(entry, user, projectId, artifactTypeIdToSend);
+
+        output.fromSpira = serverResponse.body;
+        return output;
+      }
+      catch (error) {
+        //we have an error - so set the flag and the message
+        output.error = true;
+        if (error) {
+          output.errorMessage = error;
+        } else {
+          output.errorMessage = "send attempt failed";
+        }
+        // reset the parentId if we are not on a subType - to make sure subTypes are not added to the wrong parent
+        if (artifact.hasSubType && !entry.isSubType) {
+          output.parentId = 0;
+        }
+        return output;
+      }
     }
     else {
-      data = putArtifactToSpira(entry, user, projectId, artifactTypeIdToSend, parentId);
+      try {
+        //isAssociation
+        var serverResponse = postAssociationToSpira(entry, user, projectId, artifactTypeIdToSend, null);
+        // save data for logging to client
+        output.entry = entry;
+        output.httpCode = (serverResponse && serverResponse.getResponseCode()) ? serverResponse.getResponseCode() : "notSent";
+        // parse the data if we have a success
+        if (output.httpCode == 200) {
+          output.fromSpira = JSON.parse(serverResponse.getContentText());
+        }
+        else {
+          output.error = true;
+          if (serverResponse && serverResponse.getContentText()) {
+            output.errorMessage = serverResponse.getContentText();
+          } else {
+            output.errorMessage = "send attempt failed";
+          }
+        }
+        return output;
+      }
+      catch {
+        //we have an error - so set the flag and the message
+        output.error = true;
+        output.errorMessage = "unknown error";
+
+        // reset the parentId if we are not on a subType - to make sure subTypes are not added to the wrong parent
+        if (artifact.hasSubType && !entry.isSubType) {
+          output.parentId = 0;
+        }
+        return output;
+      }
     }
-    // save data for logging to client
-    output.httpCode = (data && data.getResponseCode()) ? data.getResponseCode() : "notSent";
-    // parse the data if we have a success
-    if (output.httpCode == 200) {
-      output.fromSpira = JSON.parse(data.getContentText());
-      // get the id/subType id of the newly created artifact
-      var artifactIdField = getIdFieldName(fields, fieldTypeEnums, entry.isSubType);
-      output.newId = output.fromSpira[artifactIdField];
-
-      // update the output parent ID to the new id only if the artifact has a subtype and this entry is NOT a subtype
-      if (artifact.hasSubType && !entry.isSubType) {
-        output.parentId = output.newId;
-      }
-
-    } else {
-      //we have an error - so set the flag and the message
-      output.error = true;
-      if (data && data.getContentText()) {
-        output.errorMessage = data.getContentText();
-      } else {
-        output.errorMessage = "send attempt failed";
-      }
-
-      // reset the parentId if we are not on a subType - to make sure subTypes are not added to the wrong parent
-      if (artifact.hasSubType && !entry.isSubType) {
-        output.parentId = 0;
-      }
-    }
-    return output;
-
   } else {
     //Excel
     if (!isComment && !isAssociation) {
-      if (!isUpdate) {
-        return postArtifactToSpira(entry, user, projectId, artifactTypeIdToSend, parentId)
+      //checks for operation - also checks for special case, when creating while updating is allowed
+      if (!isUpdate || (isUpdate && artifact.allowsCreateOnUpdate && entry.createOnUpdate)) {
+        return postArtifactToSpira(entry, user, projectId, templateId, artifactTypeIdToSend, parentId)
           .then(function (response) {
             output.fromSpira = response.body;
-
             // get the id/subType id of the newly created artifact
             var artifactIdField = getIdFieldName(fields, fieldTypeEnums, entry.isSubType);
-            output.newId = output.fromSpira[artifactIdField];
-
+            //special case for folders
+            if (artifactTypeIdToSend == params.artifactEnums.folders) {
+              //
+              var idField = params.IdFolders[entry.artifact];
+              output.newId = output.fromSpira[idField];
+            }
+            else {
+              output.newId = output.fromSpira[artifactIdField];
+            }
             // update the output parent ID to the new id only if the artifact has a subtype and this entry is NOT a subtype
             if (artifact.hasSubType && !entry.isSubType) {
               output.parentId = output.newId;
@@ -2482,7 +3285,7 @@ function manageSendingToSpira(entry, user, projectId, artifact, fields, fieldTyp
 
       }
       else {
-        return putArtifactToSpira(entry, user, projectId, artifactTypeIdToSend, parentId)
+        return putArtifactToSpira(entry, user, projectId, templateId, artifactTypeIdToSend, parentId)
           .then(function (response) {
             var errorStatus = response.error;
             if (!errorStatus) {
@@ -2585,24 +3388,56 @@ function getHierarchicalParentId(indent, previousEntries) {
   return -1;
 }
 
-// returns the correct parentId for the relevant group position by looping back through the list of entries
-// returns -1 if no match found
+// returns the correct item for the relevant group position by looping back through the list of entries
+// returns an invalid value if no match found
 // @param: entriesForExport - the whole list of artifacts in the spreadsheet
 // @param: i - target artifact position to look for
 // @param: artifactId - artifact type
-function getAssociationParentId(entriesForExport, i, artifactId) {
-  // we need to know the artifact type to look for specific parent ID fields
-  if (artifactId == ART_ENUMS.testCases) {
-    //look for parents in the previous rows
-    for (i; i > 0; i--) {
-      //if we found the specific parentID for the artifact type, return it
-      if (entriesForExport[i - 1].hasOwnProperty(ART_PARENT_IDS[artifactId])) {
-        return entriesForExport[i - 1][ART_PARENT_IDS[artifactId]];
+// @mode: what to look for 
+function getAssociationParentInfo(entriesForExport, i, artifactId, mode) {
+
+  if (mode == "id") {
+    // we need to know the artifact type to look for specific parent ID fields
+    if (artifactId == params.artifactEnums.testCases || artifactId == params.artifactEnums.customLists) {
+      //look for parents in the previous rows
+      for (i; i > 0; i--) {
+        //if we found the specific parentID for the artifact type, return it
+        if (entriesForExport[i - 1].hasOwnProperty(ART_PARENT_IDS[artifactId])) {
+          return entriesForExport[i - 1][ART_PARENT_IDS[artifactId]];
+        }
       }
+      return -1;
     }
-    return -1;
   }
+  else if (mode == "name") {
+    // we need to know the artifact type to look for specific parent Name fields
+    if (artifactId == params.artifactEnums.customLists) {
+      //look for parents in the previous rows
+      for (i; i > 0; i--) {
+        //if we found the specific parentID for the artifact type, return it
+        if (entriesForExport[i - 1].hasOwnProperty("Name") && !entriesForExport[i - 1].isSubType) {
+          return entriesForExport[i - 1].Name;
+        }
+      }
+      return "";
+    }
+  }
+  else if (mode == "active") {
+    // we need to know the artifact type to look for specific parent Name fields
+    if (artifactId == params.artifactEnums.customLists) {
+      //look for parents in the previous rows
+      for (i; i > 0; i--) {
+        //if we found the specific parentID for the artifact type, return it
+        if (entriesForExport[i - 1].hasOwnProperty("Active") && !entriesForExport[i - 1].isSubType) {
+          return entriesForExport[i - 1].Active;
+        }
+      }
+      return false;
+    }
+  }
+  return null;
 }
+
 
 // returns an int of the total number of required fields for the passed in artifact
 // @param: fields - the relevant fields for specific artifact, along with all metadata about each
@@ -2634,7 +3469,7 @@ function rowCountRequiredFieldsByType(row, fields, forSubType) {
       if (fields[i].requiredForSubType && row[i]) {
         count++;
       }
-    } else if (fields[i].required && row[i]) {
+    } else if ((fields[i].required && row[i]) || (fields[i].required && row[i] == '0')) {
       count++;
     }
 
@@ -2792,19 +3627,27 @@ function relevantFields(rowChecks) {
 function createEntryFromRow(row, model, fieldTypeEnums, artifactIsHierarchical, lastIndentPosition, fieldsToFilter, isUpdate, isComment, sourceId) {
   var fields = model.fields;
   var entry = {};
-
+  var missingSubId = false;
   //populate 'entry' object accordingly - include custom properties array here to avoid it being undefined later if needed
   if (!isComment) {
     var entry = {
       "CustomProperties": []
     }
   }
+
   //we need to turn an array of values in the row into a validated object
   for (var index = 0; index < row.length; index++) {
     var skipField = false;
+
     if (!isComment) {
       if ((isUpdate && fields[index].type == fieldTypeEnums.id) || (isUpdate && fields[index].type == fieldTypeEnums.subId)) {
-        //do nothing
+        //check for subTypeId
+        if (fields[index].type == fieldTypeEnums.subId) {
+          //parent values are not supposed to have subIds
+          if ((row[index - 1] === "" || row[index - 1] == "-1") && row[index] === "") {
+            missingSubId = true;
+          }
+        }
       }
       // first ignore entry that does not match the requirement specified in the fieldsToFilter
       else if (fieldsToFilter == FIELD_MANAGEMENT_ENUMS.standard && fields[index].isSubTypeField) {
@@ -2855,10 +3698,57 @@ function createEntryFromRow(row, model, fieldTypeEnums, artifactIsHierarchical, 
 
         // INT fields
         case fieldTypeEnums.int:
-          // only set the value if a number has been returned
-          if (!isNaN(row[index])) {
-            value = row[index];
+          if (IS_GOOGLE) {
+            if (row[index] != '' || row[index] == '0') {
+              value = parseFloat(row[index]).toFixed(0);
+            }
+            else {
+              value = '';
+            }
             customType = "IntegerValue";
+          } else {
+
+            // only set the value if a number has been returned
+            if (!isNaN(row[index])) {
+              value = row[index];
+              customType = "IntegerValue";
+            }
+          }
+          break;
+        case fieldTypeEnums.customInteger:
+          if (IS_GOOGLE) {
+            if (row[index] != '' || row[index] == '0') {
+              value = parseFloat(row[index]).toFixed(0);
+            }
+            else {
+              value = '';
+            }
+            customType = "IntegerValue";
+          } else {
+
+            // only set the value if a number has been returned
+            if (!isNaN(row[index])) {
+              value = row[index];
+              customType = "IntegerValue";
+            }
+          }
+          break;
+        case fieldTypeEnums.customAutomationHost:
+          if (IS_GOOGLE) {
+            if (row[index] != '' || row[index] == '0') {
+              value = parseFloat(row[index]).toFixed(0);
+            }
+            else {
+              value = '';
+            }
+            customType = "IntegerValue";
+          } else {
+
+            // only set the value if a number has been returned
+            if (!isNaN(row[index])) {
+              value = row[index];
+              customType = "IntegerValue";
+            }
           }
           break;
 
@@ -2870,18 +3760,36 @@ function createEntryFromRow(row, model, fieldTypeEnums, artifactIsHierarchical, 
             customType = "DecimalValue";
           }
           break;
+        case fieldTypeEnums.customDecimal:
+          // only set the value if a number has been returned
+          if (!isNaN(row[index])) {
+            value = row[index];
+            customType = "DecimalValue";
+          }
+          break;
 
         // BOOL as Sheets has no bool validation, a yes/no dropdown is used
         case fieldTypeEnums.bool:
           // 'True' and 'False' don't work as dropdown choices, so have to convert back
           if (row[index] == "Yes") {
-            value = true;
+            value = "true";
             customType = "BooleanValue";
           } else if (row[index] == "No") {
-            value = false;
+            value = "false";
             customType = "BooleanValue";
           }
           break;
+        case fieldTypeEnums.customBoolean:
+          // 'True' and 'False' don't work as dropdown choices, so have to convert back
+          if (row[index] == "Yes") {
+            value = "true";
+            customType = "BooleanValue";
+          } else if (row[index] == "No") {
+            value = "false";
+            customType = "BooleanValue";
+          }
+          break;
+
 
         // DATES - parse the data and add prefix/suffix for WCF
         case fieldTypeEnums.date:
@@ -2890,14 +3798,36 @@ function createEntryFromRow(row, model, fieldTypeEnums, artifactIsHierarchical, 
               value = row[index];
             } else {
               // for Excel, dates are returned as days since 1900 - so we need to adjust this for JS date formats
-              const DAYS_BETWEEN_1900_1970 = 25567 + 2;
               const dateInMs = (row[index] - DAYS_BETWEEN_1900_1970) * 86400 * 1000;
               value = convertLocalToUTC(new Date(dateInMs), dateInMs);
             }
             customType = "DateTimeValue";
           }
           break;
-
+        case fieldTypeEnums.customDate:
+          if (row[index]) {
+            if (IS_GOOGLE) {
+              value = row[index];
+            } else {
+              // for Excel, dates are returned as days since 1900 - so we need to adjust this for JS date formats
+              const dateInMs = (row[index] - DAYS_BETWEEN_1900_1970) * 86400 * 1000;
+              value = convertLocalToUTC(new Date(dateInMs), dateInMs);
+            }
+            customType = "DateTimeValue";
+          }
+          break;
+        case fieldTypeEnums.customDateAndTime:
+          if (row[index]) {
+            if (IS_GOOGLE) {
+              value = row[index];
+            } else {
+              // for Excel, dates are returned as days since 1900 - so we need to adjust this for JS date formats
+              const dateInMs = (row[index] - DAYS_BETWEEN_1900_1970) * 86400 * 1000;
+              value = convertLocalToUTC(new Date(dateInMs), dateInMs);
+            }
+            customType = "DateTimeValue";
+          }
+          break;
         // ARRAY fields are for multiselect lists - currently not supported so just push value into an array to make sure server handles it correctly
         case fieldTypeEnums.arr:
           if (row[index]) {
@@ -2912,6 +3842,23 @@ function createEntryFromRow(row, model, fieldTypeEnums, artifactIsHierarchical, 
           if (idFromName) {
             value = idFromName;
             customType = "IntegerValue";
+          } else {
+            if (row[index] != "") {
+              entry.validationMessage = "Value not found for field '" + fields[index].name + "' . Please check the entry";
+              return entry;
+            }
+          }
+          break;
+        case fieldTypeEnums.customList:
+          idFromName = getIdFromName(row[index], fields[index].values);
+          if (idFromName) {
+            value = idFromName;
+            customType = "IntegerValue";
+          } else {
+            if (row[index] != "") {
+              entry.validationMessage = "Value not found for field '" + fields[index].name + "' . Please check the entry";
+              return entry;
+            }
           }
           break;
 
@@ -2921,6 +3868,23 @@ function createEntryFromRow(row, model, fieldTypeEnums, artifactIsHierarchical, 
           if (idFromName) {
             value = [idFromName];
             customType = "IntegerListValue";
+          } else {
+            if (row[index] != "") {
+              entry.validationMessage = "Value not found for field '" + fields[index].name + "' . Please check the entry";
+              return entry;
+            }
+          }
+          break;
+        case fieldTypeEnums.customMultiList:
+          idFromName = getIdFromName(row[index], fields[index].values);
+          if (idFromName) {
+            value = [idFromName];
+            customType = "IntegerListValue";
+          } else {
+            if (row[index] != "") {
+              entry.validationMessage = "Value not found for field '" + fields[index].name + "' . Please check the entry";
+              return entry;
+            }
           }
           break;
 
@@ -2931,6 +3895,25 @@ function createEntryFromRow(row, model, fieldTypeEnums, artifactIsHierarchical, 
             value = idFromName;
             customType = "IntegerValue";
           }
+          else {
+            if (row[index] != "") {
+              entry.validationMessage = "Value not found for field '" + fields[index].name + "' . Please check the entry";
+              return entry;
+            }
+          }
+          break;
+        case fieldTypeEnums.customUser:
+          idFromName = getIdFromName(row[index], model.projectUsers);
+          if (idFromName) {
+            value = idFromName;
+            customType = "IntegerValue";
+          }
+          else {
+            if (row[index] != "") {
+              entry.validationMessage = "Value not found for field '" + fields[index].name + "' . Please check the entry";
+              return entry;
+            }
+          }
           break;
 
         // COMPONENT fields - get id from relevant name, if one is present
@@ -2940,15 +3923,41 @@ function createEntryFromRow(row, model, fieldTypeEnums, artifactIsHierarchical, 
             value = idFromName;
             // component is multi select for test cases but not for other artifacts
             customType = fields[index].isMulti ? "IntegerListValue" : "IntegerValue";
+          } else {
+            if (row[index] != "") {
+              entry.validationMessage = "Value not found for field '" + fields[index].name + "' . Please check the entry";
+              return entry;
+            }
           }
           break;
 
         // RELEASE fields - get id from relevant name, if one is present
         case fieldTypeEnums.release:
+          idFromName = getIdFromName(row[index], model.projectActiveReleases);
+          //double-checking, as this can come as inactive from Spira
+          if (!idFromName) {
+            idFromName = getIdFromName(row[index], model.projectReleases);
+          }
+          if (idFromName) {
+            value = idFromName;
+            customType = "IntegerValue";
+          } else {
+            if (row[index] != "") {
+              entry.validationMessage = "Value not found for field '" + fields[index].name + "' . Please check the entry";
+              return entry;
+            }
+          }
+          break;
+        case fieldTypeEnums.customRelease:
           idFromName = getIdFromName(row[index], model.projectReleases);
           if (idFromName) {
             value = idFromName;
             customType = "IntegerValue";
+          } else {
+            if (row[index] != "") {
+              entry.validationMessage = "Value not found for field '" + fields[index].name + "' . Please check the entry";
+              return entry;
+            }
           }
           break;
 
@@ -3009,6 +4018,11 @@ function createEntryFromRow(row, model, fieldTypeEnums, artifactIsHierarchical, 
       }
     }
 
+  }
+  //check for special case, when we have a new artifact on an update sheet
+  if (missingSubId && model.currentArtifact.allowsCreateOnUpdate) {
+    //set this flag
+    entry.createOnUpdate = true;
   }
   //double checking if the comment object has at least the necessary fields (i.e.: comment + ID). If not, add the correspondent fields
   if (isComment) {
@@ -3074,7 +4088,7 @@ function createAssociationEntryFromRow(row, model, fieldTypeEnums, originId) {
     if (row[index] && fields[index].association) {
       var associationType = fields[index].association;
 
-      //depending on the user's language, the console can misinterpret commas as points - this fixes it
+      //depending on the user's language, the console can misinterpret commas as dots - this fixes it
       var associationText = (row[index] + '').replace('.', ',');
       //removing spaces from the inputs, since it can cause errors
       associationText = associationText.replace(/\s/g, '');
@@ -3125,13 +4139,16 @@ function getIdFromName(string, list) {
     if (setListItemDisplayName(list[i]) == string) {
       return list[i].id;
 
-      // if there's no match with the item, let's try and match on just the name part of the list item  - this is the old way
+      // if there's no match with the item, let's try and match on just the name part of the list item
       // this code is included to accomodate users who create their spreadsheets elsewhere and then dump the data in here without knowing the ids
-    } else if (list[i] == unsetListItemDisplayName(string)) {
+    } else if (compareItemName(string, list[i].name)) {
       return list[i].id;
     }
+    /*else{
+        //the provided name is not part of the list - use a value that indicates error
+        return -1;
+    }*/
   }
-
   // return 0 if there's no match from either method
   return 0;
 }
@@ -3145,12 +4162,22 @@ function setListItemDisplayName(item) {
 
 }
 
-// removes the id from the end of a string to get the initial value, pre setting the display name
-// @param: string - of the list item with the id added at the end as in setListItemDisplayName
-// returns a new string with the regex match removed
-function unsetListItemDisplayName(string) {
-  var regex = / \(\#\d+\)$/gi;
-  return string.replace(regex, "");
+// removes spaces and upper case from strings to compare them
+// @param: string - the base string to compare (user input)
+// @param: value - the value to be compared with (system input)
+// returns true if there's a match or false if there's not
+function compareItemName(string, value) {
+
+  var newString = string.toLowerCase().trim();
+  var newValue = value.toLowerCase().trim();
+
+  if (newString == newValue) {
+    return true;
+  }
+  else {
+    return false;
+  }
+
 }
 
 
@@ -3158,7 +4185,9 @@ function unsetListItemDisplayName(string) {
 // @param: fields - object of the relevant fields for specific artifact, along with all metadata about each
 // @param: fieldTypeEnums - object of all field types with enums
 // @param: getSubType - optioanl bool to specify to return the subtype Id field, not the normal field (where two exist)
+// @param: artifactId - the artifact type Id that was sent to Spira
 function getIdFieldName(fields, fieldTypeEnums, getSubType) {
+  var fieldToLookup = "";
   for (var i = 0; i < fields.length; i++) {
     var fieldToLookup = getSubType ? "subId" : "id";
     if (fields[i].type == fieldTypeEnums[fieldToLookup]) {
@@ -3228,45 +4257,83 @@ function processSendToSpiraResponse(i, sentToSpira, entriesForExport, artifact, 
   if (sentToSpira.error) {
     log.errorCount++;
     response.error = true;
+    var errorCode = 0;
+    if (IS_GOOGLE) {
+      errorCode = response.details.httpCode;
+    }
+    else {
+      errorCode = sentToSpira.errorMessage.status;
+    }
+
+
+
 
     //handling different error messages
-    if (sentToSpira.errorMessage.status == 409) {
+    if (errorCode == 409) {
       response.message = "Concurrency Date conflict: please reload your data and try again.";
     }
     else {
-      if (sentToSpira.errorMessage.status == 400) {
-        try {
-          let parser = new DOMParser();
-          let doc = parser.parseFromString(sentToSpira.errorMessage.response.text, 'text/html');
+      if (errorCode == 400) {
+        //Handling different types of error description from Spira API
+        if (IS_GOOGLE) {
           try {
-            let errorMessage2 = doc
-              .querySelector('p:nth-of-type(2)')
-              .innerHTML.split(" '")[1]
-              .split("'.")[0];
-            response.message = errorMessage2;
+
+            var serverReply = sentToSpira.errorMessage;
+            var regExp = new RegExp(/<Message>(.*?)<\/Message>/i).exec(serverReply);;
+            response.message = regExp[regExp.length - 1];
           }
           catch (err) {
             try {
-              let htmlError = doc.querySelector('string').innerHTML;
-              response.message = htmlError;
+              var serverReply2 = sentToSpira.errorMessage;
+              var regExp2 = new RegExp(/<string [^>]+>(.*?)<\/string>/i).exec(serverReply2);
+              response.message = regExp2[regExp2.length - 1];
             }
-            catch (err) {
+            catch (err2) {
               try {
-                let htmlError2 = Array.from(doc.querySelectorAll('messages message'));
-                let completeMessage = '';
-                htmlError2.forEach((value) => {
-                  completeMessage += value.innerHTML + ' / ';
-                });
-                response.message = completeMessage.slice(0, -2);
+                var serverReply3 = sentToSpira.errorMessage;
+                var regExp3 = new RegExp(/'[^']*'/i).exec(serverReply3);
+                response.message = regExp3[regExp3.length - 1];
               }
-              catch (err) {
-                response.message = "Update attempt failed. Please check your data or contact your system administrator.";
+              catch (err3) {
+                response.message = "Update attempt failed. Please check your data.";
               }
             }
           }
         }
-        catch (err) {
-          response.message = "Update attempt failed. Please check your data or contact your system administrator.";
+        else {
+          try {
+            let parser = new DOMParser();
+            let doc = parser.parseFromString(sentToSpira.errorMessage.response.text, 'text/html');
+            try {
+              let errorMessage2 = doc
+                .querySelector('p:nth-of-type(2)')
+                .innerHTML.split(" '")[1]
+                .split("'.")[0];
+              response.message = errorMessage2;
+            }
+            catch (err) {
+              try {
+                let htmlError = doc.querySelector('string').innerHTML;
+                response.message = htmlError;
+              }
+              catch (err) {
+                try {
+                  let htmlError2 = Array.from(doc.querySelectorAll('messages message'));
+                  let completeMessage = '';
+                  htmlError2.forEach((value) => {
+                    completeMessage += value.innerHTML + ' / ';
+                  });
+                  response.message = completeMessage.slice(0, -2);
+                }
+                catch (err) {
+                  response.message = "Update attempt failed. Please check your data or contact your system administrator.";
+                }
+              }
+            }
+          }
+          catch (err) {
+            response.message = "Update attempt failed. Please check your data or contact your system administrator.";
+          }
         }
       }
       else {
@@ -3301,13 +4368,36 @@ function processSendToSpiraResponse(i, sentToSpira, entriesForExport, artifact, 
   return log;
 }
 
+// returns the correct spreadsheet expected name, based on the operation type
+// @param:  model - current model data for the current session
+// @output: expected spreadsheet name
+function matchSheetName(model) {
 
+  var sheetName;
 
+  if (model.currentOperation) {
+    //administrator mode
 
+    var operation = model.operations.filter(function (operation) {
+      return operation.id == model.currentOperation;
+    })[0];
 
+    if (operation.type == "send-system") {
+      //system wide operations
+      sheetName = model.currentArtifact.name + ", system";
+    }
+    else if (operation.type == "send-template" || operation.type == "get-template") {
+      //template-based operations
+      sheetName = model.currentArtifact.name + ", TP-" + model.currentTemplate.id;
+    }
+  }
+  else {
+    //stardard artifact functions
+    sheetName = model.currentArtifact.name + ", PR-" + model.currentProject.id;
+  }
 
-
-
+  return sheetName;
+}
 
 /*
  * ==================
@@ -3321,37 +4411,112 @@ function processSendToSpiraResponse(i, sentToSpira, entriesForExport, artifact, 
 // GOOGLE SPECIFIC VARIATION OF THIS FUNCTION handles getting paginated artifacts from Spira and saving them as a single array
 // @param: model - full model object from client
 // @param: fieldTypeEnums - enum of fieldTypes used
-function getFromSpiraGoogle(model, fieldTypeEnums) {
-  var requiredSheetName = model.currentArtifact.name + ", PR-" + model.currentProject.id;
+function getFromSpiraGoogle(model, fieldTypeEnums, advancedMode) {
+  var requiredSheetName;
+  var singleArtifactId = null;
+
+  if (model.currentOperation) {
+    //administrator mode 
+
+    var operation = model.operations.filter(function (operation) {
+      return operation.id == model.currentOperation;
+    })[0];
+
+    if (operation.type == "send-system") {
+      //system wide operations 
+      requiredSheetName = model.currentArtifact.name + ", system";
+
+    }
+    else if (operation.type == "send-template" || operation.type == "get-template") {
+      //template-based operations 
+      requiredSheetName = model.currentArtifact.name + ", TP-" + model.currentTemplate.id;
+    }
+    else if (operation.type == "send-product") {
+      //product-based operations 
+      //folders 
+      requiredSheetName = "Folders, PR-" + model.currentProject.id;
+    }
+  }
+  else {
+    //stardard artifact functions 
+    requiredSheetName = model.currentArtifact.name + ", PR-" + model.currentProject.id;
+  }
+
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheets()[0];
+
   if (sheet.getName() != requiredSheetName) {
     return operationComplete(STATUS_ENUM.wrongSheet, false);
+  }
+
+  //first, reset sheet rows (if we had data from the last run)
+  resetSheet(model, sheet);
+  resetSheetColors(model, fieldTypeEnums, sheet);
+
+  //0. If we are not using advanced mode, we need to make sure the model excludes the non-advanced fields
+
+  var fields = model.fields;
+  if (!advancedMode) {
+    model.fields = fields.filter(function (item, index) {
+      if (!item.isAdvanced) {
+        return item;
+      }
+    })
   }
 
   // 1. get from spira
   // note we don't do this by getting the count of each artifact first, because of a bug in getting the release count
   var currentPage = 0;
+  if (model.selectedPage) {
+    currentPage = (MAX_ROWS_PER_PAGE / GET_PAGINATION_SIZE) * (model.selectedPage - 1);
+  }
+
+  var results = {};
+  results.firstRecord = (currentPage * GET_PAGINATION_SIZE) + 1;
   var artifacts = [];
   var getNextPage = true;
 
-  while (getNextPage && currentPage < 100) {
+  //if this artifact supports getting a single result, handle it
+  if (model.currentArtifact.allowGetSingle) {
+    // Custom Lists
+    if (model.currentArtifact.id == params.artifactEnums.customLists) {
+      singleArtifactId = model.currentList.id;
+    }
+  }
+
+  while (getNextPage && currentPage < ARTIFACT_MAX_PAGES) {
     var startRow = (currentPage * GET_PAGINATION_SIZE) + 1;
+
     var pageOfArtifacts = getArtifacts(
       model.user,
       model.currentProject.id,
       model.currentArtifact.id,
       startRow,
       GET_PAGINATION_SIZE,
-      null
+      singleArtifactId,
+      model.currentTemplate.id
     );
     // if we got a non empty array back then we have artifacts to process
-    if (pageOfArtifacts.length) {
+    if (pageOfArtifacts.length || pageOfArtifacts.Values) {
       artifacts = artifacts.concat(pageOfArtifacts);
+
+      results.lastRecord = (artifacts.length + (MAX_ROWS_PER_PAGE * model.selectedPage)) - MAX_ROWS_PER_PAGE;
+
+      //handling special allowGetSingle cases
+      if (model.currentArtifact.allowGetSingle && singleArtifactId > 0) {
+        //we just want one artifact - one query it's enough
+        getNextPage = false;
+      }
       // if we got less artifacts than the max we asked for, then we reached the end of the list in this request - and should stop
       if (pageOfArtifacts.length < GET_PAGINATION_SIZE) {
         getNextPage = false;
         // if we got the full page size back then there may be more artifacts to get
       } else {
         currentPage++;
+      }
+      //if we got more artfacts than the maximum global variable, we should stop
+      if (startRow >= ((MAX_ROWS_PER_PAGE * model.selectedPage) - GET_PAGINATION_SIZE)) {
+        getNextPage = false;
       }
       // if we got no artifacts back, stop now
     } else {
@@ -3360,7 +4525,7 @@ function getFromSpiraGoogle(model, fieldTypeEnums) {
   }
 
   // 2. if there were no artifacts at all break out now
-  if (!artifacts.length) return "no artifacts were returned";
+  if (!artifacts.length) return operationComplete(STATUS_ENUM.noData, false);
 
   // 3. Make sure hierarchical artifacts are ordered correctly
   if (model.currentArtifact.hierarchical) {
@@ -3368,7 +4533,6 @@ function getFromSpiraGoogle(model, fieldTypeEnums) {
       return a.indentLevel < b.indentLevel ? -1 : 1;
     });
   }
-
 
   // 4. if artifact has subtype that needs to be retrieved separately, do so
   if (model.currentArtifact.hasSubType) {
@@ -3380,18 +4544,26 @@ function getFromSpiraGoogle(model, fieldTypeEnums) {
     if (idFieldNameArray && idFieldNameArray[0].field) {
       var idFieldName = idFieldNameArray[0].field;
       var artifactsWithSubTypes = [];
+
       artifacts.forEach(function (art) {
         artifactsWithSubTypes.push(art);
+
         var subTypeArtifacts = getArtifacts(
           model.user,
           model.currentProject.id,
           model.currentArtifact.subTypeId,
           null,
           null,
-          art[idFieldName]
+          art[idFieldName],
+          model.currentTemplate.id
         );
         // take action if we got any sub types back - ie if they exist for the specific artifact
-        if (subTypeArtifacts && subTypeArtifacts.length) {
+        if (subTypeArtifacts) {
+          if (subTypeArtifacts.Values) {
+            //some subArtifacts, such as Custom Values, require this adjustment
+            subTypeArtifacts = subTypeArtifacts.Values;
+          }
+
           var subTypeArtifactsWithMeta = subTypeArtifacts.map(function (sub) {
             sub.isSubType = true;
             sub.parentId = art[idFieldName];
@@ -3414,6 +4586,7 @@ function getFromSpiraGoogle(model, fieldTypeEnums) {
     fieldTypeEnums,
     model.projectUsers,
     model.projectComponents,
+    model.projectActiveReleases,
     model.projectReleases
   );
 
@@ -3423,7 +4596,9 @@ function getFromSpiraGoogle(model, fieldTypeEnums) {
     range = sheet.getRange(2, 1, artifacts.length, model.fields.length);
 
   range.setValues(artifactsAsCells);
-  return JSON.parse(JSON.stringify(artifactsAsCells));
+
+  results.artifacts = JSON.parse(JSON.stringify(artifactsAsCells));
+  return results;
 }
 
 // EXCEL SPECIFIC VARIATION OF THIS FUNCTION handles getting paginated artifacts from Spira and displaying them in the UI
@@ -3433,20 +4608,55 @@ function getFromSpiraExcel(model, fieldTypeEnums) {
   return Excel.run(function (context) {
     var fields = model.fields;
     var sheet = context.workbook.worksheets.getActiveWorksheet(),
-      sheetRange = sheet.getRangeByIndexes(1, 0, EXCEL_MAX_ROWS, fields.length);
-
+      sheetRange = sheet.getRangeByIndexes(1, 0, MAX_ROWS_PER_PAGE, fields.length);
     sheet.load("name");
     sheetRange.load("values");
-    var requiredSheetName = model.currentArtifact.name + ", PR-" + model.currentProject.id;
+    var requiredSheetName;
+
+    if (model.currentOperation) {
+      //administrator mode 
+  
+      var operation = model.operations.filter(function (operation) {
+        return operation.id == model.currentOperation;
+      })[0];
+  
+      if (operation.type == "send-system") {
+        //system wide operations 
+        requiredSheetName = model.currentArtifact.name + ", system";
+  
+      }
+      else if (operation.type == "send-template" || operation.type == "get-template") {
+        //template-based operations 
+        requiredSheetName = model.currentArtifact.name + ", TP-" + model.currentTemplate.id;
+      }
+      else if (operation.type == "send-product") {
+        //product-based operations 
+        //folders 
+        requiredSheetName = "Folders, PR-" + model.currentProject.id;
+      }
+    }
+    else {
+      //stardard artifact functions 
+      requiredSheetName = model.currentArtifact.name + ", PR-" + model.currentProject.id;
+    }
 
     return context.sync()
       .then(function () {
         // only get the data if we are on the right sheet - the one with the template loaded on it
         if (sheet.name == requiredSheetName) {
-          //first, clear the background colors of the spreadsheet (in case we had any errors in the last run)
+          //first, reset sheet rows (if we had data from the last run)
+          resetSheet(model, null);
+          //then, clear the background colors of the spreadsheet (in case we had any errors in the last run)
           resetSheetColors(model, fieldTypeEnums, sheetRange);
+          dataBaseValidationSetter(requiredSheetName, model, fieldTypeEnums, context);
           return getDataFromSpiraExcel(model, fieldTypeEnums).then((response) => {
-            return processDataFromSpiraExcel(response, model, fieldTypeEnums)
+            //error handling           
+            if (typeof (response) === 'string' && (response.indexOf('noData') !== -1 || response.indexOf('no artifacts') !== -1)) {
+              return operationComplete(STATUS_ENUM.noData, false);
+            }
+            else {
+              return processDataFromSpiraExcel(response, model, fieldTypeEnums)
+            }
           });
         } else {
           return operationComplete(STATUS_ENUM.wrongSheet, false);
@@ -3455,15 +4665,65 @@ function getFromSpiraExcel(model, fieldTypeEnums) {
   })
 }
 
+// resets validations - used before a GET command
+// @param: sheetName - current sheet name
+function resetSheet(model, currentSheet) {
+  if (IS_GOOGLE) {
+    var fields = model.fields;
+    var columnCount = Object.keys(fields).length + 1;
+    var rowCount = currentSheet.getLastRow();
+    if (rowCount == 0) { rowCount = 1; } //avoid errors
+
+    //reset each column color schema (depending on property type)
+    for (var j = 1; j < columnCount; j++) {
+      var subColumnRange = currentSheet.getRange(2, j, rowCount, 1);
+      subColumnRange.clearContent();
+    }
+  }
+  else {
+    Excel.run(function (ctx) {
+      var fields = model.fields;
+      //complete data range from old data
+      var sheet = ctx.workbook.worksheets.getActiveWorksheet();
+      var range = sheet.getRangeByIndexes(1, 0, MAX_ROWS_PER_PAGE, fields.length);
+      range.delete(Excel.DeleteShiftDirection.up);
+
+      ctx.sync();
+
+      var dataBaseSheetName = createDatabaseSheetName(params.dataSheetName, model.currentProject.id, model.currentArtifact.id);
+
+      //clear database worksheet
+      var worksheet = context.workbook.worksheets.getItemOrNullObject(dataBaseSheetName);
+      worksheet.getRange().clear();
+
+      return ctx.sync();
+    }).catch(function (error) {
+      if (error instanceof OfficeExtension.Error) {
+      }
+    });
+  }
+}
+
+
 // EXCEL SPECIFIC VARIATION OF THIS FUNCTION handles getting paginated artifacts from Spira and saving them as a single array
 // @param: model - full model object from client
 // @param: fieldTypeEnums - enum of fieldTypes used
 async function getDataFromSpiraExcel(model, fieldTypeEnums) {
   // 1. get from spira
   // note we don't do this by getting the count of each artifact first, because of a bug in getting the release count
-  var currentPage = 0;
+  var currentPage = (MAX_ROWS_PER_PAGE / GET_PAGINATION_SIZE) * (model.selectedPage - 1);
+  var results = {};
+  results.firstRecord = (currentPage * GET_PAGINATION_SIZE) + 1;
   var artifacts = [];
   var getNextPage = true;
+  var singleArtifactId = null;
+  //if this artifact supports getting a single result, handle it
+  if (model.currentArtifact.allowGetSingle) {
+    // Custom Lists
+    if (model.currentArtifact.id == params.artifactEnums.customLists) {
+      singleArtifactId = model.currentList.id;
+    }
+  }
 
   async function getArtifactsPage(startRow) {
     await getArtifacts(
@@ -3472,11 +4732,17 @@ async function getDataFromSpiraExcel(model, fieldTypeEnums) {
       model.currentArtifact.id,
       startRow,
       GET_PAGINATION_SIZE,
-      null
+      singleArtifactId,
+      model.currentTemplate.id
     ).then(function (response) {
       // if we got a non empty array back then we have artifacts to process
-      if (response.body && response.body.length) {
+      if (response.body && (response.body.length || response.body.Values)) {
         artifacts = artifacts.concat(response.body);
+        //handling special allowGetSingle cases
+        if (model.currentArtifact.allowGetSingle && singleArtifactId > 0) {
+          //we just want one artifact - one query it's enough
+          getNextPage = false;
+        }
         // if we got less artifacts than the max we asked for, then we reached the end of the list in this request - and should stop
         if (response.body && response.body.length < GET_PAGINATION_SIZE) {
           getNextPage = false;
@@ -3484,16 +4750,23 @@ async function getDataFromSpiraExcel(model, fieldTypeEnums) {
         } else {
           currentPage++;
         }
+        //if we got more artfacts than the maximum global variable, we should stop
+        if (startRow >= ((MAX_ROWS_PER_PAGE * model.selectedPage) - GET_PAGINATION_SIZE)) {
+          getNextPage = false;
+        }
         // if we got no artifacts back, stop now
       } else {
         getNextPage = false;
       }
     })
+      .catch(/*fail quietly*/);
   }
 
-  while (getNextPage && currentPage < 100) {
+  while (getNextPage && currentPage < ARTIFACT_MAX_PAGES) {
     var startRow = (currentPage * GET_PAGINATION_SIZE) + 1;
+    //update the log every time - to capture the last one
     await getArtifactsPage(startRow);
+    results.lastRecord = (artifacts.length + (MAX_ROWS_PER_PAGE * model.selectedPage)) - MAX_ROWS_PER_PAGE;
   }
 
   // 2. if there were no artifacts at all break out now
@@ -3505,14 +4778,12 @@ async function getDataFromSpiraExcel(model, fieldTypeEnums) {
       return a.indentLevel < b.indentLevel ? -1 : 1;
     });
   }
-
   // 4. if artifact has subtype that needs to be retrieved separately, do so
   if (model.currentArtifact.hasSubType) {
     // find the id field
     var idFieldNameArray = model.fields.filter(function (field) {
       return field.type === fieldTypeEnums.id;
     });
-
     // if we have an id field, then we can find the id number for each artifact in the array
     if (idFieldNameArray && idFieldNameArray[0].field) {
       //function called below in the foreach call
@@ -3523,17 +4794,27 @@ async function getDataFromSpiraExcel(model, fieldTypeEnums) {
           model.currentArtifact.subTypeId,
           null,
           null,
-          art[idFieldName]
+          art[idFieldName],
+          model.currentTemplate.id
         ).then(function (response) {
-          // take action if we got any sub types back - ie if they exist for the specific artifact
-          if (response.body && response.body.length) {
-            var subTypeArtifactsWithMeta = response.body.map(function (sub) {
-              sub.isSubType = true;
-              sub.parentId = art[idFieldName];
-              return sub;
-            });
-            // now add the steps into the original object
-            artifactsWithSubTypes = artifactsWithSubTypes.concat(subTypeArtifactsWithMeta);
+          try {
+            // take action if we got any sub types back - ie if they exist for the specific artifact
+            if (response.body && (response.body.length || response.body.Values.length)) {
+              if (response.body.Values) {
+                //some subArtifacts, such as Custom Values, require this adjustment
+                response.body = response.body.Values;
+              }
+              var subTypeArtifactsWithMeta = response.body.map(function (sub) {
+                sub.isSubType = true;
+                sub.parentId = art[idFieldName];
+                return sub;
+              });
+              // now add the steps into the original object
+              artifactsWithSubTypes = artifactsWithSubTypes.concat(subTypeArtifactsWithMeta);
+            }
+          }
+          catch (err) {
+            //do nothing - just proceed to the next artifact
           }
         })
       };
@@ -3549,14 +4830,21 @@ async function getDataFromSpiraExcel(model, fieldTypeEnums) {
       artifacts = artifactsWithSubTypes;
     }
   }
-  return artifacts;
+  results.artifacts = artifacts;
+  return results;
 }
 
 // EXCEL SPECIFIC to process all the data retrieved from Spira and then display it
 // @param: artifacts: array of raw data from Spira (with subtypes already present if needed)
 // @param: model: full model object from client
 // @param: enum object of the different fieldTypeEnums
-function processDataFromSpiraExcel(artifacts, model, fieldTypeEnums) {
+function processDataFromSpiraExcel(log, model, fieldTypeEnums) {
+  //pre-handling the log info
+  var results = {};
+  results.firstRecord = log.firstRecord;
+  results.lastRecord = log.lastRecord;
+
+  var artifacts = log.artifacts;
 
   // 5. create 2d array from data to put into sheet
   var artifactsAsCells = matchArtifactsToFields(
@@ -3566,6 +4854,7 @@ function processDataFromSpiraExcel(artifacts, model, fieldTypeEnums) {
     fieldTypeEnums,
     model.projectUsers,
     model.projectComponents,
+    model.projectActiveReleases,
     model.projectReleases
   );
 
@@ -3577,7 +4866,10 @@ function processDataFromSpiraExcel(artifacts, model, fieldTypeEnums) {
 
     return context.sync()
       .then(function () {
-        return artifactsAsCells;
+
+        results.artifacts = artifactsAsCells;
+
+        return results;
       })
   })
 }
@@ -3590,51 +4882,104 @@ function processDataFromSpiraExcel(artifacts, model, fieldTypeEnums) {
 // @param: users - array of the user objects
 // @param: components - array of the component objects
 // @param: releases - array of the release objects
-function matchArtifactsToFields(artifacts, artifactMeta, fields, fieldTypeEnums, users, components, releases) {
+function matchArtifactsToFields(artifacts, artifactMeta, fields, fieldTypeEnums, users, components, activeReleases, releases) {
   return artifacts.map(function (art) {
     return fields.map(function (field) {
       var originalFieldValue = "";
+
       // handle custom fields
-      if (field.isCustom && !art.isSubType) {
-        // if we have any custom props
-        if (art.CustomProperties && art.CustomProperties.length) {
-          // look for a match for the current field
-          var customProp = art.CustomProperties.filter(function (custom) {
-            return custom.Definition.CustomPropertyFieldName == field.field;
-          });
-          // if the property exists and isn't null - do a null check to handle booleans properly
-          if (typeof customProp != "undefined" && customProp.length && customProp[0][CUSTOM_PROP_TYPE_ENUM[field.type]] !== null) {
-            originalFieldValue = customProp[0][CUSTOM_PROP_TYPE_ENUM[field.type]];
+      if (field.isCustom) {
+        //main artifacts field
+        if (!field.isSubTypeField && !art.isSubType) {
+          // if we have any custom props
+          if (art.CustomProperties && art.CustomProperties.length) {
+            // look for a match for the current field
+            var customProp = art.CustomProperties.filter(function (custom) {
+              return custom.Definition.CustomPropertyFieldName == field.field;
+            });
+            // if the property exists and isn't null - do a null check to handle booleans properly
+            if (typeof customProp != "undefined" && customProp.length && customProp[0][CUSTOM_PROP_TYPE_ENUM[field.type]] !== null) {
+              originalFieldValue = customProp[0][CUSTOM_PROP_TYPE_ENUM[field.type]];
+            }
+          }
+        } else if (field.isSubTypeField && art.isSubType) {
+          // subtypes custom fields
+          if (art.CustomProperties && art.CustomProperties.length) {
+            // look for a match for the current field
+            var customProp = art.CustomProperties.filter(function (custom) {
+              return custom.Definition.CustomPropertyFieldName == field.field;
+            });
+            // if the property exists and isn't null - do a null check to handle booleans properly
+            if (typeof customProp != "undefined" && customProp.length && customProp[0][CUSTOM_PROP_TYPE_ENUM[field.type]] !== null) {
+              originalFieldValue = customProp[0][CUSTOM_PROP_TYPE_ENUM[field.type]];
+            }
           }
         }
 
-        // handle subtype fields
-      } else if (field.isSubTypeField) {
+      }
+      // handle subtype fields. If dual type, make sure this is a subtype (avoid main types entering here)
+      else if (field.isSubTypeField || (field.isTypeAndSubTypeField && art.isSubType)) {
         if (artifactMeta.hasSubType && art.isSubType) {
           // first check to make sure the field exists in the artifact data
           if (typeof art[field.field] != "undefined" && art[field.field]) {
             originalFieldValue = art[field.field]
           }
         }
-
         // handle standard fields
       } else if (!art.isSubType) {
         // first check to make sure the field exists in the artifact data
-        if (typeof art[field.field] != "undefined" && art[field.field]) {
+        if (typeof art[field.field] != "undefined" && art[field.field] != null && art[field.field]) {
           originalFieldValue = art[field.field];
         }
       }
       // handle list values - turn from the id to the actual string so the string can be displayed
       if (
         field.type == fieldTypeEnums.drop ||
+        field.type == fieldTypeEnums.customList ||
         field.type == fieldTypeEnums.multi ||
+        field.type == fieldTypeEnums.customMultiList ||
         field.type == fieldTypeEnums.user ||
         field.type == fieldTypeEnums.component ||
-        field.type == fieldTypeEnums.release
+        field.type == fieldTypeEnums.release ||
+        field.type == fieldTypeEnums.customUser ||
+        field.type == fieldTypeEnums.customRelease
       ) {
         // a field can have display overrides - if one of these overrides is in the artifact field specified, then this is returned instead of the lookup - used specifically to make sure RQ Epics show as Epics 
         if (field.displayOverride && field.displayOverride.field && field.displayOverride.values && field.displayOverride.values.includes(art[field.displayOverride.field])) {
-          return art[field.displayOverride.field];
+          var shoudOverride = true;
+          field.values.forEach(function (value) {
+            if (field.displayOverride.values.includes(value.name)) {
+              shoudOverride = false;
+            }
+          });
+          if (shoudOverride) {
+            if (IS_GOOGLE) {
+              return art[field.displayOverride.field];
+            }
+            else {
+              return art[field.displayOverride.field];
+            }
+          }
+          else {
+            //this is an override field, but we don't want it to be - handle as any other
+            var fieldValueForLookup = Array.isArray(originalFieldValue) ? originalFieldValue[0] : originalFieldValue;
+            var fieldName = getListValueFromId(
+              fieldValueForLookup,
+              field.type,
+              fieldTypeEnums,
+              field.values,
+              users,
+              components,
+              activeReleases,
+              releases
+            );
+
+            if (fieldName && fieldValueForLookup) {
+              fieldName = fieldName + " (#" + fieldValueForLookup + ")";
+            }
+
+            return fieldName;
+          }
         } else {
           // handle multilist fields (custom props or components for some artifacts) - we can only display one in Excel so pick the first in the array to match
           var fieldValueForLookup = Array.isArray(originalFieldValue) ? originalFieldValue[0] : originalFieldValue;
@@ -3645,6 +4990,7 @@ function matchArtifactsToFields(artifacts, artifactMeta, fields, fieldTypeEnums,
             field.values,
             users,
             components,
+            activeReleases,
             releases
           );
 
@@ -3657,17 +5003,35 @@ function matchArtifactsToFields(artifacts, artifactMeta, fields, fieldTypeEnums,
         }
 
         // handle date fields 
-      } else if (field.type == fieldTypeEnums.date) {
-        if (originalFieldValue) {
-          var jsObj = new Date(originalFieldValue);
-          return JSDateToExcelDate(jsObj);
+      } else if (field.type == fieldTypeEnums.date || field.type == fieldTypeEnums.customDate || field.type == fieldTypeEnums.customDateAndTime) {
+        if (IS_GOOGLE) {
+          var dateValue = new Date(originalFieldValue);
+          if (isNaN(dateValue.getTime())) { //invalid date
+            return null;
+          }
+          else {
+            return dateValue;
+          }
         } else {
-          return "";
+          if (originalFieldValue) {
+            var jsObj = new Date(originalFieldValue);
+            return JSDateToExcelDate(jsObj);
+          } else {
+            return "";
+          }
         }
 
         // handle booleans - need to make sure null values are ignored ie treated differently to false
-      } else if (field.type == fieldTypeEnums.bool) {
-        return originalFieldValue ? "Yes" : originalFieldValue === false ? "No" : "";
+      } else if (field.type == fieldTypeEnums.bool || field.type == fieldTypeEnums.customBoolean) {
+
+        /*in case of null/blank values, the return value depends on the characteristic of the artifact (i.e.: we want to see an explicit "No" when
+        that field is shared between a main and a subtypes)*/
+        if (artifactMeta.hasDualValues) {
+          return originalFieldValue ? "Yes" : originalFieldValue === false ? "No" : "No";
+        }
+        else {
+          return originalFieldValue ? "Yes" : originalFieldValue === false ? "No" : "";
+        }
         // handle hierarchical artifacts
       } else if (field.setsHierarchy) {
         return makeHierarchical(originalFieldValue, art.IndentLevel);
@@ -3690,20 +5054,31 @@ function matchArtifactsToFields(artifacts, artifactMeta, fields, fieldTypeEnums,
 // @param: users - array of the user objects
 // @param: components - array of the component objects
 // @param: releases - array of the release objects
-function getListValueFromId(id, type, fieldTypeEnums, fieldValues, users, components, releases) {
+function getListValueFromId(id, type, fieldTypeEnums, fieldValues, users, components, activeReleases, releases) {
   var match = null;
   switch (type) {
     case fieldTypeEnums.drop:
+    case fieldTypeEnums.customList:
+    case fieldTypeEnums.customMultiList:
     case fieldTypeEnums.multi:
       match = fieldValues.filter(function (val) { return val.id == id; });
       break;
     case fieldTypeEnums.user:
       match = users.filter(function (val) { return val.id == id; });
       break;
+    case fieldTypeEnums.customUser:
+      match = users.filter(function (val) { return val.id == id; });
+      break;
     case fieldTypeEnums.component:
       match = components.filter(function (val) { return val.id == id; });
       break;
     case fieldTypeEnums.release:
+      match = activeReleases.filter(function (val) { return val.id == id; });
+      if (match.length == 0) {
+        match = releases.filter(function (val) { return val.id == id; });
+      }
+      break;
+    case fieldTypeEnums.customRelease:
       match = releases.filter(function (val) { return val.id == id; });
       break;
   }
