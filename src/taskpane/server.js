@@ -1424,7 +1424,9 @@ function dataBaseValidationSetter(mainSheetName, model, fieldTypeEnums, context)
         for (var i = 0; i < fieldList.length; i++) {
           list.push(setListItemDisplayName(fieldList[i]));
         }
-        setDropdownValidation(mainSheetName, columnNumber, list, true, context, model);
+        if (list.length > 0) {
+          setDropdownValidation(mainSheetName, columnNumber, list, true, context, model);
+        }
         break;
 
       // RELEASE fields are dropdowns with the values coming from a project wide set list
@@ -1484,7 +1486,9 @@ function dataBaseValidationSetter(mainSheetName, model, fieldTypeEnums, context)
         for (var j = 0; j < model.projectUsers.length; j++) {
           list.push(setListItemDisplayName(model.projectUsers[j]));
         }
-        setDropdownValidation(mainSheetName, columnNumber, list, true, context, model);
+        if (list.length > 0) {
+          setDropdownValidation(mainSheetName, columnNumber, list, true, context, model);
+        }
         break;
 
       // COMPONENT fields are dropdowns with the values coming from a project wide set list
@@ -1492,7 +1496,9 @@ function dataBaseValidationSetter(mainSheetName, model, fieldTypeEnums, context)
         for (var k = 0; k < model.projectComponents.length; k++) {
           list.push(setListItemDisplayName(model.projectComponents[k]));
         }
-        setDropdownValidation(mainSheetName, columnNumber, list, true, context, model);
+        if (list.length > 0) {
+          setDropdownValidation(mainSheetName, columnNumber, list, true, context, model);
+        }
         break;
 
       // All other types
@@ -4615,15 +4621,15 @@ function getFromSpiraExcel(model, fieldTypeEnums) {
 
     if (model.currentOperation) {
       //administrator mode 
-  
+
       var operation = model.operations.filter(function (operation) {
         return operation.id == model.currentOperation;
       })[0];
-  
+
       if (operation.type == "send-system") {
         //system wide operations 
         requiredSheetName = model.currentArtifact.name + ", system";
-  
+
       }
       else if (operation.type == "send-template" || operation.type == "get-template") {
         //template-based operations 

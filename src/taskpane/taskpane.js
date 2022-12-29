@@ -110,7 +110,7 @@ Office.onReady(info => {
 function setDevStuff(devMode) {
   if (devMode) {
     model.user.url = "";
-    model.user.userName = "administrator";
+    model.user.userName = "";
     model.user.api_key = btoa("&api-key=" + encodeURIComponent(""));
 
     loginAttempt();
@@ -802,6 +802,8 @@ function changeArtifactSelect(e) {
       }
     }
   }
+  console.log('model A');
+  console.dir({ ...'', ...model});
 }
 
 
