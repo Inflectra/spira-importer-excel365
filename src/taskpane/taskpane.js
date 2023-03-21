@@ -802,8 +802,6 @@ function changeArtifactSelect(e) {
       }
     }
   }
-  console.log('model A');
-  console.dir({ ...'', ...model});
 }
 
 

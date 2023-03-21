@@ -77,7 +77,7 @@ var API_BASE = '/services/v6_0/RestService.svc/',
   INITIAL_HIERARCHY_OUTDENT = -20,
   GET_PAGINATION_SIZE = 100,
   MAX_ROWS_PER_PAGE = 2000,
-  ARTIFACT_MAX_PAGES = 500,
+  ARTIFACT_MAX_PAGES = 999,
   FIELD_MANAGEMENT_ENUMS = {
     all: 1,
     standard: 2,
@@ -4472,13 +4472,13 @@ function getFromSpiraGoogle(model, fieldTypeEnums, advancedMode) {
 
   // 1. get from spira
   // note we don't do this by getting the count of each artifact first, because of a bug in getting the release count
-  var currentPage = 0;
+  var multiplier = 0;
   if (model.selectedPage) {
-    currentPage = (MAX_ROWS_PER_PAGE / GET_PAGINATION_SIZE) * (model.selectedPage - 1);
+    multiplier = (MAX_ROWS_PER_PAGE / GET_PAGINATION_SIZE) * (model.selectedPage - 1);
   }
 
   var results = {};
-  results.firstRecord = (currentPage * GET_PAGINATION_SIZE) + 1;
+  results.firstRecord = (multiplier * GET_PAGINATION_SIZE) + 1;
   var artifacts = [];
   var getNextPage = true;
 
@@ -4490,8 +4490,8 @@ function getFromSpiraGoogle(model, fieldTypeEnums, advancedMode) {
     }
   }
 
-  while (getNextPage && currentPage < ARTIFACT_MAX_PAGES) {
-    var startRow = (currentPage * GET_PAGINATION_SIZE) + 1;
+  while (getNextPage && model.selectedPage < ARTIFACT_MAX_PAGES) {
+    var startRow = (multiplier * GET_PAGINATION_SIZE) + 1;
 
     var pageOfArtifacts = getArtifacts(
       model.user,
@@ -4518,7 +4518,7 @@ function getFromSpiraGoogle(model, fieldTypeEnums, advancedMode) {
         getNextPage = false;
         // if we got the full page size back then there may be more artifacts to get
       } else {
-        currentPage++;
+        multiplier++;
       }
       //if we got more artfacts than the maximum global variable, we should stop
       if (startRow >= ((MAX_ROWS_PER_PAGE * model.selectedPage) - GET_PAGINATION_SIZE)) {
@@ -4717,9 +4717,9 @@ function resetSheet(model, currentSheet) {
 async function getDataFromSpiraExcel(model, fieldTypeEnums) {
   // 1. get from spira
   // note we don't do this by getting the count of each artifact first, because of a bug in getting the release count
-  var currentPage = (MAX_ROWS_PER_PAGE / GET_PAGINATION_SIZE) * (model.selectedPage - 1);
+  var multiplier = (MAX_ROWS_PER_PAGE / GET_PAGINATION_SIZE) * (model.selectedPage - 1);
   var results = {};
-  results.firstRecord = (currentPage * GET_PAGINATION_SIZE) + 1;
+  results.firstRecord = (multiplier * GET_PAGINATION_SIZE) + 1;
   var artifacts = [];
   var getNextPage = true;
   var singleArtifactId = null;
@@ -4754,7 +4754,7 @@ async function getDataFromSpiraExcel(model, fieldTypeEnums) {
           getNextPage = false;
           // if we got the full page size back then there may be more artifacts to get
         } else {
-          currentPage++;
+          multiplier++;
         }
         //if we got more artfacts than the maximum global variable, we should stop
         if (startRow >= ((MAX_ROWS_PER_PAGE * model.selectedPage) - GET_PAGINATION_SIZE)) {
@@ -4768,8 +4768,8 @@ async function getDataFromSpiraExcel(model, fieldTypeEnums) {
       .catch(/*fail quietly*/);
   }
 
-  while (getNextPage && currentPage < ARTIFACT_MAX_PAGES) {
-    var startRow = (currentPage * GET_PAGINATION_SIZE) + 1;
+  while (getNextPage && model.selectedPage < ARTIFACT_MAX_PAGES) {
+    var startRow = (multiplier * GET_PAGINATION_SIZE) + 1;
     //update the log every time - to capture the last one
     await getArtifactsPage(startRow);
     results.lastRecord = (artifacts.length + (MAX_ROWS_PER_PAGE * model.selectedPage)) - MAX_ROWS_PER_PAGE;
