@@ -2097,7 +2097,7 @@ function getUsersSuccess(data) {
     return {
       id: item.UserId,
       username: item.UserName,
-      name: item.FullName,
+      name: item.FirstName + " " + item.LastName,
     };
   });
   model.projectGetRequestsMade++;
