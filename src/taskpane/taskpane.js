@@ -2094,10 +2094,11 @@ function getUsersSuccess(data) {
   uiSelection.projectUsers = [];
   // map through user obj and assign names
   uiSelection.projectUsers = data.map(function (item) {
+    console.log("Mapping Users?");
     return {
       id: item.UserId,
       username: item.UserName,
-      name: item.FullName,
+      name: item.FirstName + " " + item.LastName,
     };
   });
   model.projectGetRequestsMade++;
