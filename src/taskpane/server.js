@@ -1223,7 +1223,6 @@ function templateLoader(model, fieldTypeEnums, advancedMode) {
     }
 
     return Excel.run(function (context) {
-      console.log(context);
       // store the sheet and worksheet list for use later
       sheet = context.workbook.worksheets.getActiveWorksheet();
 
