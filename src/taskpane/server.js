@@ -76,7 +76,8 @@ var API_BASE = '/services/v6_0/RestService.svc/',
   API_USER_BASE = '/services/v6_0/RestService.svc/users/usernames/',
   INITIAL_HIERARCHY_OUTDENT = -20,
   GET_PAGINATION_SIZE = 100,
-  MAX_ROWS_PER_PAGE = 2000,
+  MAX_ROWS_PER_PAGE_MAX = 2000,
+  MAX_ROWS_PER_PAGE_REDUCED = 200, //USED FOR TCs
   ARTIFACT_MAX_PAGES = 999,
   FIELD_MANAGEMENT_ENUMS = {
     all: 1,
@@ -1191,6 +1192,17 @@ function templateLoader(model, fieldTypeEnums, advancedMode) {
   }
 
   var response;
+
+  //Reduce the pagination size if retrieving Test Cases
+  var MAX_ROWS_PER_PAGE = 0;
+  if (model.currentArtifact.id == params.artifactEnums.testCases) {
+    MAX_ROWS_PER_PAGE = MAX_ROWS_PER_PAGE_REDUCED;
+  }
+  else {
+    MAX_ROWS_PER_PAGE = MAX_ROWS_PER_PAGE_MAX;
+
+  }
+
   // select active sheet
   if (IS_GOOGLE) {
     sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
@@ -1211,6 +1223,7 @@ function templateLoader(model, fieldTypeEnums, advancedMode) {
     }
 
     return Excel.run(function (context) {
+      console.log(context);
       // store the sheet and worksheet list for use later
       sheet = context.workbook.worksheets.getActiveWorksheet();
 
@@ -2237,7 +2250,7 @@ async function sendToSpira(model, fieldTypeEnums, isUpdate) {
   } else {
     return await Excel.run({ delayForCellEdit: true }, function (context) {
       var sheet = context.workbook.worksheets.getActiveWorksheet(),
-        sheetRange = sheet.getRangeByIndexes(1, 0, MAX_ROWS_PER_PAGE, fields.length);
+        sheetRange = sheet.getRangeByIndexes(1, 0, MAX_ROWS_PER_PAGE_MAX, fields.length);
       sheet.load("name");
       sheetRange.load("values");
 
@@ -4611,6 +4624,16 @@ function getFromSpiraGoogle(model, fieldTypeEnums, advancedMode) {
 // @param: model: full model object from client
 // @param: enum of fieldTypeEnums used
 function getFromSpiraExcel(model, fieldTypeEnums) {
+  //Reduce the pagination size if retrieving Test Cases 
+  var MAX_ROWS_PER_PAGE = 0;
+  if (model.currentArtifact.id == params.artifactEnums.testCases) {
+    MAX_ROWS_PER_PAGE = MAX_ROWS_PER_PAGE_REDUCED;
+  }
+  else {
+    MAX_ROWS_PER_PAGE = MAX_ROWS_PER_PAGE_MAX;
+
+  }
+
   return Excel.run(function (context) {
     var fields = model.fields;
     var sheet = context.workbook.worksheets.getActiveWorksheet(),
@@ -4687,6 +4710,17 @@ function resetSheet(model, currentSheet) {
     }
   }
   else {
+
+    //Reduce the pagination size if retrieving Test Cases 
+    var MAX_ROWS_PER_PAGE = 0;
+    if (model.currentArtifact.id == params.artifactEnums.testCases) {
+      MAX_ROWS_PER_PAGE = MAX_ROWS_PER_PAGE_REDUCED;
+    }
+    else {
+      MAX_ROWS_PER_PAGE = MAX_ROWS_PER_PAGE_MAX;
+
+    }
+
     Excel.run(function (ctx) {
       var fields = model.fields;
       //complete data range from old data
@@ -4716,6 +4750,17 @@ function resetSheet(model, currentSheet) {
 // @param: fieldTypeEnums - enum of fieldTypes used
 async function getDataFromSpiraExcel(model, fieldTypeEnums) {
   // 1. get from spira
+
+  //Reduce the pagination size if retrieving Test Cases 
+  var MAX_ROWS_PER_PAGE = 0;
+  if (model.currentArtifact.id == params.artifactEnums.testCases) {
+    MAX_ROWS_PER_PAGE = MAX_ROWS_PER_PAGE_REDUCED;
+  }
+  else {
+    MAX_ROWS_PER_PAGE = MAX_ROWS_PER_PAGE_MAX;
+
+  }
+
   // note we don't do this by getting the count of each artifact first, because of a bug in getting the release count
   var multiplier = (MAX_ROWS_PER_PAGE / GET_PAGINATION_SIZE) * (model.selectedPage - 1);
   var results = {};
