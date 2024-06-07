@@ -77,7 +77,8 @@ var API_BASE = '/services/v6_0/RestService.svc/',
   INITIAL_HIERARCHY_OUTDENT = -20,
   GET_PAGINATION_SIZE = 100,
   MAX_ROWS_PER_PAGE_MAX = 2000,
-  MAX_ROWS_PER_PAGE_REDUCED = 200, //USED FOR TCs
+  MAX_ROWS_PER_PAGE_REDUCED = 200, //Used for complex artifacts: TCs
+  MAX_ROWS_PER_PAGE_SENDING = 64000, //Higher value for sending data
   ARTIFACT_MAX_PAGES = 999,
   FIELD_MANAGEMENT_ENUMS = {
     all: 1,
@@ -2249,7 +2250,7 @@ async function sendToSpira(model, fieldTypeEnums, isUpdate) {
   } else {
     return await Excel.run({ delayForCellEdit: true }, function (context) {
       var sheet = context.workbook.worksheets.getActiveWorksheet(),
-        sheetRange = sheet.getRangeByIndexes(1, 0, MAX_ROWS_PER_PAGE_MAX, fields.length);
+        sheetRange = sheet.getRangeByIndexes(1, 0, MAX_ROWS_PER_PAGE_SENDING, fields.length);
       sheet.load("name");
       sheetRange.load("values");
 
